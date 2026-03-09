@@ -1,0 +1,1435 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#000000">
+<title>My Box TV — L'IPTV Premium N°1</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600;700;900&family=Bebas+Neue&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<script src="https://cdn.fedapay.com/checkout.js?v=1.1.7"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root {
+  --red: #e50914;
+  --red2: #ff2030;
+  --red-glow: rgba(229,9,20,0.5);
+  --red-dim: rgba(229,9,20,0.12);
+  --gold: #ffd700;
+  --blue: #00aaff;
+  --cyan: #00ffee;
+  --green: #2ecc71;
+  --orange: #f39c12;
+  --bg: #030303;
+  --surface: #0a0a0a;
+  --surface2: #111111;
+  --surface3: #191919;
+  --border: rgba(255,255,255,0.06);
+  --border-red: rgba(229,9,20,0.3);
+  --text: #ffffff;
+  --muted: #555;
+  --muted2: #888;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{font-family:'Exo 2',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
+
+/* ===================== CURSOR ===================== */
+.cursor{position:fixed;width:20px;height:20px;border:2px solid var(--red);border-radius:50%;pointer-events:none;z-index:9999;transition:transform 0.1s,opacity 0.3s;mix-blend-mode:difference}
+.cursor-dot{position:fixed;width:6px;height:6px;background:var(--red);border-radius:50%;pointer-events:none;z-index:9999;transition:transform 0.05s}
+
+/* ===================== PRELOADER ===================== */
+#preloader{position:fixed;inset:0;background:#000;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 0.8s ease}
+#preloader.hide{opacity:0;pointer-events:none}
+.pre-logo{font-family:'Orbitron',sans-serif;font-size:42px;font-weight:900;letter-spacing:6px;animation:preGlow 1s ease infinite alternate}
+.pre-logo span{color:var(--red)}
+@keyframes preGlow{from{text-shadow:0 0 20px var(--red-glow)}to{text-shadow:0 0 60px var(--red-glow),0 0 100px var(--red-glow)}}
+.pre-bar-wrap{width:280px;height:2px;background:#1a1a1a;border-radius:2px;margin-top:40px;overflow:hidden}
+.pre-bar{height:100%;width:0;background:linear-gradient(90deg,#e50914,#ff6b6b);border-radius:2px;animation:preLoad 2s ease forwards}
+@keyframes preLoad{0%{width:0}60%{width:80%}100%{width:100%}}
+.pre-text{font-size:11px;color:#444;letter-spacing:3px;margin-top:16px;font-family:'Orbitron',sans-serif}
+
+/* ===================== THREE.JS CANVAS ===================== */
+#hero-canvas{position:absolute;inset:0;z-index:0}
+
+/* ===================== NAV ===================== */
+nav{position:fixed;top:0;left:0;right:0;z-index:500;height:70px;background:rgba(3,3,3,0.85);backdrop-filter:blur(24px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 50px;transition:all 0.3s}
+nav.scrolled{background:rgba(3,3,3,0.97);box-shadow:0 4px 40px rgba(229,9,20,0.08)}
+.nav-logo{display:flex;align-items:center;gap:12px;font-family:'Orbitron',sans-serif;font-size:14px;font-weight:900;letter-spacing:3px;text-decoration:none;color:white}
+.logo-box{width:38px;height:38px;background:var(--red);border-radius:9px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 24px var(--red-glow);font-size:17px;animation:logoPulse 3s ease infinite}
+@keyframes logoPulse{0%,100%{box-shadow:0 0 24px var(--red-glow)}50%{box-shadow:0 0 48px var(--red-glow),0 0 80px rgba(229,9,20,0.2)}}
+.nav-dot{color:var(--red)}
+.nav-links{display:flex;gap:32px;align-items:center}
+.nav-links a{font-size:11px;font-weight:700;color:var(--muted2);text-decoration:none;letter-spacing:1px;text-transform:uppercase;transition:color 0.2s;position:relative}
+.nav-links a::after{content:'';position:absolute;bottom:-4px;left:0;width:0;height:1px;background:var(--red);transition:width 0.3s}
+.nav-links a:hover{color:white}
+.nav-links a:hover::after{width:100%}
+.nav-links a.active{color:var(--red)}
+.nav-cta{background:var(--red);color:white;padding:10px 22px;border-radius:30px;font-size:11px;font-weight:700;letter-spacing:1px;text-decoration:none;text-transform:uppercase;transition:all 0.3s;box-shadow:0 4px 20px var(--red-glow)}
+.nav-cta:hover{transform:translateY(-2px);box-shadow:0 8px 32px var(--red-glow)}
+.hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:8px}
+.hamburger span{display:block;width:24px;height:2px;background:white;transition:all 0.3s}
+
+/* ===================== HERO ===================== */
+#hero{position:relative;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;text-align:center;padding:100px 40px 80px}
+.hero-label{font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;color:var(--red);letter-spacing:5px;margin-bottom:28px;display:inline-flex;align-items:center;gap:10px;background:rgba(229,9,20,0.08);border:1px solid rgba(229,9,20,0.2);padding:8px 20px;border-radius:30px;animation:fadeUp 0.7s ease both}
+.hero-label .dot{width:6px;height:6px;background:var(--red);border-radius:50%;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+.hero h1{font-family:'Orbitron',sans-serif;font-size:clamp(40px,7vw,96px);font-weight:900;line-height:1.0;letter-spacing:-2px;margin-bottom:24px;animation:fadeUp 0.7s 0.15s ease both}
+.hero h1 .red{color:var(--red);text-shadow:0 0 60px var(--red-glow)}
+.hero h1 .outline{-webkit-text-stroke:2px white;color:transparent}
+.hero-sub{font-size:18px;color:var(--muted2);max-width:600px;margin:0 auto 48px;line-height:1.8;animation:fadeUp 0.7s 0.25s ease both;font-weight:300}
+.hero-sub strong{color:white;font-weight:700}
+.hero-btns{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;animation:fadeUp 0.7s 0.35s ease both}
+.btn-hero-main{background:var(--red);color:white;padding:18px 40px;border-radius:50px;font-size:13px;font-weight:700;letter-spacing:1.5px;text-decoration:none;text-transform:uppercase;transition:all 0.3s;box-shadow:0 8px 32px var(--red-glow);position:relative;overflow:hidden}
+.btn-hero-main::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,0.2),transparent);opacity:0;transition:opacity 0.3s}
+.btn-hero-main:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 16px 48px var(--red-glow)}
+.btn-hero-main:hover::before{opacity:1}
+.btn-hero-sec{background:rgba(255,255,255,0.05);color:white;padding:18px 40px;border-radius:50px;font-size:13px;font-weight:700;letter-spacing:1.5px;text-decoration:none;text-transform:uppercase;transition:all 0.3s;border:1px solid rgba(255,255,255,0.15);backdrop-filter:blur(10px)}
+.btn-hero-sec:hover{background:rgba(255,255,255,0.1);transform:translateY(-3px)}
+
+/* FLOATING SCREENS */
+.float-screens{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:1}
+.fscreen{position:absolute;border-radius:16px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.8);border:1px solid rgba(255,255,255,0.1);animation:floatAnim linear infinite}
+.fscreen img{width:100%;height:100%;object-fit:cover;opacity:0.7}
+.fscreen::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(229,9,20,0.1),rgba(0,0,0,0.3))}
+@keyframes floatAnim{0%{transform:translateY(0) rotate(var(--rot)) scale(1)}50%{transform:translateY(-20px) rotate(var(--rot)) scale(1.02)}100%{transform:translateY(0) rotate(var(--rot)) scale(1)}}
+.fscreen:nth-child(1){width:220px;height:140px;top:15%;left:4%;--rot:-5deg;animation-duration:8s}
+.fscreen:nth-child(2){width:180px;height:115px;top:60%;left:2%;--rot:4deg;animation-duration:11s;animation-delay:-3s}
+.fscreen:nth-child(3){width:200px;height:130px;top:20%;right:4%;--rot:6deg;animation-duration:9s;animation-delay:-5s}
+.fscreen:nth-child(4){width:170px;height:108px;top:65%;right:3%;--rot:-4deg;animation-duration:12s;animation-delay:-2s}
+.fscreen:nth-child(5){width:140px;height:90px;top:40%;left:8%;--rot:3deg;animation-duration:10s;animation-delay:-7s;opacity:0.5}
+
+/* HERO SCROLL */
+.scroll-hint{position:absolute;bottom:40px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--muted);font-size:10px;letter-spacing:2px;animation:fadeUp 1s 0.8s ease both}
+.scroll-arrow{width:24px;height:24px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);animation:scrollBounce 2s infinite}
+@keyframes scrollBounce{0%,100%{transform:rotate(45deg) translateY(0)}50%{transform:rotate(45deg) translateY(6px)}}
+
+/* STATS STRIP */
+.stats-strip{position:relative;z-index:2;background:linear-gradient(135deg,rgba(229,9,20,0.08),rgba(229,9,20,0.04));border-top:1px solid var(--border-red);border-bottom:1px solid var(--border-red);padding:40px;display:flex;justify-content:center;gap:80px;flex-wrap:wrap;overflow:hidden}
+.stats-strip::before{content:'';position:absolute;left:-200px;top:-100px;width:400px;height:400px;background:radial-gradient(circle,rgba(229,9,20,0.12),transparent 70%);pointer-events:none}
+.stat-item{text-align:center}
+.stat-num{font-family:'Orbitron',sans-serif;font-size:44px;font-weight:900;background:linear-gradient(135deg,white,var(--muted2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stat-num .accent{background:linear-gradient(135deg,var(--red),#ff6b6b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stat-label{font-size:10px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;margin-top:6px}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+/* SECTION BASE */
+.section{padding:120px 0;position:relative}
+.section-inner{max-width:1200px;margin:0 auto;padding:0 40px}
+.section-label{font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;color:var(--red);letter-spacing:5px;text-transform:uppercase;margin-bottom:20px;display:flex;align-items:center;gap:12px}
+.section-label::before{content:'';width:30px;height:1px;background:var(--red)}
+.section-title{font-family:'Orbitron',sans-serif;font-size:clamp(28px,4vw,52px);font-weight:900;line-height:1.1;margin-bottom:20px}
+.section-title .red{color:var(--red)}
+.section-sub{font-size:16px;color:var(--muted2);line-height:1.8;max-width:600px}
+
+/* REVEAL */
+.reveal{opacity:0;transform:translateY(50px);transition:opacity 0.8s ease,transform 0.8s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+.reveal-left{opacity:0;transform:translateX(-60px);transition:opacity 0.8s ease,transform 0.8s ease}
+.reveal-left.visible{opacity:1;transform:translateX(0)}
+.reveal-right{opacity:0;transform:translateX(60px);transition:opacity 0.8s ease,transform 0.8s ease}
+.reveal-right.visible{opacity:1;transform:translateX(0)}
+
+/* ===================== FEATURES ===================== */
+#features{background:var(--surface)}
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:72px}
+.feat-card{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:40px 32px;position:relative;overflow:hidden;cursor:pointer;transition:all 0.4s cubic-bezier(0.175,0.885,0.32,1.275);transform-style:preserve-3d}
+.feat-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(229,9,20,0.06),transparent);opacity:0;transition:opacity 0.4s}
+.feat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--red),transparent);opacity:0;transition:opacity 0.4s}
+.feat-card:hover{transform:translateY(-8px) rotateX(3deg);border-color:var(--border-red);box-shadow:0 24px 80px rgba(229,9,20,0.15)}
+.feat-card:hover::before,.feat-card:hover::after{opacity:1}
+.feat-icon{width:64px;height:64px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:24px;position:relative}
+.feat-icon::before{content:'';position:absolute;inset:-1px;border-radius:17px;background:linear-gradient(135deg,var(--red),transparent);z-index:-1}
+.fi-red{background:rgba(229,9,20,0.12);color:var(--red)}
+.fi-blue{background:rgba(0,170,255,0.12);color:var(--blue)}
+.fi-gold{background:rgba(255,215,0,0.12);color:var(--gold)}
+.fi-green{background:rgba(46,204,113,0.12);color:var(--green)}
+.fi-cyan{background:rgba(0,255,238,0.12);color:var(--cyan)}
+.fi-orange{background:rgba(243,156,18,0.12);color:var(--orange)}
+.feat-title{font-family:'Orbitron',sans-serif;font-size:16px;font-weight:700;margin-bottom:12px}
+.feat-desc{font-size:13px;color:var(--muted2);line-height:1.8}
+.feat-num{position:absolute;bottom:20px;right:24px;font-family:'Orbitron',sans-serif;font-size:52px;font-weight:900;color:rgba(255,255,255,0.03);line-height:1}
+
+/* ===================== LIVE TV SECTION ===================== */
+#live-tv{background:var(--bg);overflow:hidden}
+.live-showcase{display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center;margin-top:80px}
+.tv-mockup-wrap{position:relative;perspective:1200px}
+.tv-mockup{background:linear-gradient(135deg,#1a1a1a,#0a0a0a);border:2px solid rgba(255,255,255,0.08);border-radius:20px;overflow:hidden;aspect-ratio:16/9;position:relative;transform:rotateY(-10deg) rotateX(3deg);box-shadow:40px 40px 100px rgba(0,0,0,0.8),-10px -10px 40px rgba(229,9,20,0.05);transition:transform 0.5s ease}
+.tv-mockup:hover{transform:rotateY(-3deg) rotateX(1deg)}
+.tv-screen-inner{width:100%;height:100%;background:#000;position:relative;overflow:hidden}
+.tv-screen-inner img{width:100%;height:100%;object-fit:cover;opacity:0.85}
+.tv-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.7) 0%,transparent 60%)}
+.tv-live-badge{position:absolute;top:16px;left:16px;background:var(--red);color:white;font-size:9px;font-weight:700;font-family:'Orbitron',sans-serif;padding:5px 12px;border-radius:20px;letter-spacing:2px;display:flex;align-items:center;gap:6px;box-shadow:0 4px 16px var(--red-glow)}
+.tv-live-dot{width:6px;height:6px;background:white;border-radius:50%;animation:blink 1s infinite}
+.tv-ch-info{position:absolute;bottom:16px;left:16px;right:16px}
+.tv-ch-name{font-family:'Orbitron',sans-serif;font-size:14px;font-weight:700;color:white;margin-bottom:4px}
+.tv-ch-cat{font-size:11px;color:rgba(255,255,255,0.6)}
+.tv-progress{width:100%;height:2px;background:rgba(255,255,255,0.15);border-radius:2px;margin-top:10px;overflow:hidden}
+.tv-progress-bar{height:100%;width:65%;background:var(--red);border-radius:2px;animation:progressPulse 4s ease infinite}
+@keyframes progressPulse{0%,100%{opacity:1}50%{opacity:0.7}}
+.tv-stand{width:80px;height:20px;background:linear-gradient(to bottom,#1a1a1a,#0d0d0d);margin:0 auto;border-radius:0 0 8px 8px;border:1px solid rgba(255,255,255,0.05);border-top:none}
+.tv-base{width:140px;height:8px;background:linear-gradient(135deg,#1a1a1a,#111);margin:0 auto;border-radius:4px;border:1px solid rgba(255,255,255,0.05)}
+.tv-reflection{position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,0.03) 0%,transparent 50%);pointer-events:none}
+.tv-glow{position:absolute;inset:-30px;background:radial-gradient(ellipse,rgba(229,9,20,0.12),transparent 70%);z-index:-1}
+
+.live-features{display:flex;flex-direction:column;gap:24px}
+.lf-item{display:flex;align-items:flex-start;gap:20px;padding:24px;background:var(--surface);border:1px solid var(--border);border-radius:16px;transition:all 0.3s}
+.lf-item:hover{border-color:var(--border-red);transform:translateX(8px)}
+.lf-icon{width:44px;height:44px;border-radius:12px;background:rgba(229,9,20,0.1);color:var(--red);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.lf-title{font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;margin-bottom:6px}
+.lf-desc{font-size:12px;color:var(--muted2);line-height:1.7}
+
+/* CHANNEL TICKER */
+.channel-ticker{background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:16px 0;overflow:hidden;position:relative;margin-top:80px}
+.ticker-track{display:flex;gap:40px;animation:ticker 30s linear infinite;white-space:nowrap}
+.ticker-item{display:flex;align-items:center;gap:10px;flex-shrink:0;font-size:12px;font-weight:600;color:var(--muted2)}
+.ticker-item img{width:28px;height:20px;object-fit:contain;border-radius:3px;background:#1a1a1a;padding:2px}
+.ticker-sep{color:var(--red);opacity:0.5}
+@keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* ===================== DEVICE SECTION ===================== */
+#devices{background:linear-gradient(180deg,var(--bg) 0%,var(--surface) 100%)}
+.devices-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-top:64px}
+.device-card{background:var(--surface2);border:1px solid var(--border);border-radius:16px;padding:32px 20px;text-align:center;transition:all 0.35s cubic-bezier(0.175,0.885,0.32,1.275);cursor:pointer;position:relative;overflow:hidden}
+.device-card::before{content:'';position:absolute;bottom:-40px;left:50%;transform:translateX(-50%);width:80px;height:80px;background:radial-gradient(circle,var(--red-glow),transparent 70%);opacity:0;transition:opacity 0.3s,bottom 0.3s}
+.device-card:hover{transform:translateY(-10px);border-color:var(--border-red);box-shadow:0 20px 60px rgba(229,9,20,0.1)}
+.device-card:hover::before{opacity:1;bottom:-20px}
+.device-icon{font-size:36px;margin-bottom:16px;display:block;transition:transform 0.3s}
+.device-card:hover .device-icon{transform:scale(1.2)}
+.di-android{color:var(--green)}
+.di-tv{color:var(--red)}
+.di-ios{color:#ccc}
+.di-windows{color:var(--blue)}
+.di-fire{color:#ff6400}
+.device-name{font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;margin-bottom:8px}
+.device-badge{font-size:9px;color:var(--red);background:rgba(229,9,20,0.1);padding:3px 8px;border-radius:10px;font-weight:600}
+
+/* ===================== STORE SECTION ===================== */
+#store{background:var(--surface)}
+.store-filter-bar{display:flex;gap:10px;flex-wrap:wrap;margin:48px 0 32px;justify-content:center}
+.dev-btn{display:flex;align-items:center;gap:8px;padding:11px 20px;border-radius:30px;border:1px solid var(--border);background:var(--surface2);color:var(--muted2);font-size:11px;font-weight:700;cursor:pointer;transition:all 0.25s;font-family:'Exo 2',sans-serif;letter-spacing:0.5px}
+.dev-btn:hover{border-color:#444;color:white}
+.dev-btn.active{background:var(--red);border-color:var(--red);color:white;box-shadow:0 4px 24px var(--red-glow)}
+.dev-btn i{font-size:14px}
+.store-search{position:relative;max-width:400px;margin:0 auto 48px}
+.store-search input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:30px;padding:14px 44px 14px 22px;color:white;font-family:'Exo 2',sans-serif;font-size:13px;transition:all 0.3s}
+.store-search input:focus{border-color:var(--red);outline:none;box-shadow:0 0 0 3px rgba(229,9,20,0.12)}
+.store-search i{position:absolute;right:18px;top:50%;transform:translateY(-50%);color:var(--muted)}
+::placeholder{color:#333}
+.apps-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px}
+.app-card{background:var(--surface2);border:1px solid var(--border);border-radius:18px;overflow:hidden;transition:all 0.3s cubic-bezier(0.175,0.885,0.32,1.275);animation:fadeUp 0.5s ease both;position:relative}
+.app-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--red),transparent);opacity:0;transition:opacity 0.3s}
+.app-card:hover{transform:translateY(-6px);border-color:var(--border-red);box-shadow:0 20px 60px rgba(229,9,20,0.12)}
+.app-card:hover::before{opacity:1}
+.card-header{padding:24px 24px 16px;display:flex;align-items:flex-start;gap:16px}
+.app-icon{width:58px;height:58px;flex-shrink:0;border-radius:14px;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:24px;overflow:hidden;border:1px solid var(--border)}
+.app-icon img{width:100%;height:100%;object-fit:contain;border-radius:14px}
+.app-info{flex:1;min-width:0}
+.app-name{font-family:'Orbitron',sans-serif;font-size:14px;font-weight:700;margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.app-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.badge{font-size:9px;font-weight:700;font-family:'Orbitron',sans-serif;padding:3px 10px;border-radius:20px;letter-spacing:1px}
+.badge-stable{background:rgba(46,204,113,0.1);color:var(--green);border:1px solid rgba(46,204,113,0.2)}
+.badge-beta{background:rgba(243,156,18,0.1);color:var(--orange);border:1px solid rgba(243,156,18,0.2)}
+.badge-test{background:rgba(0,170,255,0.1);color:var(--blue);border:1px solid rgba(0,170,255,0.2)}
+.version-label{font-size:11px;color:var(--muted);font-family:'Orbitron',sans-serif}
+.card-notes{padding:0 24px 16px;font-size:12px;color:var(--muted2);line-height:1.7;border-bottom:1px solid var(--border)}
+.card-downloads{padding:16px 24px 20px}
+.downloads-label{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.dl-buttons{display:flex;flex-direction:column;gap:8px}
+.dl-btn-link{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:10px;border:1px solid var(--border);background:var(--surface3);color:var(--text);text-decoration:none;transition:all 0.2s;cursor:pointer}
+.dl-btn-link:hover{border-color:var(--red);background:var(--red-dim);transform:translateX(5px)}
+.dl-btn-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.dl-btn-info{flex:1;min-width:0}
+.dl-btn-name{font-size:12px;font-weight:700}
+.dl-btn-sub{font-size:10px;color:var(--muted);margin-top:2px}
+.dl-btn-arrow{color:var(--muted);font-size:11px;transition:all 0.2s}
+.dl-btn-link:hover .dl-btn-arrow{transform:translateX(4px);color:var(--red)}
+.icon-apk{background:rgba(46,204,113,0.12);color:#2ecc71}
+.icon-tv{background:rgba(229,9,20,0.12);color:var(--red)}
+.icon-ios{background:rgba(255,255,255,0.06);color:#ccc}
+.icon-exe{background:rgba(0,170,255,0.12);color:var(--blue)}
+.icon-web{background:rgba(243,156,18,0.12);color:var(--orange)}
+.icon-firetv{background:rgba(255,100,0,0.12);color:#ff6400}
+.icon-mac{background:rgba(255,255,255,0.06);color:#ccc}
+.card-date{padding:8px 24px 16px;font-size:10px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.state-box{text-align:center;padding:80px 20px;color:var(--muted);grid-column:1/-1}
+.state-box i{font-size:52px;margin-bottom:20px;display:block}
+@keyframes pulse{0%,100%{opacity:0.3}50%{opacity:1}}
+.loading-dots span{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--red);margin:0 3px;animation:pulse 1.2s ease infinite}
+.loading-dots span:nth-child(2){animation-delay:0.2s}
+.loading-dots span:nth-child(3){animation-delay:0.4s}
+
+/* ===================== PRICING ===================== */
+#pricing{background:var(--bg);overflow:hidden}
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:72px;align-items:center}
+.price-card{background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:48px 36px;position:relative;overflow:hidden;transition:all 0.4s cubic-bezier(0.175,0.885,0.32,1.275)}
+.price-card.featured{background:linear-gradient(135deg,rgba(229,9,20,0.08),rgba(229,9,20,0.02));border-color:var(--red);box-shadow:0 0 60px rgba(229,9,20,0.12),0 40px 80px rgba(0,0,0,0.5);transform:scale(1.05);z-index:2}
+.price-card:hover{transform:translateY(-8px);border-color:var(--border-red)}
+.price-card.featured:hover{transform:scale(1.05) translateY(-8px)}
+.price-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,var(--border),transparent)}
+.price-card.featured::before{background:linear-gradient(90deg,transparent,var(--red),transparent)}
+.price-badge{position:absolute;top:24px;right:24px;background:var(--red);color:white;font-size:9px;font-weight:700;font-family:'Orbitron',sans-serif;padding:5px 12px;border-radius:20px;letter-spacing:1px}
+.price-plan{font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;color:var(--muted2);letter-spacing:3px;margin-bottom:16px;text-transform:uppercase}
+.price-amount{font-family:'Orbitron',sans-serif;font-size:54px;font-weight:900;line-height:1;margin-bottom:6px}
+.price-amount .currency{font-size:24px;vertical-align:super;color:var(--muted2);margin-right:4px;font-size:22px;font-weight:600}
+.price-amount .period{font-size:14px;color:var(--muted2);font-weight:400}
+.price-amount.red{color:var(--red)}
+.price-desc{font-size:13px;color:var(--muted2);margin-bottom:36px;line-height:1.7}
+.price-features{list-style:none;display:flex;flex-direction:column;gap:14px;margin-bottom:40px}
+.price-features li{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--muted2)}
+.price-features li i{color:var(--green);width:16px;flex-shrink:0;font-size:12px}
+.price-features li.off{color:#333}
+.price-features li.off i{color:#2a2a2a}
+.btn-price{display:block;text-align:center;padding:16px;border-radius:50px;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;text-decoration:none;text-transform:uppercase;transition:all 0.3s}
+.btn-price-outline{border:1px solid var(--border-red);color:var(--red);background:transparent}
+.btn-price-outline:hover{background:rgba(229,9,20,0.08)}
+.btn-price-fill{background:var(--red);color:white;box-shadow:0 8px 32px var(--red-glow)}
+.btn-price-fill:hover{transform:translateY(-2px);box-shadow:0 16px 48px var(--red-glow)}
+.btn-price-ghost{border:1px solid var(--border);color:var(--muted2);background:transparent}
+.btn-price-ghost:hover{border-color:#444;color:white}
+
+/* ===================== TESTIMONIALS ===================== */
+#testimonials{background:var(--surface);position:relative;overflow:hidden}
+.testi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:72px}
+.testi-card{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:36px;position:relative;transition:all 0.3s}
+.testi-card:hover{border-color:var(--border-red);transform:translateY(-6px)}
+.testi-quote{font-size:48px;line-height:1;color:var(--red);margin-bottom:20px;font-family:Georgia,serif;opacity:0.5}
+.testi-text{font-size:14px;color:var(--muted2);line-height:1.9;margin-bottom:28px;font-style:italic}
+.testi-author{display:flex;align-items:center;gap:14px}
+.testi-avatar{width:46px;height:46px;border-radius:50%;object-fit:cover;border:2px solid var(--border-red)}
+.testi-name{font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;margin-bottom:4px}
+.testi-role{font-size:11px;color:var(--muted)}
+.testi-stars{color:var(--gold);font-size:11px;margin-bottom:8px}
+
+/* ===================== MARQUEE ===================== */
+.marquee-section{background:var(--red);padding:18px 0;overflow:hidden}
+.marquee-track{display:flex;gap:60px;animation:marqueeTicker 20s linear infinite;white-space:nowrap}
+.marquee-item{font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;color:white;flex-shrink:0;display:flex;align-items:center;gap:20px}
+.marquee-item::after{content:'★';opacity:0.5}
+@keyframes marqueeTicker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* ===================== FAQ ===================== */
+#faq{background:var(--bg)}
+.faq-list{max-width:800px;margin:72px auto 0;display:flex;flex-direction:column;gap:12px}
+.faq-item{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;transition:all 0.3s}
+.faq-item.open{border-color:var(--border-red)}
+.faq-q{padding:24px 28px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;letter-spacing:0.5px;transition:color 0.3s}
+.faq-q:hover{color:var(--red)}
+.faq-item.open .faq-q{color:var(--red)}
+.faq-arrow{transition:transform 0.3s;color:var(--muted);flex-shrink:0}
+.faq-item.open .faq-arrow{transform:rotate(180deg);color:var(--red)}
+.faq-a{max-height:0;overflow:hidden;transition:max-height 0.4s ease,padding 0.3s ease}
+.faq-item.open .faq-a{max-height:300px;padding:0 28px 24px}
+.faq-a p{font-size:14px;color:var(--muted2);line-height:1.8}
+
+/* ===================== CTA FINAL ===================== */
+#cta-final{position:relative;padding:160px 40px;text-align:center;overflow:hidden}
+.cta-bg{position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 50%,rgba(229,9,20,0.2) 0%,transparent 70%)}
+.cta-glow-1{position:absolute;top:-200px;left:-200px;width:600px;height:600px;background:radial-gradient(circle,rgba(229,9,20,0.08),transparent 70%);animation:gRotate 15s linear infinite}
+.cta-glow-2{position:absolute;bottom:-200px;right:-200px;width:500px;height:500px;background:radial-gradient(circle,rgba(0,170,255,0.06),transparent 70%);animation:gRotate 20s linear infinite reverse}
+@keyframes gRotate{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+#cta-final h2{font-family:'Orbitron',sans-serif;font-size:clamp(32px,5vw,68px);font-weight:900;margin-bottom:24px;position:relative;z-index:1}
+#cta-final h2 .red{color:var(--red);text-shadow:0 0 60px var(--red-glow)}
+#cta-final p{font-size:18px;color:var(--muted2);max-width:500px;margin:0 auto 48px;position:relative;z-index:1;line-height:1.8}
+
+/* ===================== FOOTER ===================== */
+footer{background:var(--surface);border-top:1px solid var(--border);padding:80px 40px 40px;position:relative}
+.footer-grid{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:60px;margin-bottom:60px}
+.footer-brand .footer-logo{font-family:'Orbitron',sans-serif;font-size:20px;font-weight:900;letter-spacing:3px;margin-bottom:16px}
+.footer-logo span{color:var(--red)}
+.footer-brand p{font-size:13px;color:var(--muted2);line-height:1.8;max-width:280px}
+.footer-social{display:flex;gap:12px;margin-top:24px}
+.social-btn{width:38px;height:38px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;text-decoration:none;transition:all 0.3s}
+.social-btn:hover{background:var(--red);border-color:var(--red);color:white;transform:translateY(-3px)}
+.footer-col h4{font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;color:white;margin-bottom:24px;text-transform:uppercase}
+.footer-col a{display:block;font-size:13px;color:var(--muted2);text-decoration:none;margin-bottom:12px;transition:color 0.2s}
+.footer-col a:hover{color:var(--red)}
+.footer-bottom{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;padding-top:40px;border-top:1px solid var(--border);font-size:12px;color:var(--muted)}
+.footer-bottom .red{color:var(--red)}
+
+/* TOAST */
+#toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 24px;font-size:13px;font-weight:600;z-index:9999;transition:all 0.4s;opacity:0;pointer-events:none}
+#toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+#toast.ok{border-color:var(--green)}
+
+/* DIVIDER */
+.divider{width:80px;height:2px;background:linear-gradient(90deg,transparent,var(--red),transparent);margin:60px auto}
+
+/* ===================== NOVELAS BG VIDEO ===================== */
+#novelas-bg{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
+#novelas-bg video{width:100%;height:100%;object-fit:cover;opacity:0.18;filter:blur(2px) saturate(0.6)}
+#novelas-bg::after{content:'';position:absolute;inset:0;background:rgba(3,3,3,0.82)}
+
+/* ===================== FEDAPAY MODAL ===================== */
+.fp-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:8000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(12px)}
+.fp-overlay.open{display:flex}
+.fp-box{background:#0e0e0e;border:1px solid rgba(229,9,20,0.3);border-radius:24px;padding:40px;max-width:440px;width:calc(100% - 40px);position:relative;box-shadow:0 0 80px rgba(229,9,20,0.15)}
+.fp-close{position:absolute;top:16px;right:20px;background:none;border:none;color:#555;font-size:22px;cursor:pointer;transition:color 0.2s}
+.fp-close:hover{color:white}
+.fp-title{font-family:'Orbitron',sans-serif;font-size:16px;font-weight:900;letter-spacing:2px;margin-bottom:28px;display:flex;align-items:center;gap:10px}
+.fp-title .crown{color:gold}
+.fp-label{font-size:11px;color:#666;letter-spacing:1px;margin-bottom:8px;text-transform:uppercase}
+.fp-select{width:100%;padding:13px 16px;background:#151515;border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:white;font-family:'Exo 2',sans-serif;font-size:13px;margin-bottom:18px;cursor:pointer;transition:border-color 0.2s}
+.fp-select:focus{border-color:var(--red);outline:none}
+.fp-price-box{background:#050505;border:1px solid rgba(46,204,113,0.25);padding:20px;border-radius:14px;margin:20px 0;text-align:center}
+.fp-price-label{font-size:10px;color:#555;letter-spacing:2px;margin-bottom:8px}
+.fp-price-amount{font-family:'Orbitron',sans-serif;font-size:36px;font-weight:900;color:#2ecc71}
+.fp-price-currency{font-size:14px;color:#2ecc71;font-weight:400;margin-left:4px}
+.fp-btn-pay{width:100%;padding:16px;border-radius:50px;background:linear-gradient(135deg,#0066ff,#0044cc);border:none;color:white;font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all 0.3s;box-shadow:0 8px 32px rgba(0,102,255,0.3);margin-bottom:10px}
+.fp-btn-pay:hover{transform:translateY(-2px);box-shadow:0 16px 40px rgba(0,102,255,0.4)}
+.fp-btn-pay:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+.fp-btn-cancel{width:100%;padding:14px;border-radius:50px;background:transparent;border:1px solid rgba(255,255,255,0.1);color:#666;font-family:'Exo 2',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s}
+.fp-btn-cancel:hover{border-color:#444;color:white}
+.fp-info-strip{display:flex;justify-content:center;gap:24px;margin-top:20px;flex-wrap:wrap}
+.fp-info-item{display:flex;align-items:center;gap:6px;font-size:11px;color:#444}
+.fp-info-item i{color:#555}
+
+/* SUCCESS MODAL */
+.fp-success-box{background:#0e0e0e;border:1px solid rgba(46,204,113,0.3);border-radius:24px;padding:48px 40px;max-width:440px;width:calc(100% - 40px);text-align:center;box-shadow:0 0 80px rgba(46,204,113,0.1)}
+.fp-success-icon{font-size:64px;color:#2ecc71;margin-bottom:20px;animation:bounceIn 0.6s ease}
+@keyframes bounceIn{0%{transform:scale(0)}80%{transform:scale(1.1)}100%{transform:scale(1)}}
+.fp-success-title{font-family:'Orbitron',sans-serif;font-size:20px;font-weight:900;color:#2ecc71;margin-bottom:12px}
+.fp-success-text{font-size:13px;color:#888;line-height:1.8;margin-bottom:28px}
+.fp-id-box{background:#050505;border:2px dashed rgba(46,204,113,0.3);padding:20px;border-radius:14px;margin-bottom:24px}
+.fp-id-label{font-size:10px;color:#555;letter-spacing:2px;margin-bottom:10px}
+.fp-id-value{font-family:'Orbitron',sans-serif;font-size:28px;font-weight:900;color:white;letter-spacing:4px}
+.fp-btn-copy{width:100%;padding:14px;border-radius:50px;background:#1a1a1a;border:1px solid rgba(255,255,255,0.1);color:#ccc;font-family:'Exo 2',sans-serif;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:10px;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.fp-btn-copy:hover{background:#222;color:white}
+.fp-btn-watch{width:100%;padding:16px;border-radius:50px;background:var(--red);border:none;color:white;font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 8px 32px var(--red-glow);transition:all 0.3s}
+.fp-btn-watch:hover{transform:translateY(-2px);box-shadow:0 16px 40px var(--red-glow)}
+
+/* APP RELIABILITY BANNER */
+.app-reliability-banner{background:linear-gradient(135deg,rgba(255,215,0,0.06),rgba(229,9,20,0.04));border:1px solid rgba(255,215,0,0.2);border-radius:16px;padding:20px 28px;margin:32px 0;display:flex;align-items:center;gap:16px}
+.arb-icon{font-size:28px;flex-shrink:0}
+.arb-text{font-size:13px;color:var(--muted2);line-height:1.7}
+.arb-text strong{color:var(--gold)}
+  .features-grid{grid-template-columns:repeat(2,1fr)}
+  .devices-grid{grid-template-columns:repeat(3,1fr)}
+  .pricing-grid{grid-template-columns:1fr;gap:16px}
+  .price-card.featured{transform:none}
+  .footer-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:768px){
+  nav{padding:0 20px}
+  .nav-links{display:none}
+  .hamburger{display:flex}
+  #hero{padding:100px 20px 60px}
+  .fscreen{display:none}
+  .features-grid{grid-template-columns:1fr}
+  .live-showcase{grid-template-columns:1fr}
+  .devices-grid{grid-template-columns:repeat(2,1fr)}
+  .testi-grid{grid-template-columns:1fr}
+  .footer-grid{grid-template-columns:1fr}
+  .section-inner{padding:0 20px}
+  .stats-strip{gap:32px}
+  .footer-bottom{flex-direction:column;gap:12px;text-align:center}
+  .apps-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- CUSTOM CURSOR -->
+<div class="cursor" id="cursor"></div>
+<div class="cursor-dot" id="cursorDot"></div>
+
+<!-- NOVELAS TV BACKGROUND VIDEO -->
+<div id="novelas-bg">
+  <video id="novelas-video" autoplay muted loop playsinline crossorigin="anonymous"></video>
+</div>
+
+<!-- FEDAPAY SUBSCRIBE MODAL -->
+<div class="fp-overlay" id="fp-subscribe">
+  <div class="fp-box">
+    <button class="fp-close" onclick="closeFPModal()"><i class="fas fa-times"></i></button>
+    <div class="fp-title"><span class="crown">👑</span> S'ABONNER À MY BOX TV</div>
+
+    <div class="fp-label">Durée d'abonnement</div>
+    <select id="fp-days" class="fp-select" onchange="fpUpdatePrice()">
+      <option value="30">1 Mois</option>
+      <option value="90">3 Mois</option>
+      <option value="365">1 An (2 mois offerts 🎁)</option>
+    </select>
+
+    <div class="fp-label">Nombre d'écrans simultanés</div>
+    <select id="fp-screens" class="fp-select" onchange="fpUpdatePrice()">
+      <option value="1">1 Écran — Essentiel</option>
+      <option value="2">2 Écrans — Premium</option>
+      <option value="4">4 Écrans — Famille / Pro</option>
+    </select>
+
+    <div class="fp-price-box">
+      <div class="fp-price-label">MONTANT À PAYER</div>
+      <div class="fp-price-amount" id="fp-price">300<span class="fp-price-currency">FCFA</span></div>
+    </div>
+
+    <button class="fp-btn-pay" id="fp-btn-pay" onclick="fpPay()">
+      <i class="fas fa-credit-card"></i> PAYER AVEC FEDAPAY
+    </button>
+    <button class="fp-btn-cancel" onclick="closeFPModal()">Annuler</button>
+
+    <div class="fp-info-strip">
+      <div class="fp-info-item"><i class="fas fa-lock"></i> Paiement sécurisé</div>
+      <div class="fp-info-item"><i class="fas fa-shield-alt"></i> Remboursement 7j</div>
+      <div class="fp-info-item"><i class="fas fa-bolt"></i> Accès immédiat</div>
+    </div>
+  </div>
+</div>
+
+<!-- FEDAPAY SUCCESS MODAL -->
+<div class="fp-overlay" id="fp-success">
+  <div class="fp-success-box">
+    <div class="fp-success-icon">✅</div>
+    <div class="fp-success-title">PAIEMENT RÉUSSI !</div>
+    <p class="fp-success-text">Votre compte a été activé avec succès.<br>Votre reçu PDF a été téléchargé automatiquement.</p>
+
+    <div class="fp-id-box">
+      <div class="fp-id-label">VOTRE ID DE CONNEXION</div>
+      <div class="fp-id-value" id="fp-new-id">...</div>
+    </div>
+
+    <button class="fp-btn-copy" onclick="fpCopyId()">
+      <i class="fas fa-copy"></i> COPIER L'ID
+    </button>
+    <button class="fp-btn-watch" onclick="fpGoWatch()">
+      <i class="fas fa-tv"></i> ACCÉDER À LA TV EN DIRECT
+    </button>
+  </div>
+</div>
+
+<!-- PRELOADER -->
+<div id="preloader">
+  <div class="pre-logo">MY BOX<span>TV</span></div>
+  <div class="pre-bar-wrap"><div class="pre-bar"></div></div>
+  <div class="pre-text">CHARGEMENT EN COURS...</div>
+</div>
+
+<!-- NAVBAR -->
+<nav id="navbar">
+  <a class="nav-logo" href="#">
+    <div class="logo-box"><i class="fas fa-tv"></i></div>
+    MY BOX<span class="nav-dot">TV</span>
+  </a>
+  <div class="nav-links">
+    <a href="#features">Fonctionnalités</a>
+    <a href="#live-tv">Live TV</a>
+    <a href="#store">Store</a>
+    <a href="#pricing">Abonnements</a>
+    <a href="#faq">FAQ</a>
+    <a href="#pricing" class="nav-cta">Démarrer</a>
+  </div>
+  <div class="hamburger" onclick="toggleMenu()">
+    <span></span><span></span><span></span>
+  </div>
+</nav>
+
+<!-- MOBILE MENU -->
+<div id="mobile-menu" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.98);z-index:450;flex-direction:column;align-items:center;justify-content:center;gap:40px">
+  <a href="#features" onclick="toggleMenu()" style="font-family:'Orbitron',sans-serif;font-size:24px;font-weight:700;color:white;text-decoration:none">Fonctionnalités</a>
+  <a href="#live-tv" onclick="toggleMenu()" style="font-family:'Orbitron',sans-serif;font-size:24px;font-weight:700;color:white;text-decoration:none">Live TV</a>
+  <a href="#store" onclick="toggleMenu()" style="font-family:'Orbitron',sans-serif;font-size:24px;font-weight:700;color:white;text-decoration:none">Store</a>
+  <a href="#pricing" onclick="toggleMenu()" style="font-family:'Orbitron',sans-serif;font-size:24px;font-weight:700;color:var(--red);text-decoration:none">Abonnements</a>
+  <a href="#faq" onclick="toggleMenu()" style="font-family:'Orbitron',sans-serif;font-size:24px;font-weight:700;color:white;text-decoration:none">FAQ</a>
+</div>
+
+<!-- ==================== HERO ==================== -->
+<section id="hero">
+  <canvas id="hero-canvas"></canvas>
+
+  <!-- Floating TV Screens -->
+  <div class="float-screens">
+    <div class="fscreen"><img src="https://images.unsplash.com/photo-1598899134739-24c46f58b8c0?w=400&q=80" alt="TV"></div>
+    <div class="fscreen"><img src="https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=400&q=80" alt="Cinema"></div>
+    <div class="fscreen"><img src="https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=400&q=80" alt="Tech"></div>
+    <div class="fscreen"><img src="https://images.unsplash.com/photo-1593359677879-a4bb92f4834c?w=400&q=80" alt="Screen"></div>
+    <div class="fscreen"><img src="https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&q=80" alt="Stream"></div>
+  </div>
+
+  <div style="position:relative;z-index:2">
+    <span class="hero-label"><span class="dot"></span> STREAMING IPTV PREMIUM &nbsp;·&nbsp; N°1 EN AFRIQUE & FRANCE</span>
+    <h1>L'UNIVERS TV<br>SANS <span class="red">LIMITES</span><br><span class="outline">REDÉFINI</span></h1>
+    <p class="hero-sub">Plus de <strong>40 000 chaînes</strong> live dont <strong>Novelas TV, Ivoir+</strong> & vos préférées.<br>Un seul abonnement, <strong>tous vos écrans.</strong></p>
+    <div class="hero-btns">
+      <a href="#pricing" class="btn-hero-main" onclick="openFPModal(event)"><i class="fas fa-play" style="margin-right:10px"></i>Commencer Maintenant</a>
+      <a href="https://myboxtv.pages.dev/" target="_blank" class="btn-hero-sec"><i class="fas fa-broadcast-tower" style="margin-right:10px"></i>Regarder en Direct</a>
+    </div>
+  </div>
+
+  <div class="scroll-hint">
+    <span>DÉFILER</span>
+    <div class="scroll-arrow"></div>
+  </div>
+</section>
+
+<!-- STATS STRIP -->
+<div class="stats-strip">
+  <div class="stat-item reveal">
+    <div class="stat-num"><span class="counter accent" data-target="40000">0</span><span class="accent">+</span></div>
+    <div class="stat-label">Chaînes Live</div>
+  </div>
+  <div class="stat-item reveal" style="transition-delay:0.1s">
+    <div class="stat-num"><span class="counter" data-target="150000">0</span><span style="color:var(--muted2)">+</span></div>
+    <div class="stat-label">Films & Séries</div>
+  </div>
+  <div class="stat-item reveal" style="transition-delay:0.2s">
+    <div class="stat-num"><span class="counter accent" data-target="195">0</span><span class="accent">+</span></div>
+    <div class="stat-label">Pays Disponibles</div>
+  </div>
+  <div class="stat-item reveal" style="transition-delay:0.3s">
+    <div class="stat-num"><span class="counter" data-target="500000">0</span><span style="color:var(--muted2)">+</span></div>
+    <div class="stat-label">Utilisateurs Actifs</div>
+  </div>
+  <div class="stat-item reveal" style="transition-delay:0.4s">
+    <div class="stat-num"><span class="counter accent" data-target="99">0</span><span class="accent">.<span style="font-size:28px">9%</span></span></div>
+    <div class="stat-label">Uptime Garanti</div>
+  </div>
+</div>
+
+<!-- ==================== FEATURES ==================== -->
+<section id="features" class="section">
+  <div class="section-inner">
+    <div class="section-label reveal">Pourquoi My Box TV</div>
+    <h2 class="section-title reveal">Des fonctionnalités<br><span class="red">inégalées</span></h2>
+    <p class="section-sub reveal">Technologie de pointe, catalogue illimité, expérience cinéma chez vous.</p>
+
+    <div class="features-grid">
+      <div class="feat-card reveal" style="transition-delay:0.05s">
+        <div class="feat-icon fi-red"><i class="fas fa-satellite-dish"></i></div>
+        <h3 class="feat-title">40 000+ Chaînes Live</h3>
+        <p class="feat-desc">Sport, news, entertainment, cinéma... Toutes les chaînes du monde en temps réel avec une qualité 4K UHD.</p>
+        <div class="feat-num">01</div>
+      </div>
+      <div class="feat-card reveal" style="transition-delay:0.1s">
+        <div class="feat-icon fi-blue"><i class="fas fa-film"></i></div>
+        <h3 class="feat-title">VOD Illimitée</h3>
+        <p class="feat-desc">150 000+ films et séries à la demande. Mises à jour quotidiennes avec les dernières sorties.</p>
+        <div class="feat-num">02</div>
+      </div>
+      <div class="feat-card reveal" style="transition-delay:0.15s">
+        <div class="feat-icon fi-gold"><i class="fas fa-4k"></i></div>
+        <h3 class="feat-title">Qualité 4K Ultra HD</h3>
+        <p class="feat-desc">Streaming Crystal Clear en 4K, Full HD, HD selon votre connexion. Aucun compromis sur la qualité.</p>
+        <div class="feat-num">03</div>
+      </div>
+      <div class="feat-card reveal" style="transition-delay:0.2s">
+        <div class="feat-icon fi-green"><i class="fas fa-mobile-alt"></i></div>
+        <h3 class="feat-title">Multi-Écrans</h3>
+        <p class="feat-desc">TV, smartphone, tablette, PC. Regardez partout, même hors ligne. 5 écrans simultanés inclus.</p>
+        <div class="feat-num">04</div>
+      </div>
+      <div class="feat-card reveal" style="transition-delay:0.25s">
+        <div class="feat-icon fi-cyan"><i class="fas fa-shield-alt"></i></div>
+        <h3 class="feat-title">Anti-Freeze Premium</h3>
+        <p class="feat-desc">Technologie anti-interruption propriétaire. Serveurs haute performance avec 99.9% d'uptime garanti.</p>
+        <div class="feat-num">05</div>
+      </div>
+      <div class="feat-card reveal" style="transition-delay:0.3s">
+        <div class="feat-icon fi-orange"><i class="fas fa-headset"></i></div>
+        <h3 class="feat-title">Support 24/7</h3>
+        <p class="feat-desc">Équipe dédiée disponible 24h/24, 7j/7. Chat live, WhatsApp, email. Réponse en moins de 5 minutes.</p>
+        <div class="feat-num">06</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MARQUEE -->
+<div class="marquee-section">
+  <div class="marquee-track" id="marqueeTrack">
+    <span class="marquee-item">🔴 LIVE TV HD</span>
+    <span class="marquee-item">🎬 VOD 4K</span>
+    <span class="marquee-item">⚡ ANTI-FREEZE</span>
+    <span class="marquee-item">📱 MULTI-ÉCRANS</span>
+    <span class="marquee-item">🌍 195 PAYS</span>
+    <span class="marquee-item">🏆 N°1 IPTV</span>
+    <span class="marquee-item">🎯 40K CHAÎNES</span>
+    <span class="marquee-item">🔴 LIVE TV HD</span>
+    <span class="marquee-item">🎬 VOD 4K</span>
+    <span class="marquee-item">⚡ ANTI-FREEZE</span>
+    <span class="marquee-item">📱 MULTI-ÉCRANS</span>
+    <span class="marquee-item">🌍 195 PAYS</span>
+    <span class="marquee-item">🏆 N°1 IPTV</span>
+    <span class="marquee-item">🎯 40K CHAÎNES</span>
+  </div>
+</div>
+
+<!-- ==================== LIVE TV ==================== -->
+<section id="live-tv" class="section">
+  <div class="section-inner">
+    <div class="section-label reveal">Streaming en Temps Réel</div>
+    <h2 class="section-title reveal">Live TV <span class="red">Instantané</span></h2>
+    <p class="section-sub reveal">Zappez parmi des milliers de chaînes sans aucun délai. L'expérience TV réinventée.</p>
+
+    <!-- APP RELIABILITY BANNER -->
+    <div class="app-reliability-banner reveal">
+      <div class="arb-icon">📱</div>
+      <div class="arb-text">
+        <strong>⭐ L'application est plus fiable que le Web Player</strong> pour lire toutes les chaînes, notamment
+        <strong>Novelas TV, Ivoir+</strong>, et les chaînes africaines & internationales.
+        Téléchargez l'app pour une expérience optimale sans freeze.
+        <br><a href="https://myboxtv.pages.dev/storebox#" target="_blank" style="color:var(--red);text-decoration:none;font-weight:700;font-size:12px;margin-top:4px;display:inline-block">→ Télécharger l'application ici</a>
+      </div>
+    </div>
+
+    <div class="live-showcase">
+      <div class="tv-mockup-wrap reveal-left">
+        <div class="tv-glow"></div>
+        <div class="tv-mockup">
+          <div class="tv-screen-inner">
+            <img src="https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=800&q=80" alt="Live TV" id="tvImg">
+            <div class="tv-overlay"></div>
+            <div class="tv-reflection"></div>
+            <div class="tv-live-badge"><span class="tv-live-dot"></span> EN DIRECT</div>
+            <div class="tv-ch-info">
+              <div class="tv-ch-name" id="tvChName">🔴 Chaîne Sports HD</div>
+              <div class="tv-ch-cat" id="tvChCat">Sports • 720p HD • FR</div>
+              <div class="tv-progress"><div class="tv-progress-bar"></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="tv-stand"></div>
+        <div class="tv-base"></div>
+      </div>
+
+      <div class="live-features reveal-right">
+        <div class="lf-item">
+          <div class="lf-icon"><i class="fas fa-bolt"></i></div>
+          <div>
+            <div class="lf-title">Zapping Instantané</div>
+            <div class="lf-desc">Changement de chaîne en moins de 1 seconde. Technologie CDN mondiale pour un streaming parfait.</div>
+          </div>
+        </div>
+        <div class="lf-item">
+          <div class="lf-icon"><i class="fas fa-calendar-alt"></i></div>
+          <div>
+            <div class="lf-title">Guide Programme (EPG)</div>
+            <div class="lf-desc">Programme TV sur 7 jours avec rattrapage. Ne ratez plus jamais vos émissions préférées.</div>
+          </div>
+        </div>
+        <div class="lf-item">
+          <div class="lf-icon"><i class="fas fa-record-vinyl"></i></div>
+          <div>
+            <div class="lf-title">Enregistrement Cloud</div>
+            <div class="lf-desc">Enregistrez vos programmes directement dans le cloud. Accédez depuis n'importe quel appareil.</div>
+          </div>
+        </div>
+        <div class="lf-item">
+          <div class="lf-icon"><i class="fas fa-globe"></i></div>
+          <div>
+            <div class="lf-title">Chaînes Internationales</div>
+            <div class="lf-desc">FR, EN, AR, ES, IT, TR, DE et 50+ langues. Le monde entier dans votre salon.</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px">
+          <a href="https://myboxtv.pages.dev/" target="_blank" class="btn-hero-main" style="font-size:12px;padding:14px 28px"><i class="fas fa-broadcast-tower" style="margin-right:8px"></i>Regarder en Direct</a>
+          <a href="https://myboxtv.pages.dev/storebox#" target="_blank" class="btn-hero-sec" style="font-size:12px;padding:14px 28px"><i class="fas fa-download" style="margin-right:8px"></i>Télécharger l'App</a>
+        </div>
+  </div>
+
+  <!-- Channel Ticker -->
+  <div class="channel-ticker">
+    <div class="ticker-track" id="tickerTrack">
+      <span class="ticker-item">🔴 TF1 HD</span>
+      <span class="ticker-sep">·</span>
+      <span class="ticker-item">📺 M6 HD</span>
+      <span class="ticker-sep">·</span>
+      <span class="ticker-item">🎬 Canal+</span>
+      <span class="ticker-sep">·</span>
+      <span class="ticker-item">⚽ beIN Sports 1</span>
+      <span class="ticker-sep">·</span>
+      <span class="ticker-item">🏀 RMC Sport</span>
+      <span class="ticker-sep">·</span>
+      <span class="ticker-item">🎭 Arte HD</span>
+      <span class="ticker-sep">·</span>
+      <span class="ticker-item">📡 France 2 HD</span>
+      <span class="ticker-sep">·</span>
+      <span class="ticker-item">🌍 Al Jazeera</span>
+      <span class="ticker-sep">·</span>
+      <span class="ticker-item">⚡ Eurosport</span>
+      <span class="ticker-sep">·</span>
+      <span class="ticker-item">🎵 MTV HD</span>
+      <span class="ticker-sep">·</span>
+      <span class="ticker-item">🔴 TF1 HD</span>
+      <span class="ticker-sep">·</span>
+      <span class="ticker-item">📺 M6 HD</span>
+      <span class="ticker-sep">·</span>
+      <span class="ticker-item">🎬 Canal+</span>
+      <span class="ticker-sep">·</span>
+      <span class="ticker-item">⚽ beIN Sports 1</span>
+      <span class="ticker-sep">·</span>
+      <span class="ticker-item">🏀 RMC Sport</span>
+      <span class="ticker-sep">·</span>
+      <span class="ticker-item">🎭 Arte HD</span>
+      <span class="ticker-sep">·</span>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== DEVICES ==================== -->
+<section id="devices" class="section">
+  <div class="section-inner">
+    <div class="section-label reveal">Compatibilité Universelle</div>
+    <h2 class="section-title reveal">Disponible sur <span class="red">tous</span><br>vos appareils</h2>
+    <p class="section-sub reveal">Un abonnement, une application, tous vos écrans synchronisés.</p>
+
+    <div class="devices-grid">
+      <div class="device-card reveal" style="transition-delay:0.05s">
+        <span class="device-icon di-android"><i class="fab fa-android"></i></span>
+        <div class="device-name">Android APK</div>
+        <div class="device-badge">Disponible</div>
+      </div>
+      <div class="device-card reveal" style="transition-delay:0.1s">
+        <span class="device-icon di-tv"><i class="fas fa-tv"></i></span>
+        <div class="device-name">Android TV / Box</div>
+        <div class="device-badge">Disponible</div>
+      </div>
+      <div class="device-card reveal" style="transition-delay:0.15s">
+        <span class="device-icon di-ios"><i class="fab fa-apple"></i></span>
+        <div class="device-name">iPhone / iPad</div>
+        <div class="device-badge">Disponible</div>
+      </div>
+      <div class="device-card reveal" style="transition-delay:0.2s">
+        <span class="device-icon di-windows"><i class="fab fa-windows"></i></span>
+        <div class="device-name">Windows PC</div>
+        <div class="device-badge">Disponible</div>
+      </div>
+      <div class="device-card reveal" style="transition-delay:0.25s">
+        <span class="device-icon di-fire"><i class="fas fa-fire"></i></span>
+        <div class="device-name">Amazon Fire TV</div>
+        <div class="device-badge">Disponible</div>
+      </div>
+    </div>
+
+    <!-- Image showcase -->
+    <div style="margin-top:80px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;border-radius:20px;overflow:hidden" class="reveal">
+      <div style="position:relative;aspect-ratio:4/3;overflow:hidden;border-radius:12px">
+        <img src="https://images.unsplash.com/photo-1593784991095-a205069470b6?w=600&q=80" alt="Smart TV" style="width:100%;height:100%;object-fit:cover;transition:transform 0.5s" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+        <div style="position:absolute;bottom:16px;left:16px;background:rgba(0,0,0,0.8);padding:6px 14px;border-radius:20px;font-size:11px;font-weight:700;font-family:'Orbitron',sans-serif;border:1px solid var(--border-red)">Smart TV</div>
+      </div>
+      <div style="position:relative;aspect-ratio:4/3;overflow:hidden;border-radius:12px">
+        <img src="https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=600&q=80" alt="Mobile" style="width:100%;height:100%;object-fit:cover;transition:transform 0.5s" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+        <div style="position:absolute;bottom:16px;left:16px;background:rgba(0,0,0,0.8);padding:6px 14px;border-radius:20px;font-size:11px;font-weight:700;font-family:'Orbitron',sans-serif;border:1px solid var(--border-red)">Mobile</div>
+      </div>
+      <div style="position:relative;aspect-ratio:4/3;overflow:hidden;border-radius:12px">
+        <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&q=80" alt="Gaming Setup" style="width:100%;height:100%;object-fit:cover;transition:transform 0.5s" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+        <div style="position:absolute;bottom:16px;left:16px;background:rgba(0,0,0,0.8);padding:6px 14px;border-radius:20px;font-size:11px;font-weight:700;font-family:'Orbitron',sans-serif;border:1px solid var(--border-red)">PC / Écran</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== APP STORE ==================== -->
+<section id="store" class="section">
+  <div class="section-inner">
+    <div class="section-label reveal">Téléchargements Officiels</div>
+    <h2 class="section-title reveal">Téléchargez<br><span class="red">My Box TV</span></h2>
+    <p class="section-sub reveal">Toujours à jour, toujours officiel. Choisissez la version adaptée à votre appareil.</p>
+
+    <div class="app-reliability-banner reveal" style="margin-top:32px">
+      <div class="arb-icon">⭐</div>
+      <div class="arb-text">
+        <strong>L'application est PLUS FIABLE que le navigateur</strong> pour regarder toutes vos chaînes préférées :
+        <strong>Novelas TV, Ivoir+, Novelas Ivoir</strong>, chaînes africaines, arabes, françaises & bien d'autres.
+        Téléchargez l'app pour une lecture fluide, sans freeze, avec le guide EPG complet.
+      </div>
+    </div>
+
+    <div class="store-filter-bar" id="deviceFilters">
+      <button class="dev-btn active" data-device="all" onclick="filterDevice(this)"><i class="fas fa-th"></i> Tous</button>
+      <button class="dev-btn" data-device="apk" onclick="filterDevice(this)"><i class="fab fa-android"></i> Android APK</button>
+      <button class="dev-btn" data-device="tv" onclick="filterDevice(this)"><i class="fas fa-tv"></i> Android TV</button>
+      <button class="dev-btn" data-device="ios" onclick="filterDevice(this)"><i class="fab fa-apple"></i> iOS</button>
+      <button class="dev-btn" data-device="exe" onclick="filterDevice(this)"><i class="fab fa-windows"></i> Windows</button>
+      <button class="dev-btn" data-device="web" onclick="filterDevice(this)"><i class="fas fa-globe"></i> Web App</button>
+      <button class="dev-btn" data-device="firetv" onclick="filterDevice(this)"><i class="fas fa-fire"></i> Fire TV</button>
+    </div>
+
+    <div class="store-search">
+      <input type="text" id="searchInput" placeholder="Rechercher une application..." oninput="applyFilters()">
+      <i class="fas fa-search"></i>
+    </div>
+
+    <div class="apps-grid" id="appsGrid">
+      <div class="state-box">
+        <i class="fas fa-satellite-dish" style="color:#222"></i>
+        <div class="loading-dots"><span></span><span></span><span></span></div>
+        <p style="margin-top:16px;color:var(--muted2)">Chargement du store...</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== PRICING ==================== -->
+<section id="pricing" class="section">
+  <div class="section-inner">
+    <div class="section-label reveal" style="justify-content:center">Nos Offres</div>
+    <h2 class="section-title reveal" style="text-align:center">Choisissez votre<br><span class="red">abonnement</span></h2>
+    <p class="section-sub reveal" style="text-align:center;margin:0 auto 0">Sans engagement. Annulable à tout moment. Satisfait ou remboursé.</p>
+
+    <div class="pricing-grid">
+      <!-- STARTER -->
+      <div class="price-card reveal reveal-left">
+        <div class="price-plan">Essentiel</div>
+        <div class="price-amount">
+          <span class="currency">FCFA</span>300<span class="period">/mois</span>
+        </div>
+        <p class="price-desc">Idéal pour commencer avec My Box TV. Accès aux fonctions essentielles.</p>
+        <ul class="price-features">
+          <li><i class="fas fa-check-circle"></i> 10 000+ Chaînes Live</li>
+          <li><i class="fas fa-check-circle"></i> Qualité jusqu'à HD 720p</li>
+          <li><i class="fas fa-check-circle"></i> 1 écran simultané</li>
+          <li><i class="fas fa-check-circle"></i> VOD basique (5 000 titres)</li>
+          <li><i class="fas fa-check-circle"></i> Support email</li>
+          <li class="off"><i class="fas fa-times-circle"></i> EPG Guide TV</li>
+          <li class="off"><i class="fas fa-times-circle"></i> Enregistrement Cloud</li>
+          <li class="off"><i class="fas fa-times-circle"></i> Qualité 4K</li>
+        </ul>
+        <a href="#" class="btn-price btn-price-outline" onclick="openFPModal(event,1)">Commencer</a>
+      </div>
+
+      <!-- PREMIUM -->
+      <div class="price-card featured reveal">
+        <div class="price-badge">🔥 POPULAIRE</div>
+        <div class="price-plan">Premium</div>
+        <div class="price-amount red">
+          <span class="currency" style="color:inherit">FCFA</span>500<span class="period">/mois</span>
+        </div>
+        <p class="price-desc">L'expérience complète My Box TV. Recommandé pour la famille.</p>
+        <ul class="price-features">
+          <li><i class="fas fa-check-circle"></i> 40 000+ Chaînes Live</li>
+          <li><i class="fas fa-check-circle"></i> Qualité 4K Ultra HD</li>
+          <li><i class="fas fa-check-circle"></i> 2 écrans simultanés</li>
+          <li><i class="fas fa-check-circle"></i> VOD 150 000+ titres</li>
+          <li><i class="fas fa-check-circle"></i> EPG 7 jours</li>
+          <li><i class="fas fa-check-circle"></i> Enregistrement Cloud (100h)</li>
+          <li><i class="fas fa-check-circle"></i> Anti-freeze Premium</li>
+          <li><i class="fas fa-check-circle"></i> Support prioritaire 24/7</li>
+        </ul>
+        <a href="#" class="btn-price btn-price-fill" onclick="openFPModal(event,2)">Souscrire Maintenant</a>
+      </div>
+
+      <!-- ENTERPRISE -->
+      <div class="price-card reveal reveal-right">
+        <div class="price-plan">Famille / Pro</div>
+        <div class="price-amount">
+          <span class="currency">FCFA</span>900<span class="period">/mois</span>
+        </div>
+        <p class="price-desc">Solution ultime pour toute la famille ou les professionnels.</p>
+        <ul class="price-features">
+          <li><i class="fas fa-check-circle"></i> 40 000+ Chaînes Live</li>
+          <li><i class="fas fa-check-circle"></i> Qualité 8K / 4K UHD</li>
+          <li><i class="fas fa-check-circle"></i> 4 écrans simultanés</li>
+          <li><i class="fas fa-check-circle"></i> VOD 150 000+ titres</li>
+          <li><i class="fas fa-check-circle"></i> EPG 14 jours</li>
+          <li><i class="fas fa-check-circle"></i> Enregistrement Cloud (500h)</li>
+          <li><i class="fas fa-check-circle"></i> IP dédiée exclusive</li>
+          <li><i class="fas fa-check-circle"></i> Manager dédié</li>
+        </ul>
+        <a href="#" class="btn-price btn-price-ghost" onclick="openFPModal(event,4)">Souscrire</a>
+      </div>
+    </div>
+
+    <!-- Garanties -->
+    <div style="display:flex;justify-content:center;gap:48px;flex-wrap:wrap;margin-top:80px" class="reveal">
+      <div style="display:flex;align-items:center;gap:12px;color:var(--muted2);font-size:13px">
+        <i class="fas fa-shield-alt" style="color:var(--green);font-size:20px"></i>
+        <span>Remboursement 7 jours</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;color:var(--muted2);font-size:13px">
+        <i class="fas fa-lock" style="color:var(--blue);font-size:20px"></i>
+        <span>Paiement 100% sécurisé</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;color:var(--muted2);font-size:13px">
+        <i class="fas fa-times-circle" style="color:var(--orange);font-size:20px"></i>
+        <span>Sans engagement</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;color:var(--muted2);font-size:13px">
+        <i class="fas fa-headset" style="color:var(--red);font-size:20px"></i>
+        <span>Support 24/7</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== GALLERY SECTION ==================== -->
+<section style="padding:0;overflow:hidden;background:var(--bg)">
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;height:400px">
+    <div style="overflow:hidden;position:relative">
+      <img src="https://images.unsplash.com/photo-1522869635100-9f4c5e86aa37?w=500&q=80" alt="Famille" style="width:100%;height:100%;object-fit:cover;transition:transform 0.6s;filter:grayscale(30%)" onmouseover="this.style.transform='scale(1.08)';this.style.filter='grayscale(0)'" onmouseout="this.style.transform='scale(1)';this.style.filter='grayscale(30%)'">
+      <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.7),transparent);display:flex;align-items:flex-end;padding:20px"><span style="font-family:'Orbitron',sans-serif;font-size:11px;color:white;letter-spacing:2px">FAMILLE</span></div>
+    </div>
+    <div style="overflow:hidden;position:relative">
+      <img src="https://images.unsplash.com/photo-1578374173705-969cbe6f2d6b?w=500&q=80" alt="Sport" style="width:100%;height:100%;object-fit:cover;transition:transform 0.6s;filter:grayscale(30%)" onmouseover="this.style.transform='scale(1.08)';this.style.filter='grayscale(0)'" onmouseout="this.style.transform='scale(1)';this.style.filter='grayscale(30%)'">
+      <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.7),transparent);display:flex;align-items:flex-end;padding:20px"><span style="font-family:'Orbitron',sans-serif;font-size:11px;color:white;letter-spacing:2px">SPORT</span></div>
+    </div>
+    <div style="overflow:hidden;position:relative">
+      <img src="https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=500&q=80" alt="Cinéma" style="width:100%;height:100%;object-fit:cover;transition:transform 0.6s;filter:grayscale(30%)" onmouseover="this.style.transform='scale(1.08)';this.style.filter='grayscale(0)'" onmouseout="this.style.transform='scale(1)';this.style.filter='grayscale(30%)'">
+      <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.7),transparent);display:flex;align-items:flex-end;padding:20px"><span style="font-family:'Orbitron',sans-serif;font-size:11px;color:white;letter-spacing:2px">CINÉMA</span></div>
+    </div>
+    <div style="overflow:hidden;position:relative">
+      <img src="https://images.unsplash.com/photo-1461151304267-38535e780c79?w=500&q=80" alt="Gaming" style="width:100%;height:100%;object-fit:cover;transition:transform 0.6s;filter:grayscale(30%)" onmouseover="this.style.transform='scale(1.08)';this.style.filter='grayscale(0)'" onmouseout="this.style.transform='scale(1)';this.style.filter='grayscale(30%)'">
+      <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.7),transparent);display:flex;align-items:flex-end;padding:20px"><span style="font-family:'Orbitron',sans-serif;font-size:11px;color:white;letter-spacing:2px">GAMING</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== TESTIMONIALS ==================== -->
+<section id="testimonials" class="section">
+  <div class="section-inner">
+    <div class="section-label reveal" style="justify-content:center">Ils nous font confiance</div>
+    <h2 class="section-title reveal" style="text-align:center">Ce que disent<br><span class="red">nos abonnés</span></h2>
+
+    <div class="testi-grid">
+      <div class="testi-card reveal" style="transition-delay:0.05s">
+        <div class="testi-stars">★★★★★</div>
+        <div class="testi-quote">"</div>
+        <p class="testi-text">Franchement impressionné par la qualité et la stabilité. Je suis passé de Netflix à My Box TV et je ne regrette absolument pas. 40 000 chaînes, c'est incroyable !</p>
+        <div class="testi-author">
+          <img src="https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=100&q=80" alt="Marc" class="testi-avatar">
+          <div>
+            <div class="testi-name">Marc Dupont</div>
+            <div class="testi-role">Abonné Premium · Paris</div>
+          </div>
+        </div>
+      </div>
+      <div class="testi-card reveal" style="transition-delay:0.1s">
+        <div class="testi-stars">★★★★★</div>
+        <div class="testi-quote">"</div>
+        <p class="testi-text">Le meilleur service IPTV que j'ai testé. Pas de freeze, qualité 4K parfaite. Le support répond en 2 minutes sur WhatsApp. Je recommande à 100% !</p>
+        <div class="testi-author">
+          <img src="https://images.unsplash.com/photo-1580489944761-15a19d654956?w=100&q=80" alt="Sophie" class="testi-avatar">
+          <div>
+            <div class="testi-name">Sophie Lefebvre</div>
+            <div class="testi-role">Abonnée Famille · Lyon</div>
+          </div>
+        </div>
+      </div>
+      <div class="testi-card reveal" style="transition-delay:0.15s">
+        <div class="testi-stars">★★★★★</div>
+        <div class="testi-quote">"</div>
+        <p class="testi-text">J'utilise My Box TV sur ma TV 4K et mon iPhone. La synchronisation est parfaite. L'interface est superbe et intuitive. Valeur pour l'argent exceptionnelle.</p>
+        <div class="testi-author">
+          <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80" alt="Karim" class="testi-avatar">
+          <div>
+            <div class="testi-name">Karim Benali</div>
+            <div class="testi-role">Abonné Premium · Marseille</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== FAQ ==================== -->
+<section id="faq" class="section">
+  <div class="section-inner">
+    <div class="section-label reveal" style="justify-content:center">Questions Fréquentes</div>
+    <h2 class="section-title reveal" style="text-align:center">Tout ce que vous<br><span class="red">devez savoir</span></h2>
+
+    <div class="faq-list">
+      <div class="faq-item reveal" onclick="toggleFAQ(this)">
+        <div class="faq-q">Comment installer My Box TV sur mon appareil ? <i class="fas fa-chevron-down faq-arrow"></i></div>
+        <div class="faq-a"><p>Téléchargez simplement l'application depuis notre store ci-dessus. Choisissez la version adaptée à votre appareil (Android, iOS, Windows, Fire TV...), installez-la et connectez-vous avec votre compte abonné. Le processus prend moins de 3 minutes.</p></div>
+      </div>
+      <div class="faq-item reveal" onclick="toggleFAQ(this)" style="transition-delay:0.05s">
+        <div class="faq-q">Combien d'écrans puis-je utiliser simultanément ? <i class="fas fa-chevron-down faq-arrow"></i></div>
+        <div class="faq-a"><p>Selon votre abonnement : 1 écran (Essentiel), 5 écrans (Premium) ou 10 écrans (Famille/Pro). Vous pouvez installer l'application sur autant d'appareils que vous souhaitez, mais le nombre de connexions simultanées est limité selon l'offre.</p></div>
+      </div>
+      <div class="faq-item reveal" onclick="toggleFAQ(this)" style="transition-delay:0.1s">
+        <div class="faq-q">Quelle vitesse internet est nécessaire ? <i class="fas fa-chevron-down faq-arrow"></i></div>
+        <div class="faq-a"><p>Pour une qualité SD : 5 Mbps minimum. HD 720p : 10 Mbps. Full HD 1080p : 20 Mbps. 4K UHD : 50 Mbps. My Box TV s'adapte automatiquement à votre connexion pour éviter tout freeze.</p></div>
+      </div>
+      <div class="faq-item reveal" onclick="toggleFAQ(this)" style="transition-delay:0.15s">
+        <div class="faq-q">Y a-t-il une période d'essai gratuite ? <i class="fas fa-chevron-down faq-arrow"></i></div>
+        <div class="faq-a"><p>Oui ! Nous offrons un essai gratuit de 24 heures pour tous les nouveaux abonnés. Contactez notre support via WhatsApp ou email pour l'activer. Aucune carte bancaire requise pour l'essai.</p></div>
+      </div>
+      <div class="faq-item reveal" onclick="toggleFAQ(this)" style="transition-delay:0.2s">
+        <div class="faq-q">Comment puis-je payer mon abonnement ? <i class="fas fa-chevron-down faq-arrow"></i></div>
+        <div class="faq-a"><p>Nous acceptons toutes les cartes bancaires (Visa, Mastercard), PayPal, FedaPay, virement bancaire et crypto-monnaies (Bitcoin, USDT). Tous les paiements sont 100% sécurisés et chiffrés.</p></div>
+      </div>
+      <div class="faq-item reveal" onclick="toggleFAQ(this)" style="transition-delay:0.25s">
+        <div class="faq-q">Puis-je annuler mon abonnement à tout moment ? <i class="fas fa-chevron-down faq-arrow"></i></div>
+        <div class="faq-a"><p>Absolument ! Aucun engagement. Vous pouvez annuler votre abonnement à tout moment depuis votre espace client ou en contactant notre support. Nous remboursons intégralement dans les 7 premiers jours.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== CTA FINAL ==================== -->
+<section id="cta-final">
+  <div class="cta-bg"></div>
+  <div class="cta-glow-1"></div>
+  <div class="cta-glow-2"></div>
+  <div style="position:relative;z-index:2">
+    <div class="section-label reveal" style="justify-content:center;margin-bottom:32px">Rejoignez 500 000+ abonnés</div>
+    <h2 class="reveal">Prêt à vivre<br>l'IPTV <span class="red">Premium</span> ?</h2>
+    <p class="reveal" style="transition-delay:0.1s">Commencez votre essai gratuit 24h aujourd'hui.<br>Aucun risque, satisfaction garantie.</p>
+    <div class="hero-btns reveal" style="transition-delay:0.2s">
+      <a href="#" class="btn-hero-main" onclick="openFPModal(event)"><i class="fas fa-rocket" style="margin-right:10px"></i>Démarrer Maintenant</a>
+      <a href="https://wa.me/22963828767?text=Bonjour%2C+je+veux+un+essai+gratuit+24h+My+Box+TV" target="_blank" class="btn-hero-sec"><i class="fab fa-whatsapp" style="margin-right:10px"></i>Essai Gratuit 24h</a>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== FOOTER ==================== -->
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <div class="footer-logo">MY BOX<span>TV</span></div>
+      <p>Le service IPTV premium N°1 en France et dans le monde. Streaming de qualité professionnelle pour tous vos écrans.</p>
+      <div class="footer-social">
+        <a href="#" class="social-btn"><i class="fab fa-facebook-f"></i></a>
+        <a href="#" class="social-btn"><i class="fab fa-instagram"></i></a>
+        <a href="#" class="social-btn"><i class="fab fa-telegram-plane"></i></a>
+        <a href="https://wa.me/22963828767" target="_blank" class="social-btn"><i class="fab fa-whatsapp"></i></a>
+        <a href="#" class="social-btn"><i class="fab fa-youtube"></i></a>
+      </div>
+    </div>
+    <div class="footer-col">
+      <h4>Navigation</h4>
+      <a href="#features">Fonctionnalités</a>
+      <a href="#live-tv">Live TV</a>
+      <a href="#store">Store</a>
+      <a href="#pricing">Abonnements</a>
+      <a href="#faq">FAQ</a>
+    </div>
+    <div class="footer-col">
+      <h4>Applications</h4>
+      <a href="https://myboxtv.pages.dev/storebox#" target="_blank">Android APK</a>
+      <a href="https://myboxtv.pages.dev/storebox#" target="_blank">Android TV</a>
+      <a href="https://myboxtv.pages.dev/storebox#" target="_blank">iOS App</a>
+      <a href="https://myboxtv.pages.dev/storebox#" target="_blank">Windows</a>
+      <a href="https://myboxtv.pages.dev/storebox#" target="_blank">Fire TV</a>
+      <a href="https://myboxtv.pages.dev/" target="_blank">Web Player</a>
+    </div>
+    <div class="footer-col">
+      <h4>Support</h4>
+      <a href="https://wa.me/22963828767" target="_blank">Contact WhatsApp</a>
+      <a href="https://wa.me/22963828767" target="_blank">WhatsApp Direct</a>
+      <a href="#">Telegram</a>
+      <a href="#">Centre d'aide</a>
+      <a href="#">Remboursement</a>
+      <a href="#">Mentions légales</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 <span class="red">My Box TV</span> — Tous droits réservés</span>
+    <span>Fait avec ❤️ pour les amateurs de TV</span>
+    <span>🔒 Paiements sécurisés SSL</span>
+  </div>
+</footer>
+
+<div id="toast"></div>
+
+<!-- WHATSAPP FLOAT -->
+<a href="https://wa.me/22963828767?text=Bonjour%2C+je+suis+intéressé+par+My+Box+TV+IPTV" target="_blank" style="position:fixed;bottom:30px;right:30px;z-index:300;width:56px;height:56px;background:#25d366;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:24px;box-shadow:0 8px 32px rgba(37,211,102,0.4);text-decoration:none;transition:transform 0.3s" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'">
+  <i class="fab fa-whatsapp"></i>
+</a>
+
+<script>
+/* ==================== NOVELAS TV BACKGROUND HLS ==================== */
+const NOVELAS_URL = 'https://stormcast-telenovelatv-1-fr.samsung.wurl.tv/playlist.m3u8';
+const API_URL = 'https://script.google.com/macros/s/AKfycbwwmndJ-PnznJsU5Oqc9qa1IKJAut114uCsJVMhLMIvsArUjpcgA7fhzjMUgXcivRksyA/exec';
+
+(function initNovelasBG() {
+  const vid = document.getElementById('novelas-video');
+  if (!vid) return;
+  if (Hls.isSupported()) {
+    const hls = new Hls({ startLevel: 0, capLevelToPlayerSize: true });
+    hls.loadSource(NOVELAS_URL);
+    hls.attachMedia(vid);
+    hls.on(Hls.Events.MANIFEST_PARSED, () => { vid.play().catch(()=>{}); });
+  } else if (vid.canPlayType('application/vnd.apple.mpegurl')) {
+    vid.src = NOVELAS_URL;
+    vid.play().catch(()=>{});
+  }
+})();
+
+/* ==================== PRELOADER ==================== */
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('preloader').classList.add('hide');
+    setTimeout(() => document.getElementById('preloader').remove(), 800);
+  }, 2200);
+});
+
+
+
+/* ==================== CURSOR ==================== */
+const cursor = document.getElementById('cursor');
+const cursorDot = document.getElementById('cursorDot');
+let cx = 0, cy = 0, tx = 0, ty = 0;
+document.addEventListener('mousemove', e => {
+  tx = e.clientX; ty = e.clientY;
+  cursorDot.style.left = tx - 3 + 'px';
+  cursorDot.style.top  = ty - 3 + 'px';
+});
+function animCursor() {
+  cx += (tx - cx) * 0.12;
+  cy += (ty - cy) * 0.12;
+  cursor.style.left = cx - 10 + 'px';
+  cursor.style.top  = cy - 10 + 'px';
+  requestAnimationFrame(animCursor);
+}
+animCursor();
+document.querySelectorAll('a,button,.feat-card,.device-card,.price-card,.testi-card,.faq-item').forEach(el => {
+  el.addEventListener('mouseenter', () => cursor.style.transform = 'scale(2)');
+  el.addEventListener('mouseleave', () => cursor.style.transform = 'scale(1)');
+});
+
+/* ==================== THREE.JS HERO PARTICLES ==================== */
+(function() {
+  const canvas = document.getElementById('hero-canvas');
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
+  camera.position.z = 5;
+
+  // Particles
+  const count = 3000;
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(count * 3);
+  const colors = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    pos[i*3]   = (Math.random()-0.5)*20;
+    pos[i*3+1] = (Math.random()-0.5)*20;
+    pos[i*3+2] = (Math.random()-0.5)*10;
+    const r = Math.random();
+    if (r < 0.3) { colors[i*3]=0.9; colors[i*3+1]=0.03; colors[i*3+2]=0.07; }
+    else if (r < 0.5) { colors[i*3]=1; colors[i*3+1]=1; colors[i*3+2]=1; }
+    else { colors[i*3]=0.1; colors[i*3+1]=0.5; colors[i*3+2]=0.9; }
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  const mat = new THREE.PointsMaterial({ size: 0.04, vertexColors: true, transparent: true, opacity: 0.8 });
+  const points = new THREE.Points(geo, mat);
+  scene.add(points);
+
+  // Grid
+  const gridGeo = new THREE.PlaneGeometry(30, 30, 30, 30);
+  const gridMat = new THREE.MeshBasicMaterial({ color: 0xe50914, wireframe: true, opacity: 0.04, transparent: true });
+  const grid = new THREE.Mesh(gridGeo, gridMat);
+  grid.rotation.x = -Math.PI/2.2;
+  grid.position.y = -4;
+  scene.add(grid);
+
+  let mx = 0, my = 0;
+  document.addEventListener('mousemove', e => {
+    mx = (e.clientX / window.innerWidth - 0.5) * 0.5;
+    my = (e.clientY / window.innerHeight - 0.5) * 0.5;
+  });
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  function animate() {
+    requestAnimationFrame(animate);
+    points.rotation.y += 0.0008;
+    points.rotation.x += 0.0003;
+    camera.position.x += (mx - camera.position.x) * 0.05;
+    camera.position.y += (-my - camera.position.y) * 0.05;
+    grid.rotation.z += 0.001;
+    renderer.render(scene, camera);
+  }
+  animate();
+})();
+
+/* ==================== NAVBAR SCROLL ==================== */
+window.addEventListener('scroll', () => {
+  document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 50);
+});
+
+/* ==================== MOBILE MENU ==================== */
+let menuOpen = false;
+function toggleMenu() {
+  menuOpen = !menuOpen;
+  const m = document.getElementById('mobile-menu');
+  m.style.display = menuOpen ? 'flex' : 'none';
+}
+
+/* ==================== SCROLL REVEAL ==================== */
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.15 });
+document.querySelectorAll('.reveal,.reveal-left,.reveal-right').forEach(el => observer.observe(el));
+
+/* ==================== COUNTER ==================== */
+function animateCounter(el, target) {
+  const dur = 2000;
+  const step = target / (dur / 16);
+  let current = 0;
+  const interval = setInterval(() => {
+    current = Math.min(current + step, target);
+    el.textContent = Math.floor(current).toLocaleString('fr-FR');
+    if (current >= target) clearInterval(interval);
+  }, 16);
+}
+const counterObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting && !e.target.dataset.counted) {
+      e.target.dataset.counted = 1;
+      animateCounter(e.target, parseInt(e.target.dataset.target));
+    }
+  });
+}, { threshold: 0.5 });
+document.querySelectorAll('.counter').forEach(el => counterObs.observe(el));
+
+/* ==================== FEAT CARD 3D TILT ==================== */
+document.querySelectorAll('.feat-card').forEach(card => {
+  card.addEventListener('mousemove', e => {
+    const rect = card.getBoundingClientRect();
+    const x = (e.clientX - rect.left - rect.width/2) / rect.width;
+    const y = (e.clientY - rect.top - rect.height/2) / rect.height;
+    card.style.transform = `translateY(-8px) rotateX(${-y*10}deg) rotateY(${x*10}deg)`;
+  });
+  card.addEventListener('mouseleave', () => card.style.transform = '');
+});
+
+/* ==================== TV CHANNEL CYCLE ==================== */
+const tvImages = [
+  {src:'https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=800&q=80', name:'🔴 Sport HD Live', cat:'Sports • 720p HD • FR'},
+  {src:'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800&q=80', name:'🎬 Cinéma Premium', cat:'Films • 4K UHD • FR/EN'},
+  {src:'https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=800&q=80', name:'📡 News International', cat:'Info • HD • Multi-lang'},
+  {src:'https://images.unsplash.com/photo-1598899134739-24c46f58b8c0?w=800&q=80', name:'🎵 Music Live', cat:'Musique • HD • FR'},
+];
+let tvIdx = 0;
+setInterval(() => {
+  tvIdx = (tvIdx + 1) % tvImages.length;
+  const img = document.getElementById('tvImg');
+  const nm = document.getElementById('tvChName');
+  const ct = document.getElementById('tvChCat');
+  if (!img) return;
+  img.style.opacity = '0';
+  setTimeout(() => {
+    img.src = tvImages[tvIdx].src;
+    nm.textContent = tvImages[tvIdx].name;
+    ct.textContent = tvImages[tvIdx].cat;
+    img.style.opacity = '1';
+  }, 400);
+  img.style.transition = 'opacity 0.4s ease';
+}, 3500);
+
+/* ==================== FAQ ==================== */
+function toggleFAQ(item) {
+  const isOpen = item.classList.contains('open');
+  document.querySelectorAll('.faq-item').forEach(f => f.classList.remove('open'));
+  if (!isOpen) item.classList.add('open');
+}
+
+/* ==================== APP STORE ==================== */
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzImlCfInTfzz047NEt5uBo70J2mNx349fNE9KMURb1uu45aadjs7JpUx-v33jkPvBbhA/exec';
+const DEVICE_CONFIG = {
+  apk:    { label:'Android APK',      icon:'fab fa-android', iconClass:'icon-apk' },
+  tv:     { label:'Android TV / Box', icon:'fas fa-tv',      iconClass:'icon-tv'  },
+  ios:    { label:'iOS (App Store)',   icon:'fab fa-apple',   iconClass:'icon-ios' },
+  exe:    { label:'Windows',          icon:'fab fa-windows', iconClass:'icon-exe' },
+  web:    { label:'Web App',          icon:'fas fa-globe',   iconClass:'icon-web' },
+  firetv: { label:'Fire TV',          icon:'fas fa-fire',    iconClass:'icon-firetv' },
+  mac:    { label:'macOS',            icon:'fab fa-apple',   iconClass:'icon-mac' },
+};
+let allApps = [];
+let currentDevice = 'all';
+
+window.addEventListener('DOMContentLoaded', fetchApps);
+
+async function fetchApps() {
+  try {
+    const resp = await fetch(`${APPS_SCRIPT_URL}?action=list`);
+    const data = await resp.json();
+    allApps = (data.posts || []).filter(p => p.name);
+    applyFilters();
+  } catch(e) {
+    document.getElementById('appsGrid').innerHTML = `
+      <div class="state-box">
+        <i class="fas fa-satellite-dish" style="color:#222"></i>
+        <p style="color:var(--muted2);margin-top:16px">Impossible de charger le store</p>
+        <small style="color:#333">Vérifiez la connexion ou réessayez plus tard</small>
+      </div>`;
+  }
+}
+
+function filterDevice(btn) {
+  document.querySelectorAll('.dev-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentDevice = btn.dataset.device;
+  applyFilters();
+}
+
+function applyFilters() {
+  const search = document.getElementById('searchInput')?.value.toLowerCase().trim() || '';
+  const grid = document.getElementById('appsGrid');
+  let filtered = allApps;
+  if (currentDevice !== 'all') filtered = filtered.filter(app => (app.versions||[]).some(v => v.device === currentDevice));
+  if (search) filtered = filtered.filter(app => app.name.toLowerCase().includes(search)||(app.notes||'').toLowerCase().includes(search));
+
+  if (filtered.length === 0) {
+    grid.innerHTML = `<div class="state-box"><i class="fas fa-box-open" style="color:#222"></i><p style="color:var(--muted2);margin-top:16px">Aucune application trouvée</p><small style="color:#333">Essayez un autre filtre</small></div>`;
+    return;
+  }
+  grid.innerHTML = '';
+  filtered.forEach((app, i) => renderCard(app, i, grid));
+}
+
+function renderCard(app, i, container) {
+  const badgeClass = {stable:'badge-stable',beta:'badge-beta',test:'badge-test'}[app.status]||'badge-stable';
+  const badgeLabel = {stable:'✅ STABLE',beta:'⚡ BETA',test:'🔬 TEST'}[app.status]||'STABLE';
+  let versions = app.versions||[];
+  if (currentDevice !== 'all') versions = versions.filter(v => v.device === currentDevice);
+
+  const dlButtons = versions.map(v => {
+    const dc = DEVICE_CONFIG[v.device]||{label:v.device,icon:'fas fa-download',iconClass:'icon-apk'};
+    return `<a class="dl-btn-link" href="${v.url}" target="_blank" rel="noopener" onclick="trackDL('${app.name}','${v.device}')">
+      <div class="dl-btn-icon ${dc.iconClass}"><i class="${dc.icon}"></i></div>
+      <div class="dl-btn-info"><div class="dl-btn-name">${dc.label}</div><div class="dl-btn-sub">${v.version?'Version '+v.version:'Télécharger'}</div></div>
+      <i class="fas fa-arrow-right dl-btn-arrow"></i>
+    </a>`;
+  }).join('');
+
+  const card = document.createElement('div');
+  card.className = 'app-card';
+  card.style.animationDelay = (i*0.07)+'s';
+  card.innerHTML = `
+    <div class="card-header">
+      <div class="app-icon">${app.logo?`<img src="${app.logo}" alt="${app.name}" onerror="this.parentElement.innerHTML='<i class=\\'fas fa-tv\\'></i>'">`:`<i class="fas fa-tv" style="color:var(--red)"></i>`}</div>
+      <div class="app-info">
+        <div class="app-name">${app.name}</div>
+        <div class="app-meta"><span class="badge ${badgeClass}">${badgeLabel}</span><span class="version-label">v${app.version||'—'}</span></div>
+      </div>
+    </div>
+    ${app.notes?`<div class="card-notes">${app.notes}</div>`:''}
+    <div class="card-downloads">
+      <div class="downloads-label"><i class="fas fa-download"></i> Télécharger pour</div>
+      <div class="dl-buttons">${dlButtons||'<p style="font-size:12px;color:var(--muted)">Aucun lien disponible</p>'}</div>
+    </div>
+    <div class="card-date"><i class="fas fa-clock"></i> Publié le ${app.date||'—'}</div>`;
+  container.appendChild(card);
+}
+
+function trackDL(appName, device) {
+  const params = new URLSearchParams({action:'track',appName,device,date:new Date().toISOString()});
+  fetch(`${APPS_SCRIPT_URL}?${params.toString()}`).catch(()=>{});
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent=msg; t.className='show ok';
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+function openWhatsApp() {
+  window.open('https://wa.me/22963828767?text=Bonjour%2C+je+suis+intéressé+par+My+Box+TV+IPTV+Premium','_blank');
+}
+</script>
+</body>
+</html>
