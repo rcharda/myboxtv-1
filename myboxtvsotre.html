@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Store Officiel - My Box TV</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #FFD700;
+            --bg: #0a0a0b;
+            --card-bg: #161618;
+            --text: #ffffff;
+            --text-dim: #a0a0a0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        header {
+            text-align: center;
+            padding: 50px 20px;
+            width: 100%;
+            background: linear-gradient(to bottom, #1a1a1c, var(--bg));
+        }
+
+        .logo {
+            width: 100px;
+            height: 100px;
+            border-radius: 22px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 2px solid var(--primary);
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            margin: 10px 0;
+            letter-spacing: 1px;
+        }
+
+        .subtitle {
+            color: var(--text-dim);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Grille du Store */
+        .store-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            width: 90%;
+            max-width: 1100px;
+            padding: 20px 0 60px 0;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 24px;
+            padding: 30px;
+            text-align: center;
+            border: 1px solid #28282b;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            border-color: var(--primary);
+            box-shadow: 0 15px 40px rgba(255, 215, 0, 0.1);
+        }
+
+        .card i {
+            font-size: 50px;
+            color: var(--primary);
+            margin-bottom: 20px;
+        }
+
+        .card h3 {
+            font-size: 1.4rem;
+            margin: 10px 0;
+        }
+
+        .version-tag {
+            background: #252528;
+            color: var(--primary);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .download-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--primary);
+            color: #000;
+            text-decoration: none;
+            padding: 14px;
+            border-radius: 16px;
+            margin-top: 25px;
+            font-weight: bold;
+            transition: 0.2s;
+            gap: 10px;
+        }
+
+        .download-btn:hover {
+            background-color: #fff;
+            transform: scale(1.03);
+        }
+
+        /* État de chargement */
+        #loader {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.1);
+            border-left-color: var(--primary);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        footer {
+            margin-top: auto;
+            padding: 30px;
+            color: var(--text-dim);
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <img src="https://upload.wikimedia.org/wikipedia/commons/4/45/COMPANY%281%29.png" class="logo" alt="My Box TV">
+        <h1>My Box TV Store</h1>
+        <p class="subtitle">Téléchargez la version officielle sécurisée pour votre appareil.</p>
+    </header>
+
+    <div class="store-grid" id="store-content">
+        <div id="loader">
+            <div class="spinner"></div>
+            <p>Connexion au serveur sécurisé...</p>
+        </div>
+    </div>
+
+    <footer>
+        &copy; 2026 Fournisseur My Box TV - Tous droits réservés.
+    </footer>
+
+    <script>
+        // Utilisation de ton ID de déploiement sécurisé
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz0TQfs1mSbC36LmwtGEbLVwZZtCv-5txztt2iB2Rma7u8iaIc8JSAnR7m9kPoU8bLmLg/exec";
+
+        async function fetchApps() {
+            try {
+                const response = await fetch(`${SCRIPT_URL}?action=getApps`);
+                const data = await response.json();
+                renderApps(data);
+            } catch (error) {
+                console.error("Erreur Store:", error);
+                document.getElementById('store-content').innerHTML = `
+                    <div style="grid-column:1/-1; text-align:center; color:#ff4d4d;">
+                        <i class="fas fa-wifi" font-size:40px></i>
+                        <p>Impossible de joindre le serveur. Vérifiez votre connexion.</p>
+                    </div>`;
+            }
+        }
+
+        function renderApps(apps) {
+            const container = document.getElementById('store-content');
+            container.innerHTML = "";
+
+            if (apps.length === 0) {
+                container.innerHTML = "<p>Aucune application disponible.</p>";
+                return;
+            }
+
+            apps.forEach(app => {
+                const iconClass = getIcon(app.Platform);
+                container.innerHTML += `
+                    <div class="card">
+                        <i class="${iconClass}"></i>
+                        <h3>${app.Platform}</h3>
+                        <span class="version-tag">Version ${app.Version}</span>
+                        <a href="${app.DownloadURL}" class="download-btn" target="_blank">
+                            <i class="fas fa-cloud-download-alt"></i> Télécharger
+                        </a>
+                    </div>
+                `;
+            });
+        }
+
+        function getIcon(platform) {
+            const p = platform.toLowerCase();
+            if (p.includes("android") || p.includes("apk")) return "fab fa-android";
+            if (p.includes("iphone") || p.includes("ios") || p.includes("apple")) return "fab fa-apple";
+            if (p.includes("windows") || p.includes("pc")) return "fab fa-windows";
+            if (p.includes("tv")) return "fas fa-tv";
+            return "fas fa-box-open";
+        }
+
+        // Lancement
+        fetchApps();
+    </script>
+</body>
+</html>
