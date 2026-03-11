@@ -677,6 +677,67 @@
             0%,100% { filter: drop-shadow(0 0 6px rgba(255,200,0,0.3)); }
             50%     { filter: drop-shadow(0 0 16px rgba(255,200,0,0.7)); }
         }
+        /* ===== MINI PLAYER FLOTTANT (fallback PiP custom) ===== */
+        #mini-player {
+            display: none;
+            position: fixed;
+            bottom: 90px; right: 16px;
+            width: 280px; height: 158px;
+            background: #000;
+            border-radius: 12px;
+            border: 2px solid rgba(229,9,20,0.6);
+            box-shadow: 0 8px 40px rgba(0,0,0,0.8), 0 0 20px rgba(229,9,20,0.2);
+            z-index: 8888;
+            overflow: hidden;
+            cursor: move;
+            user-select: none;
+            animation: pipIn 0.3s cubic-bezier(0.4,0,0.2,1);
+        }
+        @keyframes pipIn {
+            from { opacity:0; transform: scale(0.7) translateY(20px); }
+            to   { opacity:1; transform: scale(1) translateY(0); }
+        }
+        #mini-player video { width:100%; height:100%; object-fit:contain; display:block; }
+        #mini-player-bar {
+            position: absolute; top:0; left:0; right:0;
+            background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, transparent 100%);
+            padding: 6px 8px;
+            display: flex; align-items: center; justify-content: space-between;
+            opacity: 0; transition: opacity 0.2s;
+        }
+        #mini-player:hover #mini-player-bar { opacity: 1; }
+        #mini-player-title { font-size: 10px; font-weight: 700; color: #fff; max-width: 180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        #mini-player-close {
+            width:22px; height:22px; border-radius:50%; background:rgba(229,9,20,0.8);
+            border:none; color:#fff; font-size:10px; cursor:pointer;
+            display:flex; align-items:center; justify-content:center; flex-shrink:0;
+        }
+        #mini-player-close:hover { background: var(--primary); }
+        #mini-player-expand {
+            width:22px; height:22px; border-radius:50%; background:rgba(255,255,255,0.15);
+            border:none; color:#fff; font-size:10px; cursor:pointer;
+            display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-right:4px;
+        }
+        #mini-player-expand:hover { background:rgba(255,255,255,0.3); }
+        #mini-player-resize {
+            position:absolute; bottom:4px; right:4px;
+            width:14px; height:14px; cursor:se-resize;
+            color:rgba(255,255,255,0.25); font-size:10px;
+            display:flex; align-items:center; justify-content:center;
+        }
+        /* Barre de contrôle basse du mini-player */
+        #mini-player-bottom {
+            position:absolute; bottom:0; left:0; right:0;
+            background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, transparent 100%);
+            padding:6px 8px; display:flex; align-items:center; gap:6px;
+            opacity:0; transition:opacity 0.2s;
+        }
+        #mini-player:hover #mini-player-bottom { opacity:1; }
+        .pip-btn {
+            background:none; border:none; color:#fff; font-size:12px;
+            cursor:pointer; padding:3px; border-radius:4px; transition:color 0.2s;
+        }
+        .pip-btn:hover { color: var(--primary); }
     </style>
 </head>
 <body>
@@ -1143,11 +1204,7 @@
 
     <div id="bottom-bar">
         <button class="btn-ctrl" onclick="prevChannel()" title="Chaîne précédente"><i class="fas fa-step-backward"></i></button>
-        <div class="btn-separator desktop-only"></div>
-        <button class="btn-ctrl desktop-only" onclick="adjustVol(-0.1)" title="Volume -"><i class="fas fa-minus"></i></button>
         <button class="btn-ctrl btn-large" onclick="toggleMenu()" title="Menu"><i class="fas fa-bars"></i></button>
-        <button class="btn-ctrl desktop-only" onclick="adjustVol(0.1)" title="Volume +"><i class="fas fa-plus"></i></button>
-        <div class="btn-separator desktop-only"></div>
         <button class="btn-ctrl" onclick="nextChannel()" title="Chaîne suivante"><i class="fas fa-step-forward"></i></button>
         <div class="btn-separator"></div>
         <button class="btn-ctrl" onclick="toggleVolPopup()" title="Volume" id="btn-vol"><i class="fas fa-volume-up"></i></button>
@@ -1155,6 +1212,7 @@
         <button class="btn-ctrl" onclick="showChannelInfo()" title="Info chaîne"><i class="fas fa-info-circle"></i></button>
         <button class="btn-ctrl" id="btn-delete" onclick="hideCurrentChannel()" style="color:#ff6b6b;" title="Masquer chaîne"><i class="fas fa-eye-slash"></i></button>
         <button class="btn-ctrl" onclick="toggleFullScreen()" title="Plein écran"><i class="fas fa-expand"></i></button>
+        <button class="btn-ctrl" id="btn-pip" onclick="togglePiP()" title="Mini lecteur flottant"><i class="fas fa-clone"></i></button>
     </div>
 </div>
 
@@ -1163,6 +1221,30 @@
     <input type="range" id="vol-slider" min="0" max="100" value="100" oninput="setVolFromSlider(this.value)">
     <span id="vol-pct">100%</span>
     <button onclick="toggleMute()" style="background:none;border:none;color:#888;cursor:pointer;font-size:14px;" id="btn-mute"><i class="fas fa-volume-mute"></i></button>
+</div>
+
+<!-- ===== MINI PLAYER FLOTTANT ===== -->
+<div id="mini-player">
+    <video id="mini-video" playsinline muted></video>
+    <div id="mini-player-bar">
+        <span id="mini-player-title">—</span>
+        <div style="display:flex;gap:4px;">
+            <button id="mini-player-expand" onclick="closePiP(true)" title="Revenir en plein écran">
+                <i class="fas fa-expand-alt"></i>
+            </button>
+            <button id="mini-player-close" onclick="closePiP(false)" title="Fermer">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+    <div id="mini-player-bottom">
+        <button class="pip-btn" id="pip-play-btn" onclick="pipTogglePlay()"><i class="fas fa-pause"></i></button>
+        <button class="pip-btn" onclick="pipMute()"><i class="fas fa-volume-up" id="pip-vol-icon"></i></button>
+        <input type="range" id="pip-vol-slider" min="0" max="100" value="80"
+            oninput="pipSetVol(this.value)"
+            style="flex:1;accent-color:var(--primary);height:3px;">
+    </div>
+    <div id="mini-player-resize"><i class="fas fa-grip-lines-vertical"></i></div>
 </div>
 
 <script>
@@ -1960,27 +2042,100 @@ function tryPlayChannel(ch) {
     } else { currentChannelIndex=index; playChannel(currentChannelIndex); }
 }
 
+// Watchdog auto-restart pour la 1ère chaîne
+let _ch0WatchdogTimer = null;
+
+function _showClickToPlay() {
+    if (document.getElementById('click-to-play-overlay')) return;
+    const ov = document.createElement('div');
+    ov.id = 'click-to-play-overlay';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:9000;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.55);cursor:pointer;';
+    ov.innerHTML = '<div style="background:rgba(229,9,20,0.9);border-radius:50%;width:80px;height:80px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 40px rgba(229,9,20,0.6);margin-bottom:16px;"><i class="fas fa-play" style="font-size:30px;color:#fff;margin-left:6px;"></i></div><div style="color:#fff;font-family:\'Orbitron\',sans-serif;font-size:13px;letter-spacing:2px;">CLIQUEZ POUR LANCER</div>';
+    ov.addEventListener('click', () => {
+        ov.remove();
+        video.muted = false;
+        video.play().catch(() => {});
+    });
+    document.body.appendChild(ov);
+}
+
 function playChannel(index) {
     if(!allChannels[index]) return;
     const ch = allChannels[index];
     if(window.innerWidth < 900) document.body.classList.remove('menu-open');
+    // Retirer l'overlay "cliquez pour lancer" si présent
+    const ov = document.getElementById('click-to-play-overlay');
+    if (ov) ov.remove();
     renderList(true);
     statusText.innerText = ch.name; led.className = 'orange';
     showNowPlayingToast(ch);
     updateAmbientColor(ch);
 
+    clearTimeout(_ch0WatchdogTimer);
+
     if(Hls.isSupported()) {
         if(hls) hls.destroy();
-        hls = new Hls({ manifestLoadingMaxRetry: 5, manifestLoadingTimeOut: 10000, maxBufferLength: 30 });
+        hls = new Hls({
+            manifestLoadingMaxRetry: 6,
+            manifestLoadingTimeOut: 12000,
+            levelLoadingMaxRetry: 6,
+            fragLoadingMaxRetry: 6,
+            maxBufferLength: 30
+        });
         hls.loadSource(ch.url);
         hls.attachMedia(video);
-        hls.on(Hls.Events.FRAG_LOADED, (e,d) => { if(d.stats) onVideoChunkLoaded(d.stats.total, d.stats.loading.end-d.stats.loading.start); });
-        hls.on(Hls.Events.MANIFEST_PARSED, () => { video.play().catch(()=>{}); led.className='green'; clearTimeout(autoZapTimeout); });
-        hls.on(Hls.Events.ERROR, (e,d) => { if(d.fatal) { if(index===0) setTimeout(()=>playChannel(0),2000); else handleError(); } });
+
+        hls.on(Hls.Events.FRAG_LOADED, (e,d) => {
+            if(d.stats) onVideoChunkLoaded(d.stats.total, d.stats.loading.end - d.stats.loading.start);
+        });
+
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            video.muted = false;
+            const playPromise = video.play();
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    led.className = 'green';
+                    clearTimeout(autoZapTimeout);
+                }).catch(() => {
+                    // Autoplay bloqué → afficher overlay "Cliquez pour lancer" avec son
+                    led.className = 'green';
+                    clearTimeout(autoZapTimeout);
+                    _showClickToPlay();
+                });
+            }
+        });
+
+        hls.on(Hls.Events.ERROR, (e, d) => {
+            if (!d.fatal) return;
+            led.className = '';
+            if (index === 0) {
+                _ch0WatchdogTimer = setTimeout(() => playChannel(0), 3000);
+            } else {
+                handleError();
+            }
+        });
+
     } else if(video.canPlayType('application/vnd.apple.mpegurl')) {
-        video.src=ch.url; video.play();
+        video.muted = false;
+        video.src = ch.url;
+        video.play().catch(() => { _showClickToPlay(); });
+        led.className = 'green';
     }
-    if(isAutoZap && index!==0) { clearTimeout(autoZapTimeout); autoZapTimeout=setTimeout(()=>{ if(video.paused||video.readyState<2) handleError(); },15000); }
+
+    // Watchdog : si après 10s toujours rien → relance
+    _ch0WatchdogTimer = setTimeout(() => {
+        if (video.readyState < 2 || video.paused) {
+            statusText.innerText = 'Reconnexion...';
+            playChannel(index);
+        }
+    }, 10000);
+
+    if(isAutoZap && index !== 0) {
+        clearTimeout(autoZapTimeout);
+        autoZapTimeout = setTimeout(() => {
+            if(video.paused || video.readyState < 2) handleError();
+        }, 15000);
+    }
 }
 
 function updateAmbientColor(ch) {
@@ -2410,12 +2565,30 @@ function _calcDaysLeft(user) {
 }
 
 function startRealTimeCheck() {
+    // Compteur d'échecs consécutifs : on ne déconnecte qu'après 3 vrais échecs réseau
+    let _failCount = 0;
+    const MAX_FAILS = 3;
+
     setInterval(async () => {
         const key = localStorage.getItem('mybox_key');
         if (!key) return;
         try {
             const data = await sbGet('utilisateurs', 'cle=eq.' + encodeURIComponent(key) + '&select=duree,appareils,max_ecrans,message');
-            if (!data || data.length === 0 || _calcDaysLeft(data[0]) <= 0) {
+
+            // ── Erreur réseau / Supabase inaccessible ──
+            // data === null signifie que la requête a échoué (réseau, rate-limit, etc.)
+            // On incrémente le compteur mais on NE déconnecte PAS immédiatement
+            if (data === null) {
+                _failCount++;
+                console.warn('[Auth] Supabase inaccessible — tentative', _failCount, '/', MAX_FAILS);
+                return; // on garde la session active
+            }
+
+            // ── Réponse valide reçue → reset du compteur d'échecs ──
+            _failCount = 0;
+
+            // ── Abonnement introuvable OU vraiment expiré ──
+            if (data.length === 0 || _calcDaysLeft(data[0]) <= 0) {
                 localStorage.removeItem('mybox_auth');
                 localStorage.removeItem('mybox_key');
                 localStorage.removeItem('mybox_raw_status');
@@ -2428,6 +2601,7 @@ function startRealTimeCheck() {
                 document.getElementById('licenseKey').value = '';
                 document.body.classList.remove('menu-open');
             } else {
+                // ── Abonnement actif ── mise à jour silencieuse de l'affichage
                 const u = data[0];
                 const raw = 'SUCCESS:' + u.duree + ':' + u.max_ecrans;
                 updateAccountDisplay(key, raw);
@@ -2437,8 +2611,12 @@ function startRealTimeCheck() {
                     setTimeout(() => showToastNotif('📢 ' + u.message), 1500);
                 }
             }
-        } catch(e) {}
-    }, 5000);
+        } catch(e) {
+            // Exception inattendue → on ne déconnecte pas
+            _failCount++;
+            console.warn('[Auth] Exception check abonnement:', e);
+        }
+    }, 120000); // ✅ toutes les 2 minutes (au lieu de 5 secondes)
 }
 
 async function login() {
@@ -2529,7 +2707,11 @@ async function logout() {
 // INIT — Supabase
 // =======================================================
 async function initApp() {
-    if(!appMode) { openSettings(); showMyAlert("Bienvenue sur My Box TV !\nChoisissez un Mode de Réception pour commencer."); return; }
+    // ── Premier lancement : mode transpondeur par défaut, aucune config requise ──
+    if (!appMode) {
+        appMode = 'full';
+        localStorage.setItem('mybox_mode', 'full');
+    }
     updateModeUI(); enforceNovelasIntegrity(); renderList(true); playChannel(0); refreshNetworkUI(0);
 
     // Check config (maintenance + message)
@@ -2640,12 +2822,189 @@ if(localStorage.getItem('mybox_auth')==='OK') {
 </script>
 <input type="file" id="localFileInput" accept=".m3u,.m3u8" style="display:none;" onchange="handleTitanScan(this)">
 <script>
-function handleTitanScan(input) {
-    const file=input.files[0]; if(!file) return;
-    const reader=new FileReader();
-    reader.onload=e=>{ processLines(e.target.result.split('\n'),[]); showToastNotif('Fichier chargé avec succès'); };
-    reader.readAsText(file);
+// =======================================================
+// PICTURE-IN-PICTURE — natif d'abord, sinon mini-player custom
+// =======================================================
+let _pipActive  = false;
+let _pipNative  = false;
+let _hlsMini    = null;
+let _pipDragInit = false;
+
+// ── Init unique drag + resize (appelé une seule fois) ──
+function _initPipInteractions() {
+    if (_pipDragInit) return;
+    _pipDragInit = true;
+    const el  = document.getElementById('mini-player');
+    const bar = document.getElementById('mini-player-bar');
+
+    // --- DRAG ---
+    let ix = 0, iy = 0, dragging = false;
+    const dragStart = (e) => {
+        if (e.target.closest('button')) return; // ne pas drag sur les boutons
+        dragging = true;
+        const cx = e.touches ? e.touches[0].clientX : e.clientX;
+        const cy = e.touches ? e.touches[0].clientY : e.clientY;
+        ix = cx - el.getBoundingClientRect().left;
+        iy = cy - el.getBoundingClientRect().top;
+        e.preventDefault();
+    };
+    const dragMove = (e) => {
+        if (!dragging) return;
+        e.preventDefault();
+        const cx = e.touches ? e.touches[0].clientX : e.clientX;
+        const cy = e.touches ? e.touches[0].clientY : e.clientY;
+        const nx = Math.max(0, Math.min(cx - ix, window.innerWidth  - el.offsetWidth));
+        const ny = Math.max(0, Math.min(cy - iy, window.innerHeight - el.offsetHeight));
+        el.style.left = nx + 'px'; el.style.top = ny + 'px';
+        el.style.right = 'auto';  el.style.bottom = 'auto';
+    };
+    const dragEnd = () => { dragging = false; };
+    bar.addEventListener('mousedown',  dragStart);
+    bar.addEventListener('touchstart', dragStart, { passive: false });
+    document.addEventListener('mousemove', dragMove);
+    document.addEventListener('touchmove', dragMove, { passive: false });
+    document.addEventListener('mouseup',   dragEnd);
+    document.addEventListener('touchend',  dragEnd);
+
+    // --- RESIZE ---
+    const handle = document.getElementById('mini-player-resize');
+    let resizing = false, startW, startH, startX, startY;
+    handle.addEventListener('mousedown',  (e) => {
+        resizing = true; e.preventDefault();
+        startX = e.clientX; startY = e.clientY;
+        startW = el.offsetWidth; startH = el.offsetHeight;
+    });
+    handle.addEventListener('touchstart', (e) => {
+        resizing = true; e.preventDefault();
+        startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+        startW = el.offsetWidth; startH = el.offsetHeight;
+    }, { passive: false });
+    const resizeMove = (e) => {
+        if (!resizing) return;
+        const cx = e.touches ? e.touches[0].clientX : e.clientX;
+        const cy = e.touches ? e.touches[0].clientY : e.clientY;
+        el.style.width  = Math.max(200, startW + cx - startX) + 'px';
+        el.style.height = Math.max(120, startH + cy - startY) + 'px';
+    };
+    const resizeEnd = () => { resizing = false; };
+    document.addEventListener('mousemove', resizeMove);
+    document.addEventListener('touchmove', resizeMove, { passive: false });
+    document.addEventListener('mouseup',   resizeEnd);
+    document.addEventListener('touchend',  resizeEnd);
 }
+
+function togglePiP() {
+    _pipActive ? closePiP(false) : openPiP();
+}
+
+function openPiP() {
+    _initPipInteractions();
+
+    // ── Essai PiP natif sur la vidéo principale (pas de double flux) ──
+    if (document.pictureInPictureEnabled && video.readyState >= 2) {
+        video.requestPictureInPicture().then(() => {
+            _pipActive = true; _pipNative = true;
+            document.getElementById('btn-pip').classList.add('active-mode');
+            showToastNotif('📺 Mini-lecteur activé');
+        }).catch(() => _openCustomPiP());
+
+        video.addEventListener('leavepictureinpicture', () => {
+            _pipActive = false; _pipNative = false;
+            document.getElementById('btn-pip').classList.remove('active-mode');
+        }, { once: true });
+        return;
+    }
+
+    // ── Fallback : mini-player custom HTML ──
+    _openCustomPiP();
+}
+
+function _openCustomPiP() {
+    const ch = allChannels[currentChannelIndex];
+    if (!ch) return;
+
+    const miniEl    = document.getElementById('mini-player');
+    const miniVideo = document.getElementById('mini-video');
+
+    // Nettoyer l'ancienne instance HLS si elle existe
+    if (_hlsMini) { _hlsMini.destroy(); _hlsMini = null; }
+    miniVideo.src = '';
+
+    if (Hls.isSupported()) {
+        _hlsMini = new Hls({ maxBufferLength: 10, manifestLoadingMaxRetry: 3 });
+        _hlsMini.loadSource(ch.url);
+        _hlsMini.attachMedia(miniVideo);
+        _hlsMini.on(Hls.Events.MANIFEST_PARSED, () => {
+            miniVideo.muted  = false;
+            miniVideo.volume = 0.8;
+            miniVideo.play().catch(() => {});
+        });
+    } else if (miniVideo.canPlayType('application/vnd.apple.mpegurl')) {
+        miniVideo.src    = ch.url;
+        miniVideo.muted  = false;
+        miniVideo.volume = 0.8;
+        miniVideo.play().catch(() => {});
+    }
+
+    document.getElementById('mini-player-title').innerText = ch.name;
+    document.getElementById('pip-vol-slider').value = 80;
+    document.getElementById('pip-vol-icon').className = 'fas fa-volume-up';
+    document.getElementById('pip-play-btn').querySelector('i').className = 'fas fa-pause';
+
+    // Repositionner en bas à droite à chaque ouverture
+    miniEl.style.cssText = 'display:block; position:fixed; bottom:90px; right:16px; left:auto; top:auto; width:280px; height:158px;';
+
+    _pipActive = true; _pipNative = false;
+    document.getElementById('btn-pip').classList.add('active-mode');
+    showToastNotif('📺 Mini-lecteur activé');
+}
+
+function closePiP(backToMain) {
+    if (_pipNative && document.pictureInPictureElement) {
+        document.exitPictureInPicture().catch(() => {});
+    }
+    const miniEl    = document.getElementById('mini-player');
+    const miniVideo = document.getElementById('mini-video');
+    if (_hlsMini) { _hlsMini.destroy(); _hlsMini = null; }
+    miniVideo.pause(); miniVideo.src = '';
+    miniEl.style.display = 'none';
+    _pipActive = false; _pipNative = false;
+    document.getElementById('btn-pip').classList.remove('active-mode');
+    if (backToMain) showToastNotif('▶ Retour au lecteur principal');
+}
+
+function pipTogglePlay() {
+    const v    = document.getElementById('mini-video');
+    const icon = document.querySelector('#pip-play-btn i');
+    if (v.paused) { v.play().catch(()=>{}); icon.className = 'fas fa-pause'; }
+    else          { v.pause();              icon.className = 'fas fa-play';  }
+}
+
+let _pipMuted = false;
+function pipMute() {
+    const v = document.getElementById('mini-video');
+    _pipMuted = !_pipMuted;
+    v.muted = _pipMuted;
+    document.getElementById('pip-vol-icon').className = _pipMuted ? 'fas fa-volume-mute' : 'fas fa-volume-up';
+}
+function pipSetVol(val) {
+    const v = document.getElementById('mini-video');
+    v.volume = val / 100;
+    v.muted  = (val == 0);
+    document.getElementById('pip-vol-icon').className = (val == 0) ? 'fas fa-volume-mute' : 'fas fa-volume-up';
+}
+
+// Quand on change de chaîne et que le mini-player custom est ouvert → mise à jour de la source
+const _origPlayChannel = playChannel;
+window.playChannel = function(index) {
+    _origPlayChannel(index);
+    if (_pipActive && !_pipNative) {
+        setTimeout(() => _openCustomPiP(), 600);
+    }
+};
+
+// ── handleTitanScan ──
+function handleTitanScan(input) {
 </script>
 
 <script>
