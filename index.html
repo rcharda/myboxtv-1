@@ -13,6 +13,7 @@
     <link rel="apple-touch-icon" href="https://upload.wikimedia.org/wikipedia/commons/4/45/COMPANY%281%29.png">
     
     <script src="https://cdn.fedapay.com/checkout.js?v=1.1.7"></script>
+    <script src="https://cdn.kkiapay.me/k.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     
@@ -1014,6 +1015,12 @@
             style="display:none;width:100%;padding:15px;border-radius:12px;font-size:14px;font-weight:800;background:linear-gradient(135deg,#0066ff,#004ecc);box-shadow:0 4px 20px rgba(0,100,255,0.4);letter-spacing:0.5px;">
             <i class="fas fa-credit-card" style="margin-right:8px;"></i>PAYER AVEC FEDAPAY
         </button>
+        <button id="btn-pay-kkiapay" onclick="payWithKkiapay()"
+            style="display:none;width:100%;margin-top:10px;padding:15px;border-radius:12px;font-size:14px;font-weight:800;background:linear-gradient(135deg,#ff6b00,#cc4e00);box-shadow:0 4px 20px rgba(255,107,0,0.4);letter-spacing:0.5px;color:white;border:none;cursor:pointer;font-family:'Exo 2',sans-serif;transition:all 0.2s;"
+            onmouseover="this.style.background='linear-gradient(135deg,#ff8c2a,#e05500)'"
+            onmouseout="this.style.background='linear-gradient(135deg,#ff6b00,#cc4e00)'">
+            <i class="fas fa-mobile-alt" style="margin-right:8px;"></i>PAYER AVEC KKIAPAY
+        </button>
         <button onclick="closeSubscribe()"
             style="width:100%;margin-top:10px;padding:13px;border-radius:12px;background:transparent;border:1px solid rgba(255,255,255,0.1);color:#888;cursor:pointer;font-family:'Exo 2',sans-serif;font-weight:700;font-size:13px;transition:all 0.2s;"
             onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
@@ -1275,6 +1282,7 @@ async function openSubscribe() {
     document.getElementById('tarifs-price-box').style.display = 'none';
     document.getElementById('parrain-section').style.display  = 'none';
     document.getElementById('btn-pay').style.display          = 'none';
+    document.getElementById('btn-pay-kkiapay').style.display  = 'none';
     document.getElementById('subscribe-modal').style.display  = 'block';
     _selectedTarif = null;
     // Titre normal
@@ -1379,6 +1387,7 @@ function selectTarif(id) {
     document.getElementById('tarifs-price-box').style.display = 'block';
     document.getElementById('parrain-section').style.display  = 'block';
     document.getElementById('btn-pay').style.display          = 'block';
+    document.getElementById('btn-pay-kkiapay').style.display  = 'block';
 }
 
 function updatePrice() {
@@ -1452,6 +1461,7 @@ function openRenewFromSettings() {
     document.getElementById('tarifs-price-box').style.display = 'none';
     document.getElementById('parrain-section').style.display  = 'none';
     document.getElementById('btn-pay').style.display          = 'none';
+    document.getElementById('btn-pay-kkiapay').style.display  = 'none';
     _selectedTarif = null;
 
     // Titre en mode renouvellement
@@ -1504,6 +1514,40 @@ function payWithFedaPay() {
             }
         }
     }).open();
+}
+
+// ---- Paiement KKiaPay (SDK officiel cdn.kkiapay.me/k.js) ----
+function payWithKkiapay() {
+    if (!_selectedTarif) { showToastNotif('⚠️ Sélectionnez une offre.'); return; }
+
+    const amount  = updatePrice();
+    const days    = String(_selectedTarif.days);
+    const screens = String(_selectedTarif.screens);
+    const chars   = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let rand = "";
+    for (let i = 0; i < 6; i++) rand += chars.charAt(Math.floor(Math.random() * chars.length));
+    const newKey = "TV-" + rand;
+    const codeParrain = document.getElementById('parrain-code-input').value.trim().toUpperCase();
+
+    openKkiapayWidget({
+        amount:   amount,
+        key:      "adaa98fcfed792479755dbc84a0dfdaf91482b8e",
+        sandbox:  false,
+        position: "center",
+        data:     newKey,
+        name:     "Client My Box TV",
+        theme:    "#ff6b00"
+    });
+
+    // Écoute succès
+    addSuccessListener(function(response) {
+        processSuccessfulPayment(newKey, days, screens, codeParrain);
+    });
+
+    // Écoute échec
+    addFailedListener(function(error) {
+        showToastNotif('❌ Paiement KKiaPay échoué. Réessayez.');
+    });
 }
 
 async function processSuccessfulPayment(newKey, days, screens, codeParrain) {
