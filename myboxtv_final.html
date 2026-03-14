@@ -3508,13 +3508,9 @@ async function process(txt){
         resetIdle(); return;
     }
 
-    // ── Commande non comprise → aide vocale ──
-    if(result.action==='unknown'){
-        showTyping(false);
-        const helpTxt=buildHelpText();
-        addMsg('bot', helpTxt, 'system');
-        speak(result.response||"Je n'ai pas compris. Voici ce que vous pouvez me demander.", true);
-        resetIdle(); return;
+    // ── Si l'IA retourne "unknown" (ne devrait plus arriver) → web_search automatique ──
+    if(result.action==='unknown' || !result.action){
+        result = { action:'web_search', params:{ query: txt }, response:`Je cherche des informations sur : ${txt}` };
     }
 
     // ── Toutes les autres actions TV/système ──
@@ -3614,18 +3610,23 @@ QUAND utiliser none :
 - Remerciements, salutations
 - Devinettes, jeux de mots
 
-═══ NON COMPRIS ═══
-unknown  {}
-Utilise "unknown" SEULEMENT si tu ne comprends absolument rien.
-Dans "response" explique vocalement 2-3 exemples de phrases que l'utilisateur peut dire.
+RÈGLE ABSOLUE — JAMAIS de "unknown" :
+Si tu ne sais pas quelle action TV utiliser → utilise TOUJOURS web_search ou none.
+La règle est simple :
+  • Commande TV/système claire → action correspondante
+  • Question, info, actualité, sport, météo, définition, personne, lieu → web_search
+  • Blague, histoire, calcul, conversation, remerciement, salutation → none (réponds toi-même)
+  • CAS LIMITE : si tu hésites entre web_search et none → utilise web_search
+  • JAMAIS "unknown" — Micka a toujours une réponse
 
 RÈGLES CRITIQUES :
-1. Pour les blagues et histoires → INVENTE toujours quelque chose de NOUVEAU et ORIGINAL. Jamais de blague pré-écrite répétée.
-2. Pour les radios → donne TOUJOURS une URL de stream fonctionnelle.
-3. Pour la recherche web → formule une requête précise et pertinente.
-4. Sois créatif, naturel, jamais robotique. Max 2 phrases dans "response" pour les actions.
-5. Pour les conversations longues (histoires, blagues) → mets le contenu complet dans "response".
-6. TOUJOURS analyser le contexte avant de répondre — ne jamais retourner "unknown" si c'est compréhensible.`;
+1. Blagues et histoires → INVENTE quelque chose de NOUVEAU et ORIGINAL à chaque fois. Varie les genres : absurde, jeu de mots, anecdote, conte africain, blague de papa...
+2. Pour les radios → donne une URL de stream fonctionnelle.
+3. Pour web_search → formule une requête précise en français.
+4. Sois créatif, naturel, jamais robotique.
+5. Histoires et blagues → contenu COMPLET dans "response", jamais tronqué.
+6. Si quelqu'un parle d'un pays, d'une ville, d'un personnage, d'un événement → web_search.
+7. Questions médicales, juridiques, techniques → web_search ou none avec une vraie réponse utile.`;
 }
 
 // ================================================================
@@ -3683,7 +3684,22 @@ async function webSearch(query){
         }
     }catch(e){}
 
-    return `<b>🔍 ${escHtml(query)}</b><br><br>Je n'ai pas pu obtenir de résultat pour cette recherche. Vérifiez votre connexion Internet.`;
+    // Dernier recours — Claude répond depuis sa connaissance générale
+    try{
+        const sysMsg = `Tu es Micka, une assistante IA vocale. Réponds en français de façon naturelle, utile et courte (3-5 phrases). Si c'est une blague → invente une vraie blague originale. Si c'est une histoire → crée une histoire courte originale. Si c'est un calcul → calcule. Si c'est une question factuelle → réponds. Date: ${new Date().toLocaleDateString('fr-FR')}.`;
+        const r=await fetch('https://api.anthropic.com/v1/messages',{
+            method:'POST',
+            headers:{'Content-Type':'application/json','x-api-key':CFG.KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+            body:JSON.stringify({model:CFG.MODEL,max_tokens:500,system:sysMsg,messages:[{role:'user',content:query}]})
+        });
+        if(r.ok){
+            const d=await r.json();
+            const ans=d.content?.[0]?.text?.trim()||'';
+            if(ans) return `<b>🤖 Micka</b><br><br>${escHtml(ans)}<br><br><span style="font-size:10px;color:#555;">Micka IA</span>`;
+        }
+    }catch(e){}
+
+    return `<b>🔍 ${escHtml(query)}</b><br><br>Je n'ai pas pu obtenir de résultat. Vérifiez votre connexion Internet.`;
 }
 
 function stripHtml(h){ return h.replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>'); }
@@ -3760,19 +3776,32 @@ function buildHelpText(){
 
 // ── Parser minimal (si API KO) ──
 function quickParse(t){
-    const n=t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-    if(/suivante?|next/.test(n)) return {action:'next_channel',params:{},response:'Suivante !'};
-    if(/precedente?|avant/.test(n)) return {action:'prev_channel',params:{},response:'Précédente !'};
-    if(/monte|plus fort/.test(n)) return {action:'volume_up',params:{amount:.15},response:'Volume +'};
-    if(/baisse|moins fort/.test(n)) return {action:'volume_down',params:{amount:.15},response:'Volume -'};
-    if(/mute|silence|coupe/.test(n)) return {action:'mute',params:{},response:'Mute !'};
+    const n=t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+    // Commandes TV claires
+    if(/chaine suivante|suivante|next chaine/.test(n)) return {action:'next_channel',params:{},response:'Chaîne suivante !'};
+    if(/chaine precedente|precedente|chaine avant/.test(n)) return {action:'prev_channel',params:{},response:'Chaîne précédente !'};
+    if(/monte.*son|plus fort|hausse.*volume/.test(n)) return {action:'volume_up',params:{amount:.15},response:'Volume +'};
+    if(/baisse.*son|moins fort|diminue.*volume/.test(n)) return {action:'volume_down',params:{amount:.15},response:'Volume -'};
+    if(/coupe.*son|mute|silence|sourdine/.test(n)) return {action:'mute',params:{},response:'Mute !'};
+    if(/volume max|100 pourcent|son fort/.test(n)) return {action:'set_volume',params:{level:1},response:'Volume max !'};
     if(/plein.?ecran/.test(n)) return {action:'fullscreen',params:{},response:'Plein écran !'};
-    if(/favori/.test(n)) return {action:'show_favorites',params:{},response:'Favoris !'};
-    if(/cherche|info|actualit|meteo|news|blague|histoire|radio/.test(n))
-        return {action:'web_search',params:{query:t},response:`Je cherche...`};
-    const ch=findCh(t);
-    if(ch>=0) return {action:'change_channel',params:{index:ch,name:allChannels[ch].name},response:`Je lance ${allChannels[ch].name} !`};
-    return {action:'unknown',params:{},response:"Dites par exemple : Micka mets Novelas TV, ou Micka les infos du jour, ou Micka une blague."};
+    if(/quitter.*ecran/.test(n)) return {action:'exit_fullscreen',params:{},response:'Retour normal.'};
+    if(/ouvre.*menu/.test(n)) return {action:'open_menu',params:{},response:'Menu ouvert !'};
+    if(/ferme.*menu/.test(n)) return {action:'close_menu',params:{},response:'Menu fermé.'};
+    if(/mes favori|voir favori/.test(n)) return {action:'show_favorites',params:{},response:'Vos favoris !'};
+    if(/ajoute.*favori/.test(n)) return {action:'add_favorite',params:{},response:'Ajouté !'};
+    if(/mon compte|abonnement/.test(n)) return {action:'show_account',params:{},response:'Votre compte !'};
+    if(/mini lecteur|pip/.test(n)) return {action:'pip_on',params:{},response:'Mini lecteur !'};
+    if(/plein ecran/.test(n)) return {action:'fullscreen',params:{},response:'Plein écran !'};
+    if(/veille|standby/.test(n)) return {action:'standby',params:{},response:'Veille...'};
+    const slp=n.match(/minuterie.*?(\d+)|(\d+).*min/);
+    if(slp) return {action:'sleep_timer',params:{minutes:parseInt(slp[1]||slp[2])},response:'Minuterie !'};
+    // Chaîne par nom
+    const chCmd=n.match(/(?:mets|lance|allume|ouvre|va sur|passe sur|je veux voir)\s+(.+)/);
+    if(chCmd){const idx=findCh(chCmd[1].trim());if(idx>=0)return {action:'change_channel',params:{index:idx,name:allChannels[idx].name},response:'Je lance '+allChannels[idx].name+' !'};}
+    const ch=findCh(t); if(ch>=0&&t.length<25) return {action:'change_channel',params:{index:ch,name:allChannels[ch].name},response:'Je lance '+allChannels[ch].name+' !'};
+    // TOUT LE RESTE → recherche web — JAMAIS unknown
+    return {action:'web_search',params:{query:t},response:'Je cherche pour vous...'};
 }
 
 // ── Recherche floue chaîne ──
