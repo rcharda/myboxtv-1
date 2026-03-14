@@ -3243,12 +3243,24 @@ document.addEventListener('keydown', (e) => {
     font-size: 13px; color: white;
 }
 #micka-name { font-family: 'Orbitron', sans-serif; font-size: 9px; letter-spacing: 2px; color: #8b6fff; }
-#micka-bubble-text { font-size: 13px; color: #e8e8f0; line-height: 1.6; font-weight: 500; }
-#micka-bubble-user {
-    margin-top: 9px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.06);
-    font-size: 11px; color: #555; font-style: italic;
+/* Chat log Micka */
+#micka-chat-log {
+    max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;
+    padding: 2px 0 4px; scrollbar-width: thin; scrollbar-color: #333 transparent;
 }
-#micka-bubble-user::before { content: '🎙 '; }
+#micka-chat-log::-webkit-scrollbar { width: 2px; }
+#micka-chat-log::-webkit-scrollbar-thumb { background: #333; }
+.micka-msg { display: flex; flex-direction: column; gap: 2px; }
+.micka-msg-author { font-size: 9px; font-weight: 700; letter-spacing: 1px; }
+.micka-msg-author.you  { color: #0af; }
+.micka-msg-author.bot  { color: #a78bff; }
+.micka-msg-bubble {
+    padding: 8px 11px; border-radius: 12px; font-size: 12.5px; line-height: 1.55; max-width: 95%;
+}
+.micka-msg-bubble.you { background: rgba(0,170,255,0.12); border: 1px solid rgba(0,170,255,0.2); color: #cce8ff; align-self: flex-end; border-radius: 12px 12px 3px 12px; }
+.micka-msg-bubble.bot { background: rgba(110,58,255,0.12); border: 1px solid rgba(110,58,255,0.2); color: #e8e0ff; align-self: flex-start; border-radius: 12px 12px 12px 3px; }
+@keyframes typDot { 0%,100%{opacity:0.2} 50%{opacity:1} }
+#micka-status-dot { transition: background 0.3s; }
 
 /* ===== BARRE DE STATUT ===== */
 #micka-status {
@@ -3321,9 +3333,14 @@ document.addEventListener('keydown', (e) => {
     <div id="micka-bubble-head">
         <div id="micka-avatar"><i class="fas fa-robot"></i></div>
         <div id="micka-name">MICKA · MY BOX TV</div>
+        <div id="micka-status-dot" style="width:7px;height:7px;border-radius:50%;background:#2ecc71;box-shadow:0 0 6px #2ecc71;margin-left:auto;flex-shrink:0;"></div>
     </div>
-    <div id="micka-bubble-text">Dites "Micka" pour m'activer...</div>
-    <div id="micka-bubble-user" style="display:none;"></div>
+    <div id="micka-chat-log"></div>
+    <div id="micka-typing" style="display:none;padding:4px 0 2px;font-size:11px;color:#555;font-style:italic;">
+        <i class="fas fa-circle" style="font-size:5px;animation:typDot 0.8s infinite;"></i>
+        <i class="fas fa-circle" style="font-size:5px;animation:typDot 0.8s 0.2s infinite;"></i>
+        <i class="fas fa-circle" style="font-size:5px;animation:typDot 0.8s 0.4s infinite;"></i>
+    </div>
 </div>
 
 <div id="micka-status">EN ÉCOUTE...</div>
@@ -3462,21 +3479,48 @@ function _mickaLoopStep() {
         const raw = (final || interim).trim();
         if (!raw || raw.length < 2) return;
         const norm = raw.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-        // En veille : guetter le wake word
-        if (mickaState.mode === 'standby' || mickaState.mode === 'speaking') {
+
+        // ── EN VEILLE : guetter uniquement le wake word ──
+        if (mickaState.mode === 'standby') {
             if (MICKA.WAKE_WORDS.some(w => norm.includes(w))) mickaOnWake();
             return;
         }
-        // Éveillée : traiter la commande
+        // ── EN TRAIN DE PARLER : ne rien faire (micro normalement en pause) ──
+        if (mickaState.mode === 'speaking' || mickaState.mode === 'thinking') return;
+
+        // ── ÉVEILLÉE / LISTENING : afficher + traiter la commande ──
         if (mickaState.mode === 'awake' || mickaState.mode === 'listening') {
             if (raw.length > 2) {
                 mickaSetState('listening');
                 mBubble.style.display = 'block';
                 requestAnimationFrame(() => mBubble.classList.add('show'));
-                mBubbleUsr.style.display = 'block'; mBubbleUsr.innerText = raw;
+                // Afficher ce que l'utilisateur dit en temps réel dans le log
+                // (on ne l'ajoute au log qu'une fois final pour éviter les doublons)
+                mickaShowTyping(false);
+                const log = document.getElementById('micka-chat-log');
+                if (log) {
+                    // Mise à jour d'un message temporaire
+                    let tmpMsg = log.querySelector('.micka-interim');
+                    if (!tmpMsg) {
+                        tmpMsg = document.createElement('div');
+                        tmpMsg.className = 'micka-msg micka-interim';
+                        tmpMsg.innerHTML = '<div class="micka-msg-author you">🎙 Vous</div><div class="micka-msg-bubble you" id="micka-interim-txt"></div>';
+                        log.appendChild(tmpMsg);
+                    }
+                    const itxt = tmpMsg.querySelector('#micka-interim-txt');
+                    if (itxt) itxt.innerText = raw;
+                    log.scrollTop = log.scrollHeight;
+                }
             }
+            // Phrase finale validée → traitement
             if (final && final.trim().length > 2) {
                 clearTimeout(mickaState.wakeExpiry);
+                // Supprimer le message temporaire
+                const log = document.getElementById('micka-chat-log');
+                if (log) { const tmp = log.querySelector('.micka-interim'); if(tmp) tmp.remove(); }
+                // Ajouter le message final de l'utilisateur
+                mickaChatAdd('you', final.trim());
+                mickaShowTyping(true);
                 mickaProcess(final.trim());
             }
         }
@@ -3496,14 +3540,24 @@ function mickaOnWake() {
     requestAnimationFrame(() => mBubble.classList.add('show'));
     mWakeFlash.classList.add('flash');
     setTimeout(() => mWakeFlash.classList.remove('flash'), 500);
+
     const replies = ['Oui, je vous écoute !','Je suis là, parlez !','À votre service !','Je vous écoute !','Dites-moi tout !'];
     const reply = replies[Math.floor(Math.random()*replies.length)];
-    mickaBubble(reply, '');
+
+    // Ajouter "Micka" dans le chat
+    mickaChatAdd('bot', reply);
+    // Parler — après la TTS on revient en mode 'awake' (returnToStandby=false)
     mickaSpeak(reply, false);
+
+    // Fenêtre d'écoute 10s
     clearTimeout(mickaState.wakeExpiry);
     mickaState.wakeExpiry = setTimeout(() => {
-        if (mickaState.mode === 'awake') { mickaSetState('standby'); clearTimeout(mBubble._hideTimer); mBubble._hideTimer = setTimeout(() => mBubble.classList.remove('show'), 500); }
-    }, 9000);
+        if (mickaState.mode === 'awake') {
+            mickaSetState('standby');
+            clearTimeout(mBubble._hideTimer);
+            mBubble._hideTimer = setTimeout(() => mBubble.classList.remove('show'), 3000);
+        }
+    }, 10000);
 }
 
 // ================================================================
@@ -3522,10 +3576,7 @@ function mickaToggle() {
 async function mickaProcess(transcript) {
     if (!transcript) return;
     mickaSetState('thinking');
-
-    // Baisser le son TV pendant le traitement
-    const tvV = document.getElementById('video');
-    if (tvV && !tvV.muted) { tvV._savedVol = tvV.volume; tvV.volume = Math.min(tvV.volume, 0.12); }
+    const tvV = document.getElementById('video'); // référence TV (mute géré dans mickaSpeak)
 
     let parsed = null;
     const hasKey = MICKA.API_KEY && MICKA.API_KEY.length > 20;
@@ -3572,16 +3623,17 @@ async function mickaProcess(transcript) {
 
     if (!parsed) parsed = mickaLocalParse(transcript);
 
-    // Restaurer le son TV
-    if (tvV && tvV._savedVol !== undefined) { tvV.volume = tvV._savedVol; delete tvV._savedVol; }
-
     // Exécuter l'action
     const actionMsg = await mickaExecute(parsed.action, parsed.params || {});
     const reply = parsed.response || actionMsg || 'Commande effectuée !';
 
-    mickaBubble(reply, transcript);
+    // Masquer l'indicateur de frappe
+    mickaShowTyping(false);
 
-    // Après la réponse vocale → retour en standby (wake word prêt)
+    // Afficher la réponse dans le chat (mickaBubble ajoute aussi au log)
+    mickaBubble(reply, '');
+
+    // Répondre vocalement — le mute TV est géré automatiquement dans mickaSpeak
     mickaSpeak(reply, true);
 }
 
@@ -3806,35 +3858,59 @@ function mickaShowToast(action, p) {
 }
 
 // ================================================================
-// TTS — SYNTHÈSE VOCALE
+// TTS — SYNTHÈSE VOCALE avec mute TV automatique
 // ================================================================
 function mickaSpeak(text, returnToStandby=true) {
-    if (!text || !mickaState.ttsEnabled) { if(returnToStandby) mickaSetState('standby'); return; }
+    if (!text || !mickaState.ttsEnabled) {
+        if (returnToStandby) mickaSetState('standby');
+        return;
+    }
     window.speechSynthesis?.cancel();
+    _rPaused = true; // Pause micro
 
-    // Mettre le micro en pause pour éviter que Micka s'entende elle-même
-    _rPaused = true;
+    // ── MUTE TV pendant que Micka parle ──
+    const tvV = document.getElementById('video');
+    const tvWasMuted = tvV ? tvV.muted : true;
+    const tvPrevVol  = tvV ? tvV.volume : 1;
+    if (tvV && !tvV.muted) { tvV.muted = true; }
 
     const utt = new SpeechSynthesisUtterance(text);
     utt.lang  = MICKA.LANG;
     utt.rate  = 0.97;
     utt.pitch = 1.08;
     const voices = window.speechSynthesis?.getVoices() || [];
-    const frVoice = voices.find(v=>v.lang.startsWith('fr')&&!v.name.toLowerCase().includes('espeak'))
-                 || voices.find(v=>v.lang.startsWith('fr'));
+    const frVoice = voices.find(v => v.lang.startsWith('fr') && !v.name.toLowerCase().includes('espeak'))
+                 || voices.find(v => v.lang.startsWith('fr'));
     if (frVoice) utt.voice = frVoice;
 
-    utt.onstart = () => { mickaState.speaking = true; mickaSetState('speaking'); };
+    utt.onstart = () => {
+        mickaState.speaking = true;
+        mickaSetState('speaking');
+    };
 
     const onFinish = () => {
         mickaState.speaking = false;
-        // Reprendre l'écoute 600ms après la fin de la parole
-        setTimeout(() => { _rPaused = false; }, 600);
+
+        // ── REMETTRE LE SON TV ──
+        if (tvV && !tvWasMuted) {
+            tvV.muted  = false;
+            tvV.volume = tvPrevVol;
+        }
+
+        // Reprendre le micro après 700ms
+        setTimeout(() => { _rPaused = false; }, 700);
+
         if (returnToStandby) {
+            // Retour en standby → wake word actif
             setTimeout(() => {
                 mickaSetState('standby');
                 clearTimeout(mBubble._hideTimer);
-                mBubble._hideTimer = setTimeout(() => mBubble.classList.remove('show'), 5000);
+                mBubble._hideTimer = setTimeout(() => mBubble.classList.remove('show'), 8000);
+            }, 300);
+        } else {
+            // Cas du wake : retour en 'awake' pour écouter la commande
+            setTimeout(() => {
+                if (mickaState.mode === 'speaking') mickaSetState('awake');
             }, 300);
         }
     };
@@ -3845,15 +3921,60 @@ function mickaSpeak(text, returnToStandby=true) {
 }
 
 // ================================================================
+// CHAT LOG — historique des échanges
+// ================================================================
+const _chatLog = [];
+
+function mickaChatAdd(author, text) {
+    // author: 'you' ou 'bot'
+    const log = document.getElementById('micka-chat-log');
+    if (!log) return;
+    _chatLog.push({ author, text });
+    // Limiter à 12 messages affichés
+    if (_chatLog.length > 12) _chatLog.shift();
+
+    const authorLabel = author === 'you' ? '🎙 Vous' : '🤖 Micka';
+    const div = document.createElement('div');
+    div.className = 'micka-msg';
+    div.innerHTML = `
+        <div class="micka-msg-author ${author}">${authorLabel}</div>
+        <div class="micka-msg-bubble ${author}">${text}</div>`;
+    // Animation entrée
+    div.style.opacity = '0';
+    div.style.transform = author === 'you' ? 'translateX(10px)' : 'translateX(-10px)';
+    div.style.transition = 'all 0.3s ease';
+    log.appendChild(div);
+    requestAnimationFrame(() => { div.style.opacity='1'; div.style.transform='translateX(0)'; });
+    // Scroll vers le bas
+    setTimeout(() => { log.scrollTop = log.scrollHeight; }, 50);
+
+    // Mettre à jour la couleur du dot de statut
+    const dot = document.getElementById('micka-status-dot');
+    if (dot) {
+        dot.style.background = author === 'you' ? '#0af' : '#a78bff';
+        dot.style.boxShadow  = author === 'you' ? '0 0 6px #0af' : '0 0 6px #a78bff';
+    }
+}
+
+function mickaShowTyping(show) {
+    const t = document.getElementById('micka-typing');
+    if (t) t.style.display = show ? 'block' : 'none';
+}
+
+// ================================================================
 // BULLE D'AFFICHAGE
 // ================================================================
 function mickaBubble(text, userText) {
     clearTimeout(mBubble._hideTimer);
     mBubble.style.display = 'block';
     requestAnimationFrame(() => mBubble.classList.add('show'));
-    mBubbleTxt.innerText = text;
-    if (userText) { mBubbleUsr.style.display='block'; mBubbleUsr.innerText=userText; }
-    else mBubbleUsr.style.display = 'none';
+    // Ajouter message Micka dans le log
+    if (text) mickaChatAdd('bot', text);
+    // Legacy compat : cacher les anciens éléments
+    const t = document.getElementById('micka-bubble-text');
+    if (t) t.style.display = 'none';
+    const u = document.getElementById('micka-bubble-user');
+    if (u) u.style.display = 'none';
 }
 
 // ================================================================
@@ -4081,9 +4202,11 @@ document.addEventListener('keydown', (e) => {
             const user = localStorage.getItem('mybox_key') || '';
             const msg  = sal+' ! Je suis Micka, votre assistante vocale My Box TV. Vous pouvez me parler directement et je ferai les actions à votre place. Dites "Micka" à tout moment pour m\'appeler !';
 
-            mickaBubble(msg, '');
+            mickaChatAdd('bot', msg);
             mickaSetState('speaking');
             mickaSpeak(msg, true);
+            mBubble.style.display = 'block';
+            requestAnimationFrame(() => mBubble.classList.add('show'));
 
             // Après le message d'accueil → lancer l'écoute continue
             setTimeout(startWhenReady, 5000);
