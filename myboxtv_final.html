@@ -812,6 +812,7 @@
             <div class="settings-tab" onclick="showTab('tab-sleep')"><i class="fas fa-moon"></i> Minuterie</div>
             <div class="settings-tab" onclick="showTab('tab-keys')"><i class="fas fa-keyboard"></i> Raccourcis</div>
             <div class="settings-tab" onclick="showTab('tab-sub')"><i class="fas fa-id-card"></i> Compte</div>
+            <div class="settings-tab" onclick="showTab('tab-ai')"><i class="fas fa-robot" style="color:#8b6fff;"></i> Assistant IA</div>
             <div class="settings-tab" onclick="forceReload()" style="color:#ff5555;margin-top:20px;"><i class="fas fa-redo"></i> Réinitialiser</div>
             <div class="settings-tab" onclick="standbySystem()" style="color:#ffd700;"><i class="fas fa-power-off"></i> Veille</div>
             <div class="settings-tab" onclick="closeSettings()" style="color:#555;"><i class="fas fa-times"></i> Fermer</div>
@@ -893,6 +894,61 @@
                     <div class="sleep-btn danger" onclick="setSleep(0)" style="color:#ff6b6b;border-color:rgba(229,9,20,0.3);">Désactiver</div>
                 </div>
                 <div id="sleep-status" style="margin-top:16px;color:#666;font-size:12px;text-align:center;"></div>
+            </div>
+
+            <div id="tab-ai" class="tab-content" style="display:none;">
+                <div class="settings-section-title"><i class="fas fa-robot" style="color:#8b6fff;margin-right:6px;"></i>ASSISTANT VIRTUEL MICKA</div>
+                <p style="font-size:11px;color:#555;margin-bottom:16px;">Dites <b style="color:#8b6fff">MICKA</b> pour les commandes TV — Dites <b style="color:#0af">MICKA WEB</b> pour les recherches internet.</p>
+
+                <div style="background:rgba(110,58,255,.08);border:1px solid rgba(110,58,255,.25);border-radius:12px;padding:14px;margin-bottom:14px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                        <div><div style="font-weight:700;font-size:13px;">Activer Micka IA</div><div style="font-size:10px;color:#555;margin-top:2px;">Écoute continue en arrière-plan</div></div>
+                        <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;">
+                            <input type="checkbox" id="ai-enabled-toggle" style="opacity:0;width:0;height:0;" onchange="mickaSetEnabled(this.checked)">
+                            <span id="ai-toggle-track" style="position:absolute;inset:0;background:#333;border-radius:12px;transition:.3s;"></span>
+                            <span id="ai-toggle-thumb" style="position:absolute;left:2px;top:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:.3s;"></span>
+                        </label>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                        <div><div style="font-weight:700;font-size:13px;">Voix Micka (TTS)</div><div style="font-size:10px;color:#555;margin-top:2px;">Micka parle vocalement</div></div>
+                        <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;">
+                            <input type="checkbox" id="ai-voice-toggle" style="opacity:0;width:0;height:0;" onchange="mickaSetVoice(this.checked)">
+                            <span id="ai-voice-track" style="position:absolute;inset:0;background:#333;border-radius:12px;transition:.3s;"></span>
+                            <span id="ai-voice-thumb" style="position:absolute;left:2px;top:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:.3s;"></span>
+                        </label>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <div><div style="font-weight:700;font-size:13px;">Mute TV quand Micka parle</div><div style="font-size:10px;color:#555;margin-top:2px;">Coupe le son TV pendant les réponses</div></div>
+                        <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;">
+                            <input type="checkbox" id="ai-mute-toggle" checked style="opacity:0;width:0;height:0;" onchange="mickaSetMuteTV(this.checked)">
+                            <span id="ai-mute-track" style="position:absolute;inset:0;background:#333;border-radius:12px;transition:.3s;"></span>
+                            <span id="ai-mute-thumb" style="position:absolute;left:2px;top:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:.3s;"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;">
+                    <div style="font-size:11px;color:#8b6fff;font-weight:700;margin-bottom:8px;">🎙 MOTS D'ACTIVATION</div>
+                    <div style="font-size:12px;color:#aaa;line-height:2;">
+                        <span style="background:rgba(110,58,255,.15);color:#a78bff;padding:3px 10px;border-radius:20px;margin-right:6px;">MICKA</span> → Commandes TV, questions, blagues...<br>
+                        <span style="background:rgba(0,170,255,.15);color:#0af;padding:3px 10px;border-radius:20px;margin-right:6px;">MICKA WEB</span> → Recherche sur Internet<br>
+                        <span style="background:rgba(46,204,113,.15);color:#2ecc71;padding:3px 10px;border-radius:20px;margin-right:6px;">MICKA CHERCHE</span> → Chercher une chaîne dans la liste
+                    </div>
+                </div>
+
+                <div style="font-size:11px;color:#555;margin-bottom:8px;font-weight:700;">EXEMPLES DE COMMANDES :</div>
+                <div style="background:var(--surface2);border-radius:8px;padding:10px 14px;font-size:11px;color:#888;line-height:2.2;">
+                    📺 <b style="color:#fff">"Micka mets Novelas TV"</b><br>
+                    🔊 <b style="color:#fff">"Micka monte le son"</b><br>
+                    ⭐ <b style="color:#fff">"Micka mes favoris"</b><br>
+                    🌐 <b style="color:#fff">"Micka Web météo Cotonou"</b><br>
+                    😂 <b style="color:#fff">"Micka dis-moi une blague"</b><br>
+                    🔍 <b style="color:#fff">"Micka cherche RFI"</b>
+                </div>
+
+                <button onclick="mickaTestVoice()" style="width:100%;margin-top:14px;padding:11px;border-radius:10px;background:linear-gradient(135deg,rgba(110,58,255,.2),rgba(0,170,255,.2));border:1px solid rgba(110,58,255,.4);color:#a78bff;cursor:pointer;font-family:'Exo 2',sans-serif;font-weight:700;font-size:13px;">
+                    <i class="fas fa-microphone" style="margin-right:8px;"></i>TESTER MICKA
+                </button>
             </div>
 
             <div id="tab-keys" class="tab-content" style="display:none;">
@@ -1318,7 +1374,8 @@ let isScanning = false;
 let appMode = localStorage.getItem('mybox_mode');
 let isGridMode = localStorage.getItem('mybox_view_mode') === 'grid';
 let visibleCount = 0;
-const BATCH_SIZE = 500;
+const BATCH_SIZE = 80;        // Afficher 80 chaînes max en DOM
+const MAX_DOM_ITEMS = 200;    // Jamais plus de 200 nœuds DOM dans la liste
 let totalBytesUsed = parseInt(localStorage.getItem('mybox_data_bytes')) || 0;
 let sortMode = 0; // 0=none, 1=a-z, 2=z-a
 let isMuted = false;
@@ -1818,9 +1875,13 @@ drawAmbient();
 // =======================================================
 // SCROLL
 // =======================================================
+// ── Virtual scroll : écoute du scroll pour charger la suite ──
 document.getElementById('channel-list').addEventListener('scroll', function() {
     const list = this;
-    if (list.scrollTop + list.clientHeight >= list.scrollHeight - 200 && visibleCount < displayedChannels.length) renderBatch();
+    // Charger plus quand on approche du bas
+    if (list.scrollTop + list.clientHeight >= list.scrollHeight - 300) {
+        if (visibleCount < displayedChannels.length) renderBatch();
+    }
     document.getElementById('scroll-top-btn').style.display = list.scrollTop > 200 ? 'flex' : 'none';
 });
 function scrollTop() { document.getElementById('channel-list').scrollTo({ top: 0, behavior: 'smooth' }); }
@@ -1928,8 +1989,10 @@ const sortLabels = ['A–Z','Z–A','Original'];
 function cycleSortMode() { sortMode = (sortMode+1)%3; document.getElementById('sort-label').innerText = sortLabels[sortMode]; renderList(true); }
 
 // =======================================================
-// RENDER
+// RENDER — Virtual scroll (max 200 nœuds DOM, 29k+ chaînes sans crash)
 // =======================================================
+let _renderPending = false;
+
 function renderList(reset=false) {
     enforceNovelasIntegrity();
     if(reset) {
@@ -1947,45 +2010,82 @@ function renderList(reset=false) {
         const list = document.getElementById('channel-list');
         list.innerHTML = ''; list.className = isGridMode ? 'grid-view' : '';
         list.scrollTop = 0; visibleCount = 0;
-        renderBatch();
+
+        // Mettre à jour le compteur total immédiatement
+        document.getElementById('count-display').innerText = `0 / ${displayedChannels.length} chaînes`;
+
+        // Rendu différé via requestIdleCallback pour ne pas bloquer la vidéo
+        if (_renderPending) return;
+        _renderPending = true;
+        const doRender = () => { _renderPending=false; renderBatch(); };
+        if (window.requestIdleCallback) requestIdleCallback(doRender, {timeout:100});
+        else setTimeout(doRender, 16);
     }
+}
+
+function _buildChannelNode(ch, i) {
+    const isFav = favorites.includes(ch.url);
+    const isPlaying = allChannels[currentChannelIndex]?.url === ch.url;
+    const logo = ch.logo || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect fill="%23222"/><text x="50%" y="55%" text-anchor="middle" fill="%23666" font-size="10">TV</text></svg>';
+    const isHD = ch.name.toUpperCase().includes('HD');
+    const is4K = ch.name.toUpperCase().includes('4K') || ch.name.toUpperCase().includes('UHD');
+    const div = document.createElement('div');
+    if(isGridMode) {
+        div.className = 'grid-card'+(isPlaying?' active':'');
+        div.innerHTML = `<img src="${logo}" class="grid-img" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"40\" height=\"40\"><rect fill=\"%23222\"/></svg>'"><div class="grid-title">${ch.name.replace(/</g,'&lt;')}</div>`;
+    } else {
+        div.className = 'channel-row'+(isPlaying?' active':'');
+        const badges = (is4K ? '<span class="ch-badge badge-4k">4K</span>' : isHD ? '<span class="ch-badge badge-hd">HD</span>' : '');
+        // Encoder l'URL pour l'attribut onclick (évite les quotes cassées)
+        const urlIdx = allChannels.indexOf(ch);
+        div.dataset.chIdx = urlIdx >= 0 ? urlIdx : i;
+        div.innerHTML = `
+            <i class="fas fa-star fav-btn ${isFav?'active':''}" data-url="${encodeURIComponent(ch.url)}"></i>
+            <img src="${logo}" class="ch-logo" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"40\" height=\"40\"><rect fill=\"%23222\"/></svg>'">
+            <div class="ch-info">
+                <div class="ch-name">${ch.name.replace(/</g,'&lt;')}</div>
+                <div class="ch-meta"><span class="ch-cat">${(ch.category||'').replace(/</g,'&lt;')}</span>${badges}</div>
+            </div>`;
+        // Event sur l'étoile favoris
+        div.querySelector('.fav-btn').addEventListener('click', e => {
+            e.stopPropagation();
+            const url = decodeURIComponent(e.currentTarget.dataset.url);
+            if(favorites.includes(url)) favorites=favorites.filter(u=>u!==url); else favorites.push(url);
+            localStorage.setItem('mybox_favs',JSON.stringify(favorites));
+            e.currentTarget.classList.toggle('active', favorites.includes(url));
+            showToastNotif(favorites.includes(url)?'Ajouté aux favoris':'Retiré des favoris');
+        });
+    }
+    div.addEventListener('click', (e) => { if(!e.target.closest('.fav-btn')) tryPlayChannel(ch); });
+    div.addEventListener('contextmenu', e => showCtxMenu(e, ch));
+    return div;
 }
 
 function renderBatch() {
     const list = document.getElementById('channel-list');
-    const frag = document.createDocumentFragment();
     const start = visibleCount;
-    const end = Math.min(visibleCount + BATCH_SIZE, displayedChannels.length);
+    const end = Math.min(start + BATCH_SIZE, displayedChannels.length);
     if(start >= end) return;
-    for(let i=start; i<end; i++) {
-        const ch = displayedChannels[i];
-        const isFav = favorites.includes(ch.url);
-        const isPlaying = allChannels[currentChannelIndex]?.url === ch.url;
-        const logo = ch.logo || 'https://via.placeholder.com/40?text=TV';
-        const isHD = ch.name.toUpperCase().includes('HD');
-        const is4K = ch.name.toUpperCase().includes('4K') || ch.name.toUpperCase().includes('UHD');
-        const div = document.createElement('div');
-        if(isGridMode) {
-            div.className = 'grid-card'+(isPlaying?' active':'');
-            div.innerHTML = `<img src="${logo}" class="grid-img" loading="lazy" onerror="this.src='https://via.placeholder.com/40?text=TV'"><div class="grid-title">${ch.name}</div>`;
-        } else {
-            div.className = 'channel-row'+(isPlaying?' active':'');
-            const badges = (is4K ? `<span class="ch-badge badge-4k">4K</span>` : isHD ? `<span class="ch-badge badge-hd">HD</span>` : '');
-            div.innerHTML = `
-                <i class="fas fa-star fav-btn ${isFav?'active':''}" onclick="toggleFavorite('${ch.url}',event)"></i>
-                <img src="${logo}" class="ch-logo" loading="lazy" onerror="this.src='https://via.placeholder.com/40?text=TV'">
-                <div class="ch-info">
-                    <div class="ch-name">${ch.name}</div>
-                    <div class="ch-meta"><span class="ch-cat">${ch.category||''}</span>${badges}</div>
-                </div>`;
+
+    // ── Élagage : si trop de nœuds DOM, retirer les premiers ──
+    const currentNodes = list.querySelectorAll('.channel-row, .grid-card').length;
+    if (currentNodes > MAX_DOM_ITEMS) {
+        const toRemove = Math.floor(MAX_DOM_ITEMS / 2);
+        let removed = 0;
+        const children = list.querySelectorAll('.channel-row, .grid-card');
+        for (let i = 0; i < children.length && removed < toRemove; i++) {
+            children[i].remove();
+            removed++;
         }
-        div.addEventListener('click', () => tryPlayChannel(ch));
-        div.addEventListener('contextmenu', e => showCtxMenu(e, ch));
-        frag.appendChild(div);
+    }
+
+    const frag = document.createDocumentFragment();
+    for (let i = start; i < end; i++) {
+        frag.appendChild(_buildChannelNode(displayedChannels[i], i));
     }
     list.appendChild(frag);
     visibleCount = end;
-    document.getElementById('count-display').innerText = `${visibleCount} / ${displayedChannels.length} chaînes`;
+    document.getElementById('count-display').innerText = `${end} / ${displayedChannels.length} chaînes`;
 }
 
 // =======================================================
@@ -2469,14 +2569,19 @@ function processLines(lines, batch) {
     }
 }
 
+let _flushThrottle=null;
 function flushBatch(batch) {
     if(!batch.length) return;
     allChannels=allChannels.concat(batch); batch.length=0;
     enforceNovelasIntegrity();
-    // Toujours afficher en temps réel + mettre à jour le compteur
-    document.getElementById('count-display').innerText=allChannels.length+' trouvées';
-    renderList(true);
-    updateCategoryChips();
+    // Throttle le rendu : max 1 render toutes les 500ms pour éviter crash avec 29k chaînes
+    clearTimeout(_flushThrottle);
+    document.getElementById('count-display').innerText=allChannels.length+' trouvées...';
+    _flushThrottle=setTimeout(()=>{
+        updateCategoryChips();
+        // Ne re-rendre que si l'utilisateur ne cherche pas activement
+        if(!document.getElementById('searchInput').value) renderList(true);
+    }, 500);
 }
 
 // =======================================================
@@ -3141,167 +3246,159 @@ document.addEventListener('keydown', (e) => {
 
 </script>
 
-
-
 <!-- ============================================================
-     🤖 MICKA v2 — IA Vocale complète | My Box TV
-     • Wake word "Micka" toujours actif
-     • Claude API → analyse action TV OU recherche web
-     • Recherche internet en temps réel (DuckDuckGo + Wikipedia)
-     • Radios en ligne, blagues fraîches, actualités, météo
-     • Chat log avec qui parle
-     • Mute TV auto pendant la parole
-     • Fermeture bulle 30s inactivité, micro reste actif
+     🤖 MICKA IA — Assistant vocal My Box Smart
+     • "Micka" → commandes TV + conversation IA
+     • "Micka Web" → recherche internet via Claude
+     • "Micka cherche X" → cherche dans la liste des chaînes
+     • Activable/désactivable dans Paramètres > Assistant IA
      ============================================================ -->
 <style>
+/* ── Orbe Micka ── */
 #micka-orb {
-    position:fixed;bottom:88px;left:16px;width:58px;height:58px;
+    position:fixed;bottom:88px;left:16px;width:56px;height:56px;
     border-radius:50%;cursor:pointer;z-index:9500;
     display:flex;align-items:center;justify-content:center;
-    border:2px solid rgba(255,255,255,0.15);transition:all 0.3s;
+    border:2px solid rgba(255,255,255,0.12);
     background:linear-gradient(135deg,#6e3aff,#0af);
-    box-shadow:0 0 22px rgba(110,58,255,0.5),0 4px 18px rgba(0,0,0,0.7);
+    box-shadow:0 0 20px rgba(110,58,255,0.45),0 4px 16px rgba(0,0,0,0.7);
+    transition:all .3s cubic-bezier(.4,0,.2,1);
+    user-select:none;
 }
-#micka-orb:hover{transform:scale(1.08);}
+#micka-orb:hover{transform:scale(1.07);}
+#micka-orb.hidden{display:none!important;}
 #micka-orb.idle  {background:linear-gradient(135deg,#6e3aff,#0af);}
-#micka-orb.wake  {background:linear-gradient(135deg,#ff8c00,#ffe000);animation:mWake .4s ease;box-shadow:0 0 35px rgba(255,200,0,.8);}
-#micka-orb.listen{background:linear-gradient(135deg,#ff3c3c,#ff8c00);animation:mListen 1s infinite;box-shadow:0 0 30px rgba(255,60,60,.8);}
-#micka-orb.think {background:conic-gradient(#6e3aff,#0af,#2ecc71,#6e3aff);animation:mThink 1.2s linear infinite;}
-#micka-orb.search{background:linear-gradient(135deg,#0af,#00e5ff);animation:mListen 1s infinite;box-shadow:0 0 30px rgba(0,200,255,.8);}
-#micka-orb.speak {background:linear-gradient(135deg,#2ecc71,#0af);animation:mSpeak .5s ease-in-out infinite alternate;box-shadow:0 0 28px rgba(46,204,113,.7);}
-@keyframes mWake  {0%{transform:scale(1)}50%{transform:scale(1.25)}100%{transform:scale(1)}}
-@keyframes mListen{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
-@keyframes mThink {0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
-@keyframes mSpeak {0%{transform:scale(1)}100%{transform:scale(1.1)}}
-#micka-orb-icon{font-size:22px;color:#fff;pointer-events:none;position:absolute;}
-#micka-label{position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);font-size:8px;font-family:'Orbitron',sans-serif;color:rgba(110,58,255,.8);letter-spacing:1px;white-space:nowrap;pointer-events:none;}
+#micka-orb.wake  {background:linear-gradient(135deg,#ff8c00,#ffe000);animation:mWake .4s ease;box-shadow:0 0 32px rgba(255,200,0,.8);}
+#micka-orb.listen{background:linear-gradient(135deg,#ff3c3c,#ff8c00);animation:mListen 1s infinite;}
+#micka-orb.think {background:conic-gradient(#6e3aff,#0af,#2ecc71,#6e3aff);animation:mSpin 1.2s linear infinite;}
+#micka-orb.search{background:linear-gradient(135deg,#0af,#00e5ff);animation:mListen 1s infinite;box-shadow:0 0 28px rgba(0,200,255,.8);}
+#micka-orb.speak {background:linear-gradient(135deg,#2ecc71,#0af);animation:mPulse .5s ease-in-out infinite alternate;}
+@keyframes mWake  {0%{transform:scale(1)}50%{transform:scale(1.22)}100%{transform:scale(1)}}
+@keyframes mListen{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+@keyframes mSpin  {0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+@keyframes mPulse {0%{transform:scale(1)}100%{transform:scale(1.08)}}
+#micka-ico{font-size:21px;color:#fff;pointer-events:none;position:absolute;}
+#micka-lbl{position:absolute;bottom:-17px;left:50%;transform:translateX(-50%);font-size:7.5px;font-family:'Orbitron',sans-serif;color:rgba(110,58,255,.75);letter-spacing:1px;white-space:nowrap;pointer-events:none;}
 
-#micka-rings{position:fixed;bottom:88px;left:16px;width:58px;height:58px;z-index:9490;pointer-events:none;border-radius:50%;}
-.m-ring{position:absolute;inset:0;border-radius:50%;border:1.5px solid rgba(110,58,255,.3);animation:mRing 3s ease-out infinite;}
-.m-ring:nth-child(2){animation-delay:1s;}.m-ring:nth-child(3){animation-delay:2s;}
-#micka-rings.hot .m-ring{border-color:rgba(255,60,60,.6);animation-duration:1s;}
-#micka-rings.web .m-ring{border-color:rgba(0,200,255,.6);animation-duration:1.2s;}
-@keyframes mRing{0%{transform:scale(1);opacity:.7}100%{transform:scale(3.5);opacity:0}}
+/* Rings */
+#micka-rings{position:fixed;bottom:88px;left:16px;width:56px;height:56px;z-index:9490;pointer-events:none;border-radius:50%;}
+.mr{position:absolute;inset:0;border-radius:50%;border:1.5px solid rgba(110,58,255,.28);animation:mRing 3s ease-out infinite;}
+.mr:nth-child(2){animation-delay:1s;}.mr:nth-child(3){animation-delay:2s;}
+#micka-rings.listen .mr{border-color:rgba(255,60,60,.55);animation-duration:1s;}
+#micka-rings.search .mr{border-color:rgba(0,200,255,.55);animation-duration:1.2s;}
+@keyframes mRing{0%{transform:scale(1);opacity:.65}100%{transform:scale(3.2);opacity:0}}
 
-#micka-viz{position:fixed;bottom:155px;left:6px;width:68px;height:32px;display:none;align-items:flex-end;justify-content:center;gap:3px;z-index:9500;pointer-events:none;}
+/* Viz bars */
+#micka-viz{position:fixed;bottom:153px;left:6px;width:66px;height:28px;display:none;align-items:flex-end;justify-content:center;gap:3px;z-index:9500;pointer-events:none;}
 #micka-viz.on{display:flex;}
-.m-bar{width:5px;border-radius:3px;background:linear-gradient(180deg,#0af,#6e3aff);animation:mBar .5s ease-in-out infinite alternate;min-height:3px;}
-.m-bar:nth-child(1){animation-delay:0s;--bh:10px}.m-bar:nth-child(2){animation-delay:.1s;--bh:26px}
-.m-bar:nth-child(3){animation-delay:.05s;--bh:18px}.m-bar:nth-child(4){animation-delay:.15s;--bh:30px}
-.m-bar:nth-child(5){animation-delay:.08s;--bh:14px}
-@keyframes mBar{0%{height:3px}100%{height:var(--bh,20px)}}
+.mvb{width:5px;border-radius:3px;background:linear-gradient(180deg,#0af,#6e3aff);min-height:3px;animation:mvba .45s ease-in-out infinite alternate;}
+.mvb:nth-child(1){animation-delay:0s;--h:9px}.mvb:nth-child(2){animation-delay:.1s;--h:24px}
+.mvb:nth-child(3){animation-delay:.05s;--h:16px}.mvb:nth-child(4){animation-delay:.15s;--h:28px}
+.mvb:nth-child(5){animation-delay:.08s;--h:12px}
+@keyframes mvba{0%{height:3px}100%{height:var(--h,18px)}}
 
-/* ── Bulle principale ── */
+/* Bulle chat */
 #micka-box{
-    position:fixed;bottom:158px;left:12px;width:min(360px,84vw);
-    background:rgba(5,5,20,.97);backdrop-filter:blur(24px);
-    border:1px solid rgba(110,58,255,.4);border-radius:20px 20px 20px 4px;
+    position:fixed;bottom:155px;left:12px;width:min(355px,84vw);
+    background:rgba(4,4,18,.97);backdrop-filter:blur(22px);
+    border:1px solid rgba(110,58,255,.38);border-radius:20px 20px 20px 4px;
     z-index:9600;display:none;flex-direction:column;overflow:hidden;
-    box-shadow:0 8px 40px rgba(0,0,0,.85),0 0 24px rgba(110,58,255,.15);
-    transition:opacity .3s,transform .3s;
+    box-shadow:0 8px 36px rgba(0,0,0,.85),0 0 22px rgba(110,58,255,.12);
 }
 #micka-box.on{display:flex;}
-#micka-box-head{display:flex;align-items:center;gap:8px;padding:10px 14px 8px;background:linear-gradient(180deg,rgba(110,58,255,.12),transparent);border-bottom:1px solid rgba(255,255,255,.05);flex-shrink:0;}
-#micka-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#6e3aff,#0af);display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;flex-shrink:0;}
-#micka-head-name{font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:2px;color:#8b6fff;flex:1;}
-#micka-mode-badge{font-size:8px;padding:2px 7px;border-radius:10px;font-weight:700;background:rgba(110,58,255,.2);color:#a78bff;font-family:'Orbitron',sans-serif;}
-#micka-dot{width:7px;height:7px;border-radius:50%;background:#2ecc71;box-shadow:0 0 6px #2ecc71;margin-left:6px;flex-shrink:0;transition:.3s;}
+#micka-box-head{display:flex;align-items:center;gap:8px;padding:9px 13px 7px;background:linear-gradient(180deg,rgba(110,58,255,.1),transparent);border-bottom:1px solid rgba(255,255,255,.04);flex-shrink:0;}
+#micka-av{width:27px;height:27px;border-radius:50%;background:linear-gradient(135deg,#6e3aff,#0af);display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;flex-shrink:0;}
+#micka-hn{font-family:'Orbitron',sans-serif;font-size:8.5px;letter-spacing:2px;color:#8b6fff;flex:1;}
+#micka-mb{font-size:7.5px;padding:2px 7px;border-radius:10px;font-weight:700;background:rgba(110,58,255,.18);color:#a78bff;font-family:'Orbitron',sans-serif;}
+#micka-dt{width:7px;height:7px;border-radius:50%;background:#2ecc71;box-shadow:0 0 5px #2ecc71;margin-left:5px;flex-shrink:0;transition:.3s;}
 
-/* Chat log */
-#micka-log{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:7px;max-height:260px;scrollbar-width:thin;scrollbar-color:#333 transparent;}
-#micka-log::-webkit-scrollbar{width:2px;}
-#micka-log::-webkit-scrollbar-thumb{background:#333;}
-.m-msg{display:flex;flex-direction:column;gap:2px;animation:msgIn .3s ease;}
-@keyframes msgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-.m-auth{font-size:9px;font-weight:700;letter-spacing:1px;}
-.m-auth.you{color:#0af;}.m-auth.bot{color:#a78bff;}.m-auth.web{color:#00e5ff;}
-.m-bub{padding:8px 11px;border-radius:12px;font-size:12.5px;line-height:1.55;max-width:98%;}
-.m-bub.you{background:rgba(0,170,255,.12);border:1px solid rgba(0,170,255,.2);color:#cce8ff;align-self:flex-end;border-radius:12px 12px 3px 12px;}
-.m-bub.bot{background:rgba(110,58,255,.12);border:1px solid rgba(110,58,255,.2);color:#e8e0ff;align-self:flex-start;border-radius:12px 12px 12px 3px;}
-.m-bub.web{background:rgba(0,200,255,.08);border:1px solid rgba(0,200,255,.2);color:#b8f0ff;align-self:flex-start;border-radius:12px 12px 12px 3px;}
-.m-bub.system{background:rgba(255,200,0,.08);border:1px solid rgba(255,200,0,.15);color:#fff3b8;font-size:11px;align-self:flex-start;border-radius:12px 12px 12px 3px;}
-.m-interim .m-bub{opacity:.55;font-style:italic;}
+/* Log */
+#micka-log{flex:1;overflow-y:auto;padding:9px 11px;display:flex;flex-direction:column;gap:6px;max-height:250px;scrollbar-width:thin;scrollbar-color:#333 transparent;}
+#micka-log::-webkit-scrollbar{width:2px;}#micka-log::-webkit-scrollbar-thumb{background:#333;}
+.mm{display:flex;flex-direction:column;gap:2px;animation:mmIn .28s ease;}
+@keyframes mmIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+.ma{font-size:9px;font-weight:700;letter-spacing:1px;}
+.ma.you{color:#0af;}.ma.bot{color:#a78bff;}.ma.web{color:#00e5ff;}
+.mb{padding:7px 10px;border-radius:11px;font-size:12px;line-height:1.55;max-width:98%;}
+.mb.you{background:rgba(0,170,255,.11);border:1px solid rgba(0,170,255,.18);color:#cce8ff;align-self:flex-end;border-radius:11px 11px 3px 11px;}
+.mb.bot{background:rgba(110,58,255,.11);border:1px solid rgba(110,58,255,.18);color:#e0d8ff;align-self:flex-start;border-radius:11px 11px 11px 3px;}
+.mb.web{background:rgba(0,200,255,.07);border:1px solid rgba(0,200,255,.18);color:#b8f0ff;align-self:flex-start;border-radius:11px 11px 11px 3px;}
+.mm.interim .mb{opacity:.5;font-style:italic;}
 
 /* Typing */
-#micka-typing{display:none;padding:4px 12px 8px;gap:4px;align-items:center;}
+#micka-typing{display:none;padding:3px 11px 7px;gap:4px;align-items:center;}
 #micka-typing.on{display:flex;}
-.tdot{width:5px;height:5px;border-radius:50%;background:#6e3aff;animation:tdot .8s infinite;}
-.tdot:nth-child(2){animation-delay:.2s;}.tdot:nth-child(3){animation-delay:.4s;}
-@keyframes tdot{0%,100%{opacity:.2;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
+.td{width:5px;height:5px;border-radius:50%;background:#6e3aff;animation:tda .8s infinite;}
+.td:nth-child(2){animation-delay:.2s;}.td:nth-child(3){animation-delay:.4s;}
+@keyframes tda{0%,100%{opacity:.2;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
 
 /* Toast */
-#micka-toast{position:fixed;top:58px;left:50%;transform:translateX(-50%) translateY(-20px);background:linear-gradient(135deg,rgba(110,58,255,.2),rgba(0,170,255,.2));backdrop-filter:blur(16px);border:1px solid rgba(110,58,255,.5);border-radius:30px;padding:8px 20px;font-size:12px;color:#a78bff;font-weight:700;z-index:9700;white-space:nowrap;display:none;align-items:center;gap:8px;transition:all .3s ease;}
+#micka-toast{position:fixed;top:56px;left:50%;transform:translateX(-50%) translateY(-18px);background:linear-gradient(135deg,rgba(110,58,255,.18),rgba(0,170,255,.18));backdrop-filter:blur(14px);border:1px solid rgba(110,58,255,.45);border-radius:28px;padding:7px 18px;font-size:11.5px;color:#a78bff;font-weight:700;z-index:9700;white-space:nowrap;display:none;align-items:center;gap:7px;transition:all .28s ease;}
 #micka-toast.on{display:flex;transform:translateX(-50%) translateY(0);}
-
-/* Sbar & flash */
-#micka-sbar{position:fixed;bottom:152px;left:84px;background:rgba(5,5,20,.9);border:1px solid rgba(110,58,255,.3);border-radius:20px;padding:4px 12px;font-size:9px;color:#8b6fff;font-family:'Orbitron',sans-serif;letter-spacing:1.5px;display:none;z-index:9500;pointer-events:none;animation:sblink 1.5s ease-in-out infinite;}
+#micka-sbar{position:fixed;bottom:150px;left:82px;background:rgba(4,4,18,.88);border:1px solid rgba(110,58,255,.28);border-radius:18px;padding:4px 11px;font-size:8.5px;color:#8b6fff;font-family:'Orbitron',sans-serif;letter-spacing:1.5px;display:none;z-index:9500;pointer-events:none;animation:sb 1.5s ease-in-out infinite;}
 #micka-sbar.on{display:block;}
-@keyframes sblink{0%,100%{opacity:1}50%{opacity:.4}}
-#micka-flash{position:fixed;inset:0;z-index:9400;pointer-events:none;background:radial-gradient(circle at 4% 95%,rgba(110,58,255,.25) 0%,transparent 60%);opacity:0;transition:opacity .3s;}
+@keyframes sb{0%,100%{opacity:1}50%{opacity:.4}}
+#micka-flash{position:fixed;inset:0;z-index:9400;pointer-events:none;background:radial-gradient(circle at 4% 93%,rgba(110,58,255,.22) 0%,transparent 55%);opacity:0;transition:opacity .28s;}
 #micka-flash.on{opacity:1;}
 
-/* Panel */
-#micka-panel{position:fixed;bottom:155px;left:80px;width:210px;background:rgba(5,5,20,.97);border:1px solid rgba(110,58,255,.3);border-radius:14px;padding:10px;z-index:9600;display:none;box-shadow:0 8px 30px rgba(0,0,0,.8);}
-#micka-panel.on{display:block;}
-.mpbtn{padding:8px 12px;border-radius:8px;cursor:pointer;font-size:11px;color:#aaa;display:flex;align-items:center;gap:8px;transition:background .2s;}
-.mpbtn:hover{background:rgba(110,58,255,.15);color:#fff;}
-.mpbtn i{width:14px;text-align:center;color:#6e3aff;}
+/* Toggle switch sync */
+.ai-sw-on  {background:#6e3aff!important;}
+.ai-sw-tb  {left:22px!important;}
 </style>
 
 <!-- DOM -->
 <div id="micka-flash"></div>
-<div id="micka-rings"><div class="m-ring"></div><div class="m-ring"></div><div class="m-ring"></div></div>
-<div id="micka-orb" onclick="M.toggle()" oncontextmenu="M.panel(event)" title="Micka IA — Clic droit pour options">
-    <i class="fas fa-microphone" id="micka-orb-icon"></i>
-    <span id="micka-label">MICKA</span>
+<div id="micka-rings"><div class="mr"></div><div class="mr"></div><div class="mr"></div></div>
+<div id="micka-orb" onclick="M.toggle()" title="Micka IA · Clic pour activer">
+    <i class="fas fa-microphone" id="micka-ico"></i>
+    <span id="micka-lbl">MICKA</span>
 </div>
-<div id="micka-viz"><div class="m-bar"></div><div class="m-bar"></div><div class="m-bar"></div><div class="m-bar"></div><div class="m-bar"></div></div>
-
+<div id="micka-viz"><div class="mvb"></div><div class="mvb"></div><div class="mvb"></div><div class="mvb"></div><div class="mvb"></div></div>
 <div id="micka-box">
     <div id="micka-box-head">
-        <div id="micka-avatar"><i class="fas fa-robot"></i></div>
-        <div id="micka-head-name">MICKA · MY BOX TV</div>
-        <div id="micka-mode-badge">IA</div>
-        <div id="micka-dot"></div>
+        <div id="micka-av"><i class="fas fa-robot"></i></div>
+        <div id="micka-hn">MICKA · MY BOX SMART</div>
+        <div id="micka-mb">IA</div>
+        <div id="micka-dt"></div>
     </div>
     <div id="micka-log"></div>
-    <div id="micka-typing"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div></div>
+    <div id="micka-typing"><div class="td"></div><div class="td"></div><div class="td"></div></div>
 </div>
-
-<div id="micka-toast"><i class="fas fa-bolt"></i><span id="micka-toast-txt">Action</span></div>
+<div id="micka-toast"><i class="fas fa-bolt"></i><span id="micka-toast-txt"></span></div>
 <div id="micka-sbar">EN ÉCOUTE...</div>
-
-<div id="micka-panel">
-    <div class="mpbtn" onclick="M.toggleWake()"><i class="fas fa-ear-listen"></i><span id="mpwake-lbl">Désactiver wake word</span></div>
-    <div class="mpbtn" onclick="M.toggleVoice()"><i class="fas fa-volume-mute"></i><span id="mpvox-lbl">Couper voix Micka</span></div>
-    <div class="mpbtn" onclick="M.clearChat()"><i class="fas fa-trash"></i><span>Effacer historique</span></div>
-    <div class="mpbtn" onclick="M.showCmds()"><i class="fas fa-list"></i><span>Voir commandes</span></div>
-    <div class="mpbtn" onclick="M.panel(null)"><i class="fas fa-times"></i><span>Fermer</span></div>
-</div>
 
 <script>
 // ================================================================
-//  🤖  M I C K A  v2 — IA Vocale complète
-//  Analyse automatique : Action TV | Recherche Web | Conversation
+//  🤖  M I C K A  — IA Vocale complète
+//  "Micka" → TV + IA  |  "Micka Web" → Internet  |  "Micka cherche X" → liste chaînes
 // ================================================================
 const M = (() => {
 
+// ── Config ──
 const CFG = {
     KEY:   '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',
     MODEL: 'claude-sonnet-4-20250514',
     LANG:  'fr-FR',
-    WAKE:  ['micka','mica','mika','mecca','mickey','mikka','meca','micah'],
+    // Mots d'activation
+    WAKE_TV:     ['micka','mica','mika','mecca','mickey','mikah'],
+    WAKE_WEB:    ['micka web','mica web','mika web'],
+    WAKE_SEARCH: ['micka cherche','micka recherche','mica cherche'],
 };
 
+// ── État ──
 const S = {
-    mode:'standby', wakeOn:true, voiceOn:true,
+    mode:'standby',
+    enabled: localStorage.getItem('micka_enabled') !== 'false',
+    voice:   localStorage.getItem('micka_voice')   !== 'false',
+    muteTV:  localStorage.getItem('micka_muteTV')  !== 'false',
     loop:false, busy:false, paused:false,
-    rec:null, hist:[], wakeTimer:null, inactiveTimer:null,
+    rec:null, hist:[], wakeTimer:null, idleTimer:null,
 };
 
-const $      = id => document.getElementById(id);
+// ── DOM ──
+const $  = id => document.getElementById(id);
 const orb    = $('micka-orb');
-const orbIco = $('micka-orb-icon');
+const orbIco = $('micka-ico');
 const box    = $('micka-box');
 const log    = $('micka-log');
 const typing = $('micka-typing');
@@ -3310,75 +3407,78 @@ const viz    = $('micka-viz');
 const rings  = $('micka-rings');
 const toast  = $('micka-toast');
 const tTxt   = $('micka-toast-txt');
-const dot    = $('micka-dot');
+const dt     = $('micka-dt');
+const mb     = $('micka-mb');
 const flash  = $('micka-flash');
-const badge  = $('micka-mode-badge');
 
-// ── État visuel ──
+// ── Mode visuel ──
 function setMode(m) {
     S.mode = m;
-    const cls = {standby:'idle',wake:'wake',listen:'listen',think:'think',search:'search',speak:'speak'};
-    orb.className = ''; orb.classList.add(cls[m]||'idle');
-    const ico = {standby:'fa-microphone',wake:'fa-star',listen:'fa-microphone-alt',think:'fa-brain',search:'fa-globe',speak:'fa-volume-up'};
-    orbIco.className = 'fas '+(ico[m]||'fa-microphone');
+    orb.className = m==='standby'?'idle':m;
+    const ic={standby:'fa-microphone',wake:'fa-star',listen:'fa-microphone-alt',think:'fa-brain',search:'fa-globe',speak:'fa-volume-up'};
+    orbIco.className='fas '+(ic[m]||'fa-microphone');
     viz.classList.toggle('on', m==='listen'||m==='speak'||m==='search');
-    rings.className = '';
-    if (m==='listen') rings.classList.add('hot');
-    if (m==='search') rings.classList.add('web');
+    rings.className='';
+    if(m==='listen') rings.classList.add('listen');
+    if(m==='search') rings.classList.add('search');
     sbar.classList.toggle('on', m!=='standby'&&m!=='speak');
-    sbar.innerText = {listen:'EN ÉCOUTE...',think:'JE RÉFLÉCHIS...',search:'JE CHERCHE...',wake:'OUI ?'}[m]||'';
-    const dc = {standby:'#6e3aff',wake:'#ffc800',listen:'#0af',think:'#ffd700',search:'#00e5ff',speak:'#2ecc71'};
-    dot.style.background = dc[m]||'#6e3aff'; dot.style.boxShadow = `0 0 6px ${dot.style.background}`;
-    const bl = {standby:'VEILLE',wake:'ACTIF',listen:'ÉCOUTE',think:'IA',search:'WEB',speak:'PARLE'};
-    badge.innerText = bl[m]||'IA';
+    sbar.innerText = {listen:'EN ÉCOUTE...',think:'JE RÉFLÉCHIS...',search:'JE CHERCHE...',wake:'PARLEZ !'}[m]||'';
+    const dc={standby:'#6e3aff',wake:'#ffc800',listen:'#0af',think:'#ffd700',search:'#00e5ff',speak:'#2ecc71'};
+    dt.style.background=dc[m]||'#6e3aff'; dt.style.boxShadow=`0 0 5px ${dt.style.background}`;
+    const bl={standby:'IA',wake:'ACTIF',listen:'ÉCOUTE',think:'IA',search:'WEB',speak:'PARLE'};
+    mb.innerText=bl[m]||'IA';
 }
 
 // ── Chat log ──
-function addMsg(who, html, cls='') {
-    const old = log.querySelector('.micka-interim'); if(old) old.remove();
-    const d = document.createElement('div');
-    d.className = 'micka-msg'+(cls?' '+cls:'');
-    const labels = {you:'🎙 Vous', bot:'🤖 Micka', web:'🌐 Web'};
-    d.innerHTML = `<div class="m-auth ${who}">${labels[who]||'🤖 Micka'}</div><div class="m-bub ${who}">${html}</div>`;
+function addMsg(who, html, isInterim=false) {
+    const old=log.querySelector('.interim'); if(old) old.remove();
+    const d=document.createElement('div');
+    d.className='mm'+(isInterim?' interim':'');
+    const lb={you:'🎙 Vous', bot:'🤖 Micka', web:'🌐 Web'};
+    d.innerHTML=`<div class="ma ${who}">${lb[who]||'🤖 Micka'}</div><div class="mb ${who}">${html}</div>`;
     log.appendChild(d);
-    while(log.children.length > 30) log.removeChild(log.firstChild);
-    setTimeout(()=>{ log.scrollTop = log.scrollHeight; }, 40);
+    while(log.children.length>25) log.removeChild(log.firstChild);
+    setTimeout(()=>{ log.scrollTop=log.scrollHeight; },30);
 }
-function showTyping(v){ typing.classList.toggle('on',v); log.scrollTop=log.scrollHeight; }
+function showTyping(v){ typing.classList.toggle('on',v); if(v) log.scrollTop=log.scrollHeight; }
 function showBox(){ box.classList.add('on'); box.style.display='flex'; }
-function hideBox(){ box.classList.remove('on'); setTimeout(()=>{ if(!box.classList.contains('on')) box.style.display='none'; },300); }
-
-// ── Timer inactivité 30s ──
-function resetIdle() {
-    clearTimeout(S.inactiveTimer);
-    S.inactiveTimer = setTimeout(()=>{
-        if(S.mode!=='think'&&S.mode!=='speak'&&S.mode!=='search'){
-            setMode('standby'); hideBox();
-        }
-    }, 30000);
+function hideBox(){ box.classList.remove('on'); setTimeout(()=>{ if(!box.classList.contains('on')) box.style.display='none'; },280); }
+function resetIdle(){
+    clearTimeout(S.idleTimer);
+    S.idleTimer=setTimeout(()=>{
+        if(S.mode!=='think'&&S.mode!=='speak'&&S.mode!=='search'){ setMode('standby'); hideBox(); }
+    },30000);
 }
 
-// ── Boucle micro (sessions courtes) ──
+// ── Helpers ──
+function esc(t){ return t?String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'):''; }
+
+// ── Boucle micro ──
 function loopStart(){ S.loop=true; _step(); }
-function loopStop(){ S.loop=false; S.busy=false; try{S.rec?.abort();}catch(e){} }
+function loopStop(){ S.loop=false; S.busy=false; try{ S.rec?.abort(); }catch(e){} }
 
 function _step(){
-    if(!S.loop) return;
+    if(!S.loop||!S.enabled) return;
     if(S.paused||S.busy){ setTimeout(_step,300); return; }
-    const SR = window.SpeechRecognition||window.webkitSpeechRecognition;
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
     if(!SR) return;
-    const r = new SR();
+    const r=new SR();
     r.lang=CFG.LANG; r.interimResults=true; r.continuous=false; r.maxAlternatives=3;
     S.rec=r; S.busy=true;
     r.onstart=()=>{};
     r.onerror=e=>{
         S.busy=false;
-        if(e.error==='not-allowed'){ loopStop(); addMsg('bot','⛔ Autorisez le microphone dans Chrome.'); showBox(); return; }
-        setTimeout(_step, e.error==='aborted'?150:600);
+        if(e.error==='not-allowed'||e.error==='service-not-allowed'){
+            loopStop();
+            addMsg('bot','⛔ Autorisez le microphone dans votre navigateur (icône 🔒 dans la barre d\'adresse).'); showBox();
+            return;
+        }
+        setTimeout(_step, e.error==='aborted'?150:700);
     };
-    r.onend=()=>{ S.busy=false; if(S.loop) setTimeout(_step,120); };
+    r.onend=()=>{ S.busy=false; if(S.loop&&S.enabled) setTimeout(_step,120); };
+
     r.onresult=e=>{
-        let interim='', final='';
+        let interim='',final='';
         for(let i=e.resultIndex;i<e.results.length;i++){
             const t=e.results[i][0].transcript||'';
             if(e.results[i].isFinal) final+=t; else interim+=t;
@@ -3386,457 +3486,427 @@ function _step(){
         const raw=(final||interim).trim(); if(!raw||raw.length<1) return;
         const norm=raw.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 
+        // ── STANDBY : détecter wake words ──
         if(S.mode==='standby'){
-            if(CFG.WAKE.some(w=>norm.includes(w))) onWake(raw); return;
+            // "Micka Web ..." → recherche web directe
+            if(CFG.WAKE_WEB.some(w=>norm.startsWith(w))||norm.includes('micka web')||norm.includes('mica web')){
+                const q=raw.replace(/micka\s+web|mica\s+web|mika\s+web/gi,'').trim();
+                if(q.length>1){ addMsg('you',esc(q)); showTyping(true); processWeb(q); }
+                else { onWake('web'); }
+                return;
+            }
+            // "Micka cherche ..." → cherche dans la liste
+            if(CFG.WAKE_SEARCH.some(w=>norm.startsWith(w))||norm.includes('micka cherche')||norm.includes('micka recherche')){
+                const q=raw.replace(/micka\s+(cherche|recherche)|mica\s+(cherche|recherche)/gi,'').trim();
+                if(q.length>1){ addMsg('you',esc(q)); showTyping(true); searchChannel(q); }
+                else { onWake('search'); }
+                return;
+            }
+            // "Micka ..." → commande TV / IA
+            if(CFG.WAKE_TV.some(w=>norm.startsWith(w)||norm.includes(w))){
+                // Enlever le wake word
+                let after=raw; CFG.WAKE_TV.forEach(w=>{ after=after.replace(new RegExp('^'+w+'[,\\s]*','gi'),'').trim(); });
+                if(after.length>2){ addMsg('you',esc(after)); showTyping(true); process(after); }
+                else onWake('tv');
+                return;
+            }
         }
-        if(S.mode==='think'||S.mode==='speak'||S.mode==='search') return;
 
+        // ── ÉVEILLÉE (wake/listen) → traiter ──
+        if(S.mode==='think'||S.mode==='speak'||S.mode==='search') return;
         if(S.mode==='wake'||S.mode==='listen'){
-            let clean=raw;
-            CFG.WAKE.forEach(w=>{ clean=clean.replace(new RegExp(w+'[,\\s]*','gi'),'').trim(); });
+            let clean=raw; CFG.WAKE_TV.forEach(w=>{ clean=clean.replace(new RegExp('^'+w+'[,\\s]*','gi'),'').trim(); });
             if(!clean) return;
             setMode('listen'); showBox();
             // Interim
-            let tmp=log.querySelector('.micka-interim');
-            if(!tmp){ tmp=document.createElement('div'); tmp.className='micka-msg micka-interim'; tmp.innerHTML=`<div class="m-auth you">🎙 Vous</div><div class="m-bub you" id="m-itxt"></div>`; log.appendChild(tmp); }
-            const itxt=tmp.querySelector('#m-itxt'); if(itxt) itxt.innerText=clean;
-            log.scrollTop=log.scrollHeight;
+            let tmp=log.querySelector('.interim'); if(!tmp){ tmp=document.createElement('div'); tmp.className='mm interim'; tmp.innerHTML='<div class="ma you">🎙 Vous</div><div class="mb you" id="m-it"></div>'; log.appendChild(tmp); }
+            const it=tmp.querySelector('#m-it'); if(it) it.innerText=clean; log.scrollTop=log.scrollHeight;
+
             if(final&&clean.length>1){
-                clearTimeout(S.wakeTimer);
-                const old=log.querySelector('.micka-interim'); if(old) old.remove();
-                addMsg('you', escHtml(clean));
-                showTyping(true);
-                resetIdle();
-                process(clean);
+                clearTimeout(S.wakeTimer); const old=log.querySelector('.interim'); if(old) old.remove();
+                addMsg('you',esc(clean)); showTyping(true); resetIdle();
+                // Distinguer web vs commande selon contexte du mode
+                if(S._wakeMode==='web') processWeb(clean);
+                else if(S._wakeMode==='search') searchChannel(clean);
+                else process(clean);
             }
         }
     };
-    try{ r.start(); }catch(e){ S.busy=false; setTimeout(_step,800); }
+    try{ r.start(); }catch(e){ S.busy=false; setTimeout(_step,900); }
 }
 
-function escHtml(t){ return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-// ── Wake word ──
-function onWake(raw){
-    let afterWake=raw;
-    CFG.WAKE.forEach(w=>{ afterWake=afterWake.replace(new RegExp(w+'[,\\s]*','gi'),'').trim(); });
-    setMode('wake');
-    flash.classList.add('on'); setTimeout(()=>flash.classList.remove('on'),500);
-    showBox(); resetIdle();
-
-    if(afterWake.length>2){
-        addMsg('you', escHtml(afterWake));
-        showTyping(true);
-        process(afterWake);
-    } else {
-        const reps=['Oui, je vous écoute !','Je suis là !','À votre service !','Dites-moi tout !'];
-        const rep=reps[Math.floor(Math.random()*reps.length)];
-        addMsg('bot', rep);
-        speak(rep, false);
-        clearTimeout(S.wakeTimer);
-        S.wakeTimer=setTimeout(()=>{ if(S.mode==='wake'){ setMode('standby'); } },10000);
-    }
+// ── Wake word détecté ──
+function onWake(mode){
+    if(['listen','think','search'].includes(S.mode)) return;
+    S._wakeMode = mode||'tv';
+    setMode('wake'); showBox();
+    flash.classList.add('on'); setTimeout(()=>flash.classList.remove('on'),450);
+    const reps={
+        tv:  ['Oui, je vous écoute !','Je suis là, parlez !','Dites-moi !','À votre service !'],
+        web: ['Je cherche sur Internet, posez votre question !','Web activé, que cherchez-vous ?'],
+        search:['Je cherche dans vos chaînes, dites-moi le nom !']
+    };
+    const list=reps[mode]||reps.tv;
+    const rep=list[Math.floor(Math.random()*list.length)];
+    addMsg('bot',rep);
+    speak(rep,false);
+    resetIdle();
+    clearTimeout(S.wakeTimer);
+    S.wakeTimer=setTimeout(()=>{ if(S.mode==='wake'){ setMode('standby'); } },10000);
 }
 
 // ================================================================
-//  TRAITEMENT PRINCIPAL — Claude analyse TOUT
+//  RECHERCHE DANS LES CHAÎNES
+// ================================================================
+async function searchChannel(query){
+    setMode('think');
+    if(typeof allChannels==='undefined'||!allChannels.length){
+        const msg='Aucune chaîne chargée pour le moment.';
+        showTyping(false); addMsg('bot',msg); speak(msg,true); resetIdle(); return;
+    }
+    const q=query.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    // Cherche les 5 meilleures correspondances
+    const results=[];
+    for(let i=0;i<allChannels.length;i++){
+        const n=allChannels[i].name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+        if(n.includes(q)) results.push({ch:allChannels[i],idx:i,score:n.startsWith(q)?0:1});
+        if(results.length>=5) break;
+    }
+    // Si pas trouvé, essai par mots
+    if(!results.length){
+        const words=q.split(/\s+/).filter(w=>w.length>2);
+        if(words.length) for(let i=0;i<allChannels.length&&results.length<5;i++){
+            const n=allChannels[i].name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+            if(words.some(w=>n.includes(w))) results.push({ch:allChannels[i],idx:i,score:2});
+        }
+    }
+    showTyping(false);
+    if(!results.length){
+        const msg=`Je n'ai pas trouvé de chaîne correspondant à "${query}". Essayez un nom différent.`;
+        addMsg('bot',msg); speak(msg,true); resetIdle(); return;
+    }
+    results.sort((a,b)=>a.score-b.score);
+    if(results.length===1){
+        const ch=results[0].ch;
+        const msg=`Je trouve ${ch.name} ! Je la lance.`;
+        addMsg('bot',msg);
+        speak(msg,false);
+        setTimeout(()=>{ typeof tryPlayChannel==='function'?tryPlayChannel(ch):playChannel(results[0].idx); },600);
+        showToastAI('📺 '+esc(ch.name));
+    } else {
+        const names=results.map(r=>`<b style="color:#fff">${esc(r.ch.name)}</b>`).join(', ');
+        const html=`<b>🔍 "${esc(query)}"</b><br><br>${names}<br><br><small style="color:#666">Laquelle voulez-vous ?</small>`;
+        addMsg('web',html);
+        const vocal=`J'ai trouvé ${results.length} chaînes : ${results.map(r=>r.ch.name).join(', ')}. Laquelle voulez-vous ?`;
+        speak(vocal,false);
+        // Afficher dans le menu
+        if(typeof document.getElementById('searchInput')!=='undefined'){
+            document.getElementById('searchInput').value=query;
+            if(typeof onSearch==='function') onSearch();
+            if(!document.body.classList.contains('menu-open')&&typeof toggleMenu==='function') toggleMenu();
+        }
+    }
+    resetIdle();
+}
+
+// ================================================================
+//  TRAITEMENT IA — Commandes TV + Conversation
 // ================================================================
 async function process(txt){
     if(!txt||S.mode==='think'||S.mode==='search') return;
     setMode('think');
-
-    // Mute TV
     const tv=document.getElementById('video');
     const tvWas=tv?.muted; const tvVol=tv?.volume??1;
-    if(tv&&!tv.muted) tv.muted=true;
+    if(S.muteTV&&tv&&!tv.muted) tv.muted=true;
 
     let result=null;
 
+    // ── Essai Claude API ──
     if(CFG.KEY&&CFG.KEY.length>20){
         try{
             const msgs=[...S.hist.slice(-10),{role:'user',content:txt}];
             const res=await fetch('https://api.anthropic.com/v1/messages',{
                 method:'POST',
-                headers:{'Content-Type':'application/json','x-api-key':CFG.KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-                body:JSON.stringify({model:CFG.MODEL,max_tokens:700,system:buildPrompt(),messages:msgs})
+                headers:{
+                    'Content-Type':'application/json',
+                    'x-api-key':CFG.KEY,
+                    'anthropic-version':'2023-06-01',
+                    'anthropic-dangerous-direct-browser-access':'true'
+                },
+                body:JSON.stringify({model:CFG.MODEL,max_tokens:600,system:buildPromptTV(),messages:msgs})
             });
             if(res.ok){
                 const data=await res.json();
                 const raw=data.content?.[0]?.text?.trim()||'';
-                const m=raw.match(/\{[\s\S]*?\}/);
-                if(m){ try{ result=JSON.parse(m[0]); }catch(e){} }
-                if(!result&&raw) result={action:'none',params:{},response:raw.replace(/```[a-z]*|```/g,'').trim().substring(0,400)};
-                S.hist.push({role:'user',content:txt});
-                S.hist.push({role:'assistant',content:JSON.stringify(result)});
+                // Extraire JSON greedy
+                const m=raw.match(/\{[\s\S]*\}/);
+                if(m){ try{ result=JSON.parse(m[0]); }catch(e){
+                    try{ result=JSON.parse(m[0].replace(/,\s*}/g,'}').replace(/,\s*]/g,']')); }catch(e2){}
+                }}
+                if(!result&&raw) result={action:'none',params:{},response:raw.replace(/```[\w]*|```/g,'').trim().substring(0,400)};
+                S.hist.push({role:'user',content:txt},{role:'assistant',content:JSON.stringify(result)});
                 if(S.hist.length>24) S.hist=S.hist.slice(-24);
             } else {
                 const ed=await res.json().catch(()=>({}));
-                console.warn('[Micka API]',res.status,ed.error?.message);
+                console.warn('[Micka]',res.status,ed.error?.message);
+                if(res.status===401||res.status===403){
+                    if(tv){tv.muted=tvWas;tv.volume=tvVol;}
+                    const msg='Clé API expirée. Renouvelez-la dans le fichier HTML.';
+                    showTyping(false); addMsg('bot',msg); speak(msg,true); resetIdle(); return;
+                }
             }
         }catch(e){ console.warn('[Micka fetch]',e.message); }
     }
 
-    // Fallback si API KO
-    if(!result) result=quickParse(txt);
+    // Fallback local
+    if(!result) result=localParse(txt);
 
-    // Restaurer TV
-    if(tv){ tv.muted=tvWas; tv.volume=tvVol; }
+    if(tv){tv.muted=tvWas;tv.volume=tvVol;}
 
-    // ── Action spéciale : recherche web ──
-    if(result.action==='web_search'){
-        setMode('search');
-        showTyping(true);
-        const webResult=await webSearch(result.params?.query||txt);
+    // Action none → réponse conversationnelle directe
+    if(result.action==='none'||!result.action){
         showTyping(false);
-        addMsg('web', webResult);
-        speak(stripHtml(webResult).substring(0,300), true);
-        resetIdle();
-        return;
-    }
-
-    // ── Action spéciale : radio ──
-    if(result.action==='play_radio'){
-        const radioUrl=result.params?.url||'';
-        const radioName=result.params?.name||'Radio';
-        if(radioUrl){
-            const tv2=document.getElementById('video');
-            if(tv2){ if(typeof hls!=='undefined'&&hls){hls.destroy();hls=null;} tv2.src=radioUrl; tv2.play().catch(()=>{}); }
-        }
-        showTyping(false);
-        addMsg('bot', `📻 ${escHtml(radioName)} en cours !`);
-        speak(result.response||`Je lance ${radioName} !`, true);
+        addMsg('bot',esc(result.response||'À votre service !'));
+        speak(result.response||'À votre service !',true);
         resetIdle(); return;
     }
 
-    // ── Si l'IA retourne "unknown" (ne devrait plus arriver) → web_search automatique ──
-    if(result.action==='unknown' || !result.action){
-        result = { action:'web_search', params:{ query: txt }, response:`Je cherche des informations sur : ${txt}` };
+    // Radio
+    if(result.action==='play_radio'){
+        const url=result.params?.url||''; const name=result.params?.name||'Radio';
+        if(url){ const tv2=document.getElementById('video'); if(tv2){ if(typeof hls!=='undefined'&&hls){hls.destroy();hls=null;} tv2.src=url; tv2.play().catch(()=>{}); }}
+        showTyping(false); addMsg('bot',`📻 ${esc(name)} en cours !`); speak(result.response||'Radio lancée !',true); resetIdle(); return;
     }
 
-    // ── Toutes les autres actions TV/système ──
-    const actionMsg=await doAction(result.action, result.params||{});
-    const reply=result.response||actionMsg||'Fait !';
-    showTyping(false);
-    addMsg('bot', escHtml(reply));
-    speak(reply, true);
-    resetIdle();
+    // Toutes les autres actions TV
+    const aMsg=await doAction(result.action,result.params||{});
+    const reply=result.response||aMsg||'Fait !';
+    showTyping(false); addMsg('bot',esc(reply)); speak(reply,true); resetIdle();
 }
 
 // ================================================================
-//  SYSTEM PROMPT — Intelligence de routage complète
+//  RECHERCHE WEB — Claude répond sur tout
 // ================================================================
-function buildPrompt(){
+async function processWeb(query){
+    if(!query) return;
+    setMode('search');
+    const tv=document.getElementById('video');
+    const tvWas=tv?.muted; const tvVol=tv?.volume??1;
+    if(S.muteTV&&tv&&!tv.muted) tv.muted=true;
+
+    // Réponses locales instantanées (pas besoin de réseau)
+    const local=localInstant(query);
+    if(local){
+        if(tv){tv.muted=tvWas;tv.volume=tvVol;}
+        showTyping(false); addMsg('bot',local); speak(stripTags(local),true); resetIdle(); return;
+    }
+
+    // Claude répond (cherche sur internet ou répond depuis sa connaissance)
+    if(CFG.KEY&&CFG.KEY.length>20){
+        try{
+            const now=new Date();
+            const sys=`Tu es Micka, assistante IA vocale. Date: ${now.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} ${now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}.
+Réponds en français, naturel, utile, 2-5 phrases. Règles:
+- Blague → invente une blague ORIGINALE et NOUVELLE (jamais répétée)
+- Histoire → crée une histoire courte ORIGINALE et captivante
+- Calcul → calcule et donne le résultat
+- Actualités récentes → réponds honnêtement si tu ne sais pas exactement
+- Questions générales → réponds clairement et directement
+Format: texte simple, aucune liste à puces, naturel et oral.`;
+            const res=await fetch('https://api.anthropic.com/v1/messages',{
+                method:'POST',
+                headers:{
+                    'Content-Type':'application/json',
+                    'x-api-key':CFG.KEY,
+                    'anthropic-version':'2023-06-01',
+                    'anthropic-dangerous-direct-browser-access':'true'
+                },
+                body:JSON.stringify({model:CFG.MODEL,max_tokens:500,system:sys,messages:[{role:'user',content:query}]})
+            });
+            if(tv){tv.muted=tvWas;tv.volume=tvVol;}
+            if(res.ok){
+                const data=await res.json();
+                const ans=data.content?.[0]?.text?.trim()||'';
+                if(ans){
+                    const html=`<b>🤖 Micka</b><br><br>${esc(ans)}<br><span style="font-size:9px;color:#444;">Micka IA · ${now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span>`;
+                    showTyping(false); addMsg('web',html); speak(ans.substring(0,350),true); resetIdle(); return;
+                }
+            } else {
+                const ed=await res.json().catch(()=>({}));
+                console.warn('[Micka Web]',res.status,ed.error?.message);
+            }
+        }catch(e){ console.warn('[Micka Web fetch]',e.message); if(tv){tv.muted=tvWas;tv.volume=tvVol;} }
+    } else {
+        if(tv){tv.muted=tvWas;tv.volume=tvVol;}
+    }
+
+    // Fallback local final
+    const fb=localFallback(query);
+    showTyping(false); addMsg('bot',esc(fb)); speak(fb,true); resetIdle();
+}
+
+// ================================================================
+//  SYSTEM PROMPT TV
+// ================================================================
+function buildPromptTV(){
     const tv=document.getElementById('video');
     const ch=(typeof allChannels!=='undefined')?(allChannels[currentChannelIndex]||{}):{};
-    const chans=(typeof allChannels!=='undefined'?allChannels:[]).slice(0,200).map((c,i)=>`${i}:"${c.name}"[${c.category||'?'}]`).join(',');
+    const chans=(typeof allChannels!=='undefined'?allChannels:[]).slice(0,180).map((c,i)=>`${i}:"${c.name}"[${c.category||'?'}]`).join(',');
     const cats=typeof allCategories!=='undefined'?Array.from(allCategories).join(','):'';
     const now=new Date();
     const dt=now.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
     const hr=now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
     const vol=Math.round((tv?.volume??1)*100);
+    return `Tu es MICKA, assistante vocale IA de My Box Smart. Naturelle, chaleureuse, jamais robotique.
+Contexte: ${dt} ${hr} | Chaîne: "${ch.name||'?'}" | Volume: ${vol}% | Catégories: ${cats}
+Chaînes: ${chans}
 
-return `Tu es MICKA, assistante vocale IA intégrée à My Box TV. Tu es intelligente, naturelle, créative.
-Tu dois TOUJOURS analyser la demande et décider automatiquement si c'est :
-  1. Une COMMANDE TV/système → exécuter
-  2. Une RECHERCHE WEB (info, actualité, météo, sport, news...) → chercher
-  3. Une CONVERSATION (blague, histoire, calcul, question générale) → répondre intelligemment
+RÉPONDS UNIQUEMENT EN JSON STRICT (rien avant ni après) :
+{"action":"<ACTION>","params":<OBJ>,"response":"<réponse vocale fr, max 2 phrases>"}
 
-CONTEXTE : ${dt} ${hr} | Chaîne: "${ch.name||'?'}" | Volume: ${vol}% | Catégories: ${cats}
-CHAÎNES: ${chans}
+ACTIONS:
+change_channel {"index":N,"name":"nom"} | next_channel {} | prev_channel {}
+volume_up {"amount":0.15} | volume_down {"amount":0.15} | set_volume {"level":0.0-1.0} | mute {}
+show_favorites {} | show_hd {} | show_category {"category":"nom"} | search_channel {"query":"terme"}
+add_favorite {} | remove_favorite {} | show_info {} | fullscreen {} | exit_fullscreen {}
+open_menu {} | close_menu {} | open_settings {} | show_network {} | show_account {}
+sleep_timer {"minutes":N} | cancel_timer {} | switch_mode {"mode":"premium"|"full"}
+pip_on {} | pip_off {} | standby {} | logout {}
+play_radio {"name":"Nom","url":"URL_stream_mp3_ou_m3u8"}
+none {} — pour blagues, histoires, calculs, salutations, questions générales
 
-RÉPONDS UNIQUEMENT EN JSON STRICT — rien avant ni après :
-{"action":"<ACTION>","params":<PARAMS>,"response":"<réponse vocale courte en français>"}
-
-═══ ACTIONS TV & SYSTÈME ═══
-change_channel   {"index":N,"name":"nom"}
-next_channel     {}
-prev_channel     {}
-volume_up        {"amount":0.15}
-volume_down      {"amount":0.15}
-set_volume       {"level":0.0-1.0}
-mute             {}
-search_channel   {"query":"terme"}
-show_favorites   {}
-show_hd          {}
-show_category    {"category":"nom"}
-add_favorite     {}
-remove_favorite  {}
-show_info        {}
-fullscreen       {}
-exit_fullscreen  {}
-open_menu        {}
-close_menu       {}
-open_settings    {}
-show_network     {}
-show_account     {}
-sleep_timer      {"minutes":N}
-cancel_timer     {}
-switch_mode      {"mode":"premium"|"full"}
-pip_on           {}
-pip_off          {}
-standby          {}
-logout           {}
-
-═══ RADIO EN LIGNE ═══
-play_radio  {"name":"Nom Radio","url":"URL_STREAM_M3U8_OU_MP3"}
-Pour les radios populaires utilise ces URLs directes :
+Pour les radios populaires:
 - RFI: https://live02.rfi.fr/rfimonde-64.mp3
 - France Inter: https://icecast.radiofrance.fr/franceinter-midfi.mp3
-- BBC World: http://stream.live.vc.bbcmedia.co.uk/bbc_world_service
 - Africa N°1: https://stream.zeno.fm/0r0xa792kwzuv
-- RTI (Côte d'Ivoire): https://stream.zeno.fm/rti1  
-- Bénin FM: utilise une URL de streaming béninoise appropriée
-- Pour toute autre radio cherche une URL de streaming valide
+- RTI Côte d'Ivoire: https://stream.zeno.fm/rti1
+- BBC World: http://stream.live.vc.bbcmedia.co.uk/bbc_world_service
 
-═══ RECHERCHE WEB ═══
-web_search  {"query":"termes de recherche précis"}
-QUAND utiliser web_search :
-- Actualités, nouvelles du jour, événements récents
-- Météo (ex: "météo Cotonou")
-- Résultats sportifs, matchs en cours
-- Prix, cours de bourse
-- Toute info qui change dans le temps
-- Biographies, définitions
-- Recettes, conseils
-- N'importe quelle question sur le monde réel
-
-═══ CONVERSATION GÉNÉRALE ═══
-none  {}
-QUAND utiliser none :
-- Blagues (INVENTE une nouvelle blague ORIGINALE, jamais la même)
-- Histoires (CRÉE une histoire originale et complète, jamais répétée)
-- Calculs mathématiques
-- Questions sur toi-même
-- Remerciements, salutations
-- Devinettes, jeux de mots
-
-RÈGLE ABSOLUE — JAMAIS de "unknown" :
-Si tu ne sais pas quelle action TV utiliser → utilise TOUJOURS web_search ou none.
-La règle est simple :
-  • Commande TV/système claire → action correspondante
-  • Question, info, actualité, sport, météo, définition, personne, lieu → web_search
-  • Blague, histoire, calcul, conversation, remerciement, salutation → none (réponds toi-même)
-  • CAS LIMITE : si tu hésites entre web_search et none → utilise web_search
-  • JAMAIS "unknown" — Micka a toujours une réponse
-
-RÈGLES CRITIQUES :
-1. Blagues et histoires → INVENTE quelque chose de NOUVEAU et ORIGINAL à chaque fois. Varie les genres : absurde, jeu de mots, anecdote, conte africain, blague de papa...
-2. Pour les radios → donne une URL de stream fonctionnelle.
-3. Pour web_search → formule une requête précise en français.
-4. Sois créatif, naturel, jamais robotique.
-5. Histoires et blagues → contenu COMPLET dans "response", jamais tronqué.
-6. Si quelqu'un parle d'un pays, d'une ville, d'un personnage, d'un événement → web_search.
-7. Questions médicales, juridiques, techniques → web_search ou none avec une vraie réponse utile.`;
+RÈGLES:
+1. Pour trouver une chaîne: cherche le nom le plus proche (tolérance fautes/accents)
+2. Blagues/histoires → action "none", INVENTE quelque chose d'ORIGINAL et NOUVEAU
+3. Questions générales → action "none", réponds directement
+4. Si numéro de chaîne: change_channel avec index correspondant
+5. JAMAIS de texte avant ou après le JSON`;
 }
-
-// ================================================================
-//  RECHERCHE WEB — DuckDuckGo + Wikipedia
-// ================================================================
-async function webSearch(query){
-    setMode('search');
-    try{
-        // Essai DuckDuckGo Instant Answer
-        const ddgUrl=`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1&no_redirect=1`;
-        const proxies=[
-            u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,
-            u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-        ];
-
-        let ddgData=null;
-        for(const mkProxy of proxies){
-            try{
-                const r=await fetch(mkProxy(ddgUrl),{signal:AbortSignal.timeout(6000)});
-                if(r.ok){ ddgData=await r.json(); break; }
-            }catch(e){}
-        }
-
-        if(ddgData){
-            let answer='';
-            if(ddgData.AbstractText) answer=ddgData.AbstractText;
-            else if(ddgData.Answer) answer=ddgData.Answer;
-            else if(ddgData.Definition) answer=ddgData.Definition;
-            else if(ddgData.RelatedTopics?.length){
-                answer=ddgData.RelatedTopics.slice(0,3).map(t=>t.Text||'').filter(Boolean).join(' • ');
-            }
-
-            if(answer && answer.length>20){
-                const src=ddgData.AbstractSource||ddgData.AnswerType||'Web';
-                return `<b>🔍 ${escHtml(query)}</b><br><br>${escHtml(answer.substring(0,400))}<br><br><span style="font-size:10px;color:#555;">Source: ${escHtml(src)}</span>`;
-            }
-        }
-    }catch(e){}
-
-    // Fallback : demander à Claude de répondre depuis sa connaissance
-    try{
-        const res=await fetch('https://api.anthropic.com/v1/messages',{
-            method:'POST',
-            headers:{'Content-Type':'application/json','x-api-key':CFG.KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-            body:JSON.stringify({
-                model:CFG.MODEL, max_tokens:400,
-                system:`Tu es un moteur de recherche vocal. Réponds à la question en français, de manière courte et factuelle (3-5 phrases max). Date actuelle: ${new Date().toLocaleDateString('fr-FR')}.`,
-                messages:[{role:'user',content:`Recherche: ${query}`}]
-            })
-        });
-        if(res.ok){
-            const d=await res.json();
-            const ans=d.content?.[0]?.text?.trim()||'';
-            if(ans) return `<b>🔍 ${escHtml(query)}</b><br><br>${escHtml(ans.substring(0,400))}<br><br><span style="font-size:10px;color:#555;">Source: Micka IA</span>`;
-        }
-    }catch(e){}
-
-    // Dernier recours — Claude répond depuis sa connaissance générale
-    try{
-        const sysMsg = `Tu es Micka, une assistante IA vocale. Réponds en français de façon naturelle, utile et courte (3-5 phrases). Si c'est une blague → invente une vraie blague originale. Si c'est une histoire → crée une histoire courte originale. Si c'est un calcul → calcule. Si c'est une question factuelle → réponds. Date: ${new Date().toLocaleDateString('fr-FR')}.`;
-        const r=await fetch('https://api.anthropic.com/v1/messages',{
-            method:'POST',
-            headers:{'Content-Type':'application/json','x-api-key':CFG.KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-            body:JSON.stringify({model:CFG.MODEL,max_tokens:500,system:sysMsg,messages:[{role:'user',content:query}]})
-        });
-        if(r.ok){
-            const d=await r.json();
-            const ans=d.content?.[0]?.text?.trim()||'';
-            if(ans) return `<b>🤖 Micka</b><br><br>${escHtml(ans)}<br><br><span style="font-size:10px;color:#555;">Micka IA</span>`;
-        }
-    }catch(e){}
-
-    return `<b>🔍 ${escHtml(query)}</b><br><br>Je n'ai pas pu obtenir de résultat. Vérifiez votre connexion Internet.`;
-}
-
-function stripHtml(h){ return h.replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>'); }
 
 // ================================================================
 //  EXÉCUTEUR D'ACTIONS
 // ================================================================
 async function doAction(action, p){
-    showToast(action, p);
+    showToastAI(actionLabel(action,p));
     switch(action){
         case 'change_channel':{
             let idx=(typeof p.index==='number')?p.index:findCh(p.name||'');
-            if(idx>=0&&idx<(allChannels?.length||0)){ typeof tryPlayChannel==='function'?tryPlayChannel(idx):playChannel(idx); return `Je lance ${allChannels[idx].name} !`; }
-            return `Désolé, chaîne introuvable.`;
-        }
+            if(idx>=0&&idx<(allChannels?.length||0)){ typeof tryPlayChannel==='function'?tryPlayChannel(allChannels[idx]):playChannel(idx); return `Je lance ${allChannels[idx].name} !`; }
+            return `Chaîne introuvable.`; }
         case 'next_channel':    nextChannel?.(); return 'Chaîne suivante !';
         case 'prev_channel':    prevChannel?.(); return 'Chaîne précédente !';
-        case 'add_favorite':{
-            const c=allChannels?.[currentChannelIndex];
-            if(c){ toggleFavorite?.(c.url,{stopPropagation:()=>{}}); return `${c.name} ajouté !`; } return ''; }
-        case 'remove_favorite':{
-            const c=allChannels?.[currentChannelIndex];
-            if(c){ toggleFavorite?.(c.url,{stopPropagation:()=>{}}); return `${c.name} retiré.`; } return ''; }
-        case 'show_favorites':  if(typeof isFavFilter!=='undefined'&&!isFavFilter) toggleOnlyFavorites?.(); if(!document.body.classList.contains('menu-open')) toggleMenu?.(); return 'Favoris !';
-        case 'show_hd':         if(typeof isHDFilter!=='undefined'&&!isHDFilter) toggleOnlyHD?.(); if(!document.body.classList.contains('menu-open')) toggleMenu?.(); return 'Chaînes HD !';
-        case 'show_category':   if(p.category&&typeof selectedCategories!=='undefined'&&!selectedCategories.includes(p.category)) toggleCat?.(p.category); if(!document.body.classList.contains('menu-open')) toggleMenu?.(); return `Catégorie ${p.category} !`;
-        case 'search_channel':{ const inp=document.getElementById('searchInput'); if(inp){inp.value=p.query||'';onSearch?.();} if(!document.body.classList.contains('menu-open')) toggleMenu?.(); return `Je cherche "${p.query}" !`; }
-        case 'volume_up':{ const v=document.getElementById('video'); if(v){v.volume=Math.min(1,v.volume+(p.amount||.15));syncVolUI?.();} return 'Volume +'; }
+        case 'add_favorite':  { const c=allChannels?.[currentChannelIndex]; if(c){toggleFavorite?.(c.url,{stopPropagation:()=>{}});return c.name+' ajouté aux favoris !';} return ''; }
+        case 'remove_favorite':{ const c=allChannels?.[currentChannelIndex]; if(c){toggleFavorite?.(c.url,{stopPropagation:()=>{}});return c.name+' retiré.';} return ''; }
+        case 'show_favorites': if(typeof isFavFilter!=='undefined'&&!isFavFilter) toggleOnlyFavorites?.(); if(!document.body.classList.contains('menu-open')) toggleMenu?.(); return 'Vos favoris !';
+        case 'show_hd':        if(typeof isHDFilter!=='undefined'&&!isHDFilter) toggleOnlyHD?.(); if(!document.body.classList.contains('menu-open')) toggleMenu?.(); return 'Chaînes HD !';
+        case 'show_category':  if(p.category&&typeof selectedCategories!=='undefined'&&!selectedCategories.includes(p.category)) toggleCat?.(p.category); if(!document.body.classList.contains('menu-open')) toggleMenu?.(); return 'Catégorie '+p.category+' !';
+        case 'search_channel': { const inp=document.getElementById('searchInput'); if(inp){inp.value=p.query||'';onSearch?.();} if(!document.body.classList.contains('menu-open')) toggleMenu?.(); return 'Recherche '+p.query+' !'; }
+        case 'volume_up':  { const v=document.getElementById('video'); if(v){v.volume=Math.min(1,v.volume+(p.amount||.15));syncVolUI?.();} return 'Volume +'; }
         case 'volume_down':{ const v=document.getElementById('video'); if(v){v.volume=Math.max(0,v.volume-(p.amount||.15));syncVolUI?.();} return 'Volume -'; }
-        case 'set_volume':{ const v=document.getElementById('video'); const lv=Math.max(0,Math.min(1,p.level??0.5)); if(v){v.volume=lv;syncVolUI?.();} return `Volume ${Math.round(lv*100)}% !`; }
-        case 'mute':            toggleMute?.(); return 'Mute !';
-        case 'show_info':       showChannelInfo?.(); return 'Infos !';
-        case 'fullscreen':      toggleFullScreen?.(); return 'Plein écran !';
-        case 'exit_fullscreen': document.exitFullscreen?.(); return 'Retour normal.';
-        case 'open_menu':       document.body.classList.add('menu-open'); return 'Menu ouvert !';
-        case 'close_menu':      document.body.classList.remove('menu-open'); return 'Fermé.';
-        case 'open_settings':   openSettings?.(); return 'Paramètres !';
-        case 'show_network':    openSettings?.(); setTimeout(()=>showTab?.('tab-net'),300); return 'Réseau !';
-        case 'show_account':    openSettings?.(); setTimeout(()=>showTab?.('tab-sub'),300); return 'Votre compte !';
-        case 'pip_on':          typeof openPiP==='function'?openPiP():togglePiP?.(); return 'Mini lecteur !';
-        case 'pip_off':         typeof closePiP==='function'?closePiP(false):togglePiP?.(); return 'Mini lecteur fermé.';
-        case 'sleep_timer':{ const m=parseInt(p.minutes)||30; if(typeof setSleep==='function'){const e={target:{classList:{add:()=>{},remove:()=>{}}}};window.event=e;setSleep(m);} return `Minuterie ${m} min !`; }
-        case 'cancel_timer':{ if(typeof setSleep==='function'){const e={target:{classList:{add:()=>{},remove:()=>{}}}};window.event=e;setSleep(0);} return 'Minuterie annulée.'; }
-        case 'switch_mode':     changeSourceMode?.(p.mode||'premium'); return `Mode ${p.mode||'premium'} !`;
-        case 'standby':         standbySystem?.(); return 'Veille...';
-        case 'logout':          logout?.(); return 'Déconnexion...';
+        case 'set_volume': { const v=document.getElementById('video'); const l=Math.max(0,Math.min(1,p.level??0.5)); if(v){v.volume=l;syncVolUI?.();} return 'Volume '+Math.round(l*100)+'% !'; }
+        case 'mute':           toggleMute?.(); return 'Mute !';
+        case 'show_info':      showChannelInfo?.(); return 'Infos chaîne !';
+        case 'fullscreen':     toggleFullScreen?.(); return 'Plein écran !';
+        case 'exit_fullscreen':document.exitFullscreen?.(); return 'Retour normal.';
+        case 'open_menu':      document.body.classList.add('menu-open'); return 'Menu ouvert !';
+        case 'close_menu':     document.body.classList.remove('menu-open'); return 'Fermé.';
+        case 'open_settings':  openSettings?.(); return 'Paramètres !';
+        case 'show_network':   openSettings?.(); setTimeout(()=>showTab?.('tab-net'),300); return 'Réseau !';
+        case 'show_account':   openSettings?.(); setTimeout(()=>showTab?.('tab-sub'),300); return 'Compte !';
+        case 'pip_on':         typeof openPiP==='function'?openPiP():togglePiP?.(); return 'Mini lecteur !';
+        case 'pip_off':        typeof closePiP==='function'?closePiP(false):togglePiP?.(); return 'Fermé.';
+        case 'sleep_timer':  { const m=parseInt(p.minutes)||30; if(typeof setSleep==='function'){const ev={target:{classList:{add:()=>{},remove:()=>{}}}};window.event=ev;setSleep(m);} return 'Minuterie '+m+' min !'; }
+        case 'cancel_timer': { if(typeof setSleep==='function'){const ev={target:{classList:{add:()=>{},remove:()=>{}}}};window.event=ev;setSleep(0);} return 'Minuterie annulée.'; }
+        case 'switch_mode':    changeSourceMode?.(p.mode||'premium'); return 'Mode '+(p.mode||'')+' !';
+        case 'standby':        standbySystem?.(); return 'Veille...';
+        case 'logout':         logout?.(); return 'Déconnexion...';
         default: return '';
     }
 }
 
-// ── Toast ──
-function showToast(action, p){
-    const L={change_channel:'📺 '+(p.name||''),next_channel:'⏭',prev_channel:'⏮',volume_up:'🔊+',volume_down:'🔉-',set_volume:`🔊${Math.round((p.level||.5)*100)}%`,mute:'🔇',show_favorites:'⭐',show_hd:'🔵 HD',show_category:'📁 '+p.category,add_favorite:'⭐+',show_info:'ℹ',fullscreen:'⛶',open_menu:'📋',open_settings:'⚙',show_network:'📶',show_account:'👤',sleep_timer:`🌙${p.minutes}min`,pip_on:'📱',standby:'💤',logout:'🚪',web_search:'🔍 '+p.query,play_radio:'📻 '+p.name,search_channel:'🔍 '+p.query};
-    const txt=L[action]; if(!txt) return;
-    tTxt.innerText=txt; toast.classList.add('on'); clearTimeout(toast._t); toast._t=setTimeout(()=>toast.classList.remove('on'),3000);
+function actionLabel(a,p){
+    const L={change_channel:'📺 '+(p.name||''),next_channel:'⏭',prev_channel:'⏮',volume_up:'🔊+',volume_down:'🔉-',set_volume:'🔊'+Math.round((p.level||.5)*100)+'%',mute:'🔇',show_favorites:'⭐',show_hd:'🔵HD',show_category:'📁'+(p.category||''),add_favorite:'⭐+',show_info:'ℹ',fullscreen:'⛶',open_menu:'📋',open_settings:'⚙',show_network:'📶',show_account:'👤',sleep_timer:'🌙'+(p.minutes||''),pip_on:'📱',standby:'💤',logout:'🚪',play_radio:'📻'+(p.name||''),search_channel:'🔍'+(p.query||'')};
+    return L[a]||'';
 }
 
-// ── Aide visuelle ──
-function buildHelpText(){
-    return `<div style="font-size:10px;color:#8b6fff;font-family:'Orbitron',sans-serif;margin-bottom:8px;">📋 JE COMPRENDS PAR EXEMPLE :</div>
-<div style="display:flex;flex-direction:column;gap:5px;font-size:11px;color:#aaa;line-height:1.7;">
-<div>📺 <b style="color:#fff">"Micka mets [nom chaîne]"</b></div>
-<div>🔊 <b style="color:#fff">"Micka monte le son"</b> / <b style="color:#fff">"baisse le volume"</b></div>
-<div>📻 <b style="color:#fff">"Micka allume RFI"</b> / <b style="color:#fff">"lance Africa N°1"</b></div>
-<div>🌐 <b style="color:#fff">"Micka les infos du jour"</b> / <b style="color:#fff">"météo Cotonou"</b></div>
-<div>😂 <b style="color:#fff">"Micka dis-moi une blague"</b></div>
-<div>📖 <b style="color:#fff">"Micka raconte-moi une histoire"</b></div>
-<div>🕐 <b style="color:#fff">"Micka quelle heure est-il ?"</b></div>
-<div>⭐ <b style="color:#fff">"Micka mes favoris"</b> / <b style="color:#fff">"plein écran"</b></div>
-<div>🔍 <b style="color:#fff">"Micka cherche [n'importe quoi]"</b></div>
-</div>
-<div style="margin-top:6px;font-size:9px;color:#444;">Commencez toujours par <b style="color:#8b6fff">MICKA</b></div>`;
+function showToastAI(txt){ if(!txt) return; tTxt.innerText=txt; toast.classList.add('on'); clearTimeout(toast._t); toast._t=setTimeout(()=>toast.classList.remove('on'),3000); }
+
+// ── Réponses locales instantanées (heure, date, calcul) ──
+function localInstant(q){
+    const t=q.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    if(/heure|quelle heure|time|il est/.test(t)) return `⏰ Il est <b>${new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</b>`;
+    if(/date|quel jour|aujourd.?hui|on est/.test(t)) return `📅 Nous sommes le <b>${new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</b>`;
+    const cm=t.match(/(\d+(?:[.,]\d+)?)\s*(plus|moins|fois|divise|divisé|sur|\+|-|\*|\/)\s*(\d+(?:[.,]\d+)?)/);
+    if(cm){ const ops={'plus':'+','moins':'-','fois':'*','divise':'/','divisé':'/','+':'+','-':'-','*':'*','/':'/',sur:'/'};const op=ops[cm[2]]||'+';try{const r=Function(`"use strict";return(${cm[1].replace(',','.')}${op}${cm[3].replace(',','.')})`)();return `🔢 ${cm[1]} ${cm[2]} ${cm[3]} = <b>${r}</b>`;}catch(e){}}
+    if(/^(bonjour|bonsoir|salut|coucou|hello)/.test(t)){const sal=new Date().getHours()<18?'Bonjour':'Bonsoir'; const c=typeof allChannels!=='undefined'?allChannels[currentChannelIndex]:null; return `${sal} ! Je suis Micka${c?' — vous regardez <b>'+esc(c.name)+'</b>':''}. Comment puis-je vous aider ?`;}
+    if(/merci|bravo|super|parfait/.test(t)){const r=['Avec plaisir !','De rien !','Toujours là pour vous !'];return r[Math.floor(Math.random()*r.length)];}
+    if(/qui es.tu|ton nom|presente.toi/.test(t)) return 'Je suis <b>Micka</b>, votre assistante IA vocale My Box Smart ! Je contrôle votre télé, fais des recherches, réponds à vos questions. Dites <b>Micka</b> pour m\'appeler, <b>Micka Web</b> pour chercher sur internet.';
+    return null;
 }
 
-// ── Parser minimal (si API KO) ──
-function quickParse(t){
-    const n=t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
-    // Commandes TV claires
-    if(/chaine suivante|suivante|next chaine/.test(n)) return {action:'next_channel',params:{},response:'Chaîne suivante !'};
-    if(/chaine precedente|precedente|chaine avant/.test(n)) return {action:'prev_channel',params:{},response:'Chaîne précédente !'};
-    if(/monte.*son|plus fort|hausse.*volume/.test(n)) return {action:'volume_up',params:{amount:.15},response:'Volume +'};
-    if(/baisse.*son|moins fort|diminue.*volume/.test(n)) return {action:'volume_down',params:{amount:.15},response:'Volume -'};
-    if(/coupe.*son|mute|silence|sourdine/.test(n)) return {action:'mute',params:{},response:'Mute !'};
-    if(/volume max|100 pourcent|son fort/.test(n)) return {action:'set_volume',params:{level:1},response:'Volume max !'};
-    if(/plein.?ecran/.test(n)) return {action:'fullscreen',params:{},response:'Plein écran !'};
-    if(/quitter.*ecran/.test(n)) return {action:'exit_fullscreen',params:{},response:'Retour normal.'};
-    if(/ouvre.*menu/.test(n)) return {action:'open_menu',params:{},response:'Menu ouvert !'};
-    if(/ferme.*menu/.test(n)) return {action:'close_menu',params:{},response:'Menu fermé.'};
-    if(/mes favori|voir favori/.test(n)) return {action:'show_favorites',params:{},response:'Vos favoris !'};
-    if(/ajoute.*favori/.test(n)) return {action:'add_favorite',params:{},response:'Ajouté !'};
-    if(/mon compte|abonnement/.test(n)) return {action:'show_account',params:{},response:'Votre compte !'};
-    if(/mini lecteur|pip/.test(n)) return {action:'pip_on',params:{},response:'Mini lecteur !'};
-    if(/plein ecran/.test(n)) return {action:'fullscreen',params:{},response:'Plein écran !'};
-    if(/veille|standby/.test(n)) return {action:'standby',params:{},response:'Veille...'};
-    const slp=n.match(/minuterie.*?(\d+)|(\d+).*min/);
-    if(slp) return {action:'sleep_timer',params:{minutes:parseInt(slp[1]||slp[2])},response:'Minuterie !'};
-    // Chaîne par nom
-    const chCmd=n.match(/(?:mets|lance|allume|ouvre|va sur|passe sur|je veux voir)\s+(.+)/);
-    if(chCmd){const idx=findCh(chCmd[1].trim());if(idx>=0)return {action:'change_channel',params:{index:idx,name:allChannels[idx].name},response:'Je lance '+allChannels[idx].name+' !'};}
-    const ch=findCh(t); if(ch>=0&&t.length<25) return {action:'change_channel',params:{index:ch,name:allChannels[ch].name},response:'Je lance '+allChannels[ch].name+' !'};
-    // TOUT LE RESTE → recherche web — JAMAIS unknown
-    return {action:'web_search',params:{query:t},response:'Je cherche pour vous...'};
+function localFallback(q){
+    const t=q.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    if(/blague|joke|rire/.test(t)){const b=["Pourquoi les plongeurs plongent-ils en arrière ? Parce qu'en avant ils tomberaient dans le bateau !","Un homme entre en bibliothèque : 'Des livres sur la paranoïa ?' La bibliothécaire chuchote : 'Ils sont juste derrière vous...'","Pourquoi l'épouvantail a-t-il reçu un prix ? Il était exceptionnel dans son domaine !","Qu'est-ce qu'un canif ? Un petit fien !"];return b[Math.floor(Math.random()*b.length)];}
+    if(/histoire|conte|raconte/.test(t)) return "Il était une fois un abonné My Box Smart au Bénin qui découvrit une chaîne mystérieuse. En cliquant dessus, il fut transporté dans un monde de télévision infinie. Il revint avec la sagesse de toujours chercher de belles chaînes. Fin !";
+    return "Je n'ai pas pu me connecter. Vérifiez votre connexion internet et réessayez.";
+}
+
+// ── Parser local (fallback si API KO) ──
+function localParse(raw){
+    const t=raw.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    if(/suivante?|next/.test(t)&&!/precedente?/.test(t)) return {action:'next_channel',params:{},response:'Chaîne suivante !'};
+    if(/precedente?|avant/.test(t)) return {action:'prev_channel',params:{},response:'Chaîne précédente !'};
+    if(/monte|hausse|plus fort/.test(t)) return {action:'volume_up',params:{amount:.15},response:'Volume +'};
+    if(/baisse|moins fort/.test(t)) return {action:'volume_down',params:{amount:.15},response:'Volume -'};
+    if(/coupe|mute|silence|sourdine/.test(t)) return {action:'mute',params:{},response:'Mute !'};
+    if(/volume\s*max|100.*pourcent/.test(t)) return {action:'set_volume',params:{level:1},response:'Volume max !'};
+    if(/plein.?ecran/.test(t)) return {action:'fullscreen',params:{},response:'Plein écran !'};
+    if(/ouvre.*menu|affiche.*menu/.test(t)) return {action:'open_menu',params:{},response:'Menu ouvert !'};
+    if(/ferme.*menu/.test(t)) return {action:'close_menu',params:{},response:'Menu fermé.'};
+    if(/mes.*favori|voir.*favori/.test(t)) return {action:'show_favorites',params:{},response:'Vos favoris !'};
+    if(/mon compte|abonnement/.test(t)) return {action:'show_account',params:{},response:'Votre compte !'};
+    if(/veille|standby/.test(t)) return {action:'standby',params:{},response:'Veille...'};
+    const slp=t.match(/minuterie.*?(\d+)|(\d+).*min/); if(slp) return {action:'sleep_timer',params:{minutes:parseInt(slp[1]||slp[2])},response:'Minuterie !'};
+    const chCmd=t.match(/(?:mets|lance|allume|va sur|passe sur|je veux voir)\s+(.+)/); if(chCmd){const idx=findCh(chCmd[1].trim()); if(idx>=0) return {action:'change_channel',params:{index:idx,name:allChannels[idx].name},response:'Je lance '+allChannels[idx].name+' !'};}
+    // Local instant check
+    const li=localInstant(raw); if(li) return {action:'none',params:{},response:stripTags(li)};
+    // Tout le reste → réponse directe IA
+    return {action:'none',params:{},response:'Désolé, je n\'ai pas pu traiter votre demande. Réessayez ou dites "Micka Web" pour une recherche.'};
 }
 
 // ── Recherche floue chaîne ──
 function findCh(q){
     if(!q||typeof allChannels==='undefined'||!allChannels.length) return -1;
     q=q.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
-    let i=allChannels.findIndex(c=>c.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')===q); if(i>=0) return i;
-    i=allChannels.findIndex(c=>c.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes(q)); if(i>=0) return i;
+    const norm=s=>s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    let i=allChannels.findIndex(c=>norm(c.name)===q); if(i>=0) return i;
+    i=allChannels.findIndex(c=>norm(c.name).includes(q)); if(i>=0) return i;
     const ws=q.split(/\s+/).filter(w=>w.length>2);
-    if(ws.length){ i=allChannels.findIndex(c=>ws.every(w=>c.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes(w))); if(i>=0) return i; }
+    if(ws.length){ i=allChannels.findIndex(c=>ws.every(w=>norm(c.name).includes(w))); if(i>=0) return i; }
     let best=99,bi=-1;
     for(let k=0;k<Math.min(allChannels.length,500);k++){
-        const s=lev(q,allChannels[k].name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').substring(0,q.length+4));
+        const s=lev(q,norm(allChannels[k].name).substring(0,q.length+4));
         if(s<best){best=s;bi=k;}
     }
     return best<=Math.ceil(q.length*.45)?bi:-1;
 }
-function lev(a,b){
-    if(!a) return b.length; if(!b) return a.length;
-    const dp=Array.from({length:a.length+1},(_,i)=>Array.from({length:b.length+1},(_,j)=>i===0?j:j===0?i:0));
-    for(let i=1;i<=a.length;i++) for(let j=1;j<=b.length;j++) dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);
-    return dp[a.length][b.length];
-}
+function lev(a,b){ if(!a) return b.length; if(!b) return a.length; const dp=Array.from({length:a.length+1},(_,i)=>Array.from({length:b.length+1},(_,j)=>i===0?j:j===0?i:0)); for(let i=1;i<=a.length;i++) for(let j=1;j<=b.length;j++) dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]); return dp[a.length][b.length]; }
+function stripTags(h){ return h?h.replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>'):'';}
 
-// ================================================================
-//  TTS — Parole avec mute TV automatique
-// ================================================================
-function speak(text, returnStandby=true){
-    if(!text||!S.voiceOn){ if(returnStandby) setMode('standby'); return; }
+// ── TTS avec mute TV auto ──
+function speak(text,returnStandby=true){
+    if(!text||!S.voice){ if(returnStandby) setMode('standby'); return; }
     window.speechSynthesis?.cancel(); S.paused=true;
-    const tv=document.getElementById('video');
-    const wasMuted=tv?.muted??true; const savedVol=tv?.volume??1;
-    if(tv&&!tv.muted) tv.muted=true;
-    const utt=new SpeechSynthesisUtterance(text);
-    utt.lang=CFG.LANG; utt.rate=0.97; utt.pitch=1.08;
+    const tv=document.getElementById('video'); const wasMuted=tv?.muted??true; const savedVol=tv?.volume??1;
+    if(S.muteTV&&tv&&!tv.muted) tv.muted=true;
+    const utt=new SpeechSynthesisUtterance(text); utt.lang=CFG.LANG; utt.rate=0.97; utt.pitch=1.07;
     const voices=window.speechSynthesis?.getVoices()||[];
     const fr=voices.find(v=>v.lang.startsWith('fr')&&!v.name.toLowerCase().includes('espeak'))||voices.find(v=>v.lang.startsWith('fr'));
     if(fr) utt.voice=fr;
@@ -3844,57 +3914,76 @@ function speak(text, returnStandby=true){
     const done=()=>{
         if(tv){tv.muted=wasMuted;tv.volume=savedVol;}
         setTimeout(()=>{ S.paused=false; },700);
-        if(returnStandby){
-            setTimeout(()=>{ setMode('standby'); },300);
-        } else {
-            setTimeout(()=>{ if(S.mode==='speak') setMode('wake'); },300);
-        }
+        if(returnStandby) setTimeout(()=>{ setMode('standby'); clearTimeout(box._ht); box._ht=setTimeout(hideBox,10000); },300);
+        else setTimeout(()=>{ if(S.mode==='speak') setMode('wake'); },300);
     };
     utt.onend=done; utt.onerror=done;
     window.speechSynthesis?.speak(utt);
 }
 
-// ================================================================
-//  TOGGLE, PANEL, COMMANDES VISIBLES
-// ================================================================
+// ── Toggle ──
 function toggle(){
+    if(!S.enabled) return;
     if(S.mode==='speak'){window.speechSynthesis?.cancel();S.paused=false;setMode('standby');return;}
-    if(S.mode==='standby'){ onWake(''); }
-    else { clearTimeout(S.wakeTimer); setMode('standby'); clearTimeout(S.inactiveTimer); setTimeout(hideBox,2000); }
+    if(S.mode==='standby') onWake('tv');
+    else { clearTimeout(S.wakeTimer); setMode('standby'); clearTimeout(box._ht); box._ht=setTimeout(hideBox,2000); }
 }
 
-let _po=false;
-function panel(e){ if(e) e.preventDefault(); _po=!_po; $('micka-panel').classList.toggle('on',_po); $('mpwake-lbl').innerText=S.wakeOn?'Désactiver wake word':'Activer wake word'; $('mpvox-lbl').innerText=S.voiceOn?'Couper voix':'Activer voix'; }
-function toggleWake(){ S.wakeOn=!S.wakeOn; panel(null); const m=S.wakeOn?'Wake word réactivé ! Dites Micka.':'Wake word off. Cliquez sur l\'orbe.'; addMsg('bot',m); showBox(); speak(m,true); }
-function toggleVoice(){ S.voiceOn=!S.voiceOn; panel(null); typeof showToastNotif==='function'&&showToastNotif(S.voiceOn?'🔊 Voix activée':'🔇 Voix coupée'); }
-function clearChat(){ log.innerHTML=''; panel(null); }
-function showCmds(){ panel(null); showBox(); addMsg('bot',buildHelpText()); resetIdle(); }
+// ── Fonctions réglages ──
+function setEnabled(v){
+    S.enabled=v; localStorage.setItem('micka_enabled',v);
+    orb.classList.toggle('hidden',!v);
+    _syncToggles();
+    if(!v){ loopStop(); setMode('standby'); hideBox(); }
+    else loopStart();
+}
+function setVoice(v){ S.voice=v; localStorage.setItem('micka_voice',v); _syncToggles(); }
+function setMuteTV(v){ S.muteTV=v; localStorage.setItem('micka_muteTV',v); _syncToggles(); }
 
-document.addEventListener('click',e=>{ if(!e.target.closest('#micka-orb')&&!e.target.closest('#micka-panel')){$('micka-panel').classList.remove('on');_po=false;} });
-document.addEventListener('keydown',e=>{ if(e.ctrlKey&&e.key==='m'){e.preventDefault();toggle();} });
+function _syncToggles(){
+    _setSw('ai-enabled-toggle','ai-toggle-track','ai-toggle-thumb', S.enabled);
+    _setSw('ai-voice-toggle','ai-voice-track','ai-voice-thumb', S.voice);
+    _setSw('ai-mute-toggle','ai-mute-track','ai-mute-thumb', S.muteTV);
+}
+function _setSw(chkId,trackId,thumbId,val){
+    const chk=$( chkId); const trk=$(trackId); const thb=$(thumbId);
+    if(!chk||!trk||!thb) return;
+    chk.checked=val;
+    trk.style.background=val?'#6e3aff':'#333';
+    thb.style.left=val?'22px':'2px';
+}
 
-// ================================================================
-//  INIT
-// ================================================================
+function testVoice(){ if(!S.enabled){showToastNotif('Activez Micka d\'abord.'); return;} const msg='Bonjour ! Je suis Micka, votre assistante vocale My Box Smart. Je suis prête !'; showBox(); addMsg('bot',msg); speak(msg,true); }
+
+// ── Init ──
 function init(){
     if(window.speechSynthesis){ window.speechSynthesis.getVoices(); window.speechSynthesis.onvoiceschanged=()=>window.speechSynthesis.getVoices(); }
+    _syncToggles();
+    if(!S.enabled){ orb.classList.add('hidden'); return; }
     const start=()=>{ if(!S.loop) loopStart(); };
     if(localStorage.getItem('mybox_auth')==='OK'){
         setTimeout(()=>{
             const h=new Date().getHours();
             const sal=h<12?'Bonjour':h<18?'Bonjour':'Bonsoir';
-            const msg=`${sal} ! Je suis Micka, votre assistante IA My Box TV. Je peux contrôler votre télé, faire des recherches sur Internet, raconter des histoires, répondre à toutes vos questions — dites simplement "Micka" pour m'appeler !`;
+            const msg=`${sal} ! Je suis Micka, votre assistante IA My Box Smart. Dites "Micka" pour les commandes TV, "Micka Web" pour chercher sur internet !`;
             showBox(); addMsg('bot',msg); speak(msg,true);
-            setTimeout(start,5000);
-        },2500);
+            setTimeout(start,4500);
+        },2800);
     } else { setTimeout(start,2000); }
 }
 
 init();
-return { toggle, panel, toggleWake, toggleVoice, clearChat, showCmds, cmd:process };
+return { toggle, cmd:process, web:processWeb, searchCh:searchChannel, setEnabled, setVoice, setMuteTV, test:testVoice };
 
 })();
+
+// ── Connecter les toggles settings ──
+function mickaSetEnabled(v){ M.setEnabled(v); }
+function mickaSetVoice(v){ M.setVoice(v); }
+function mickaSetMuteTV(v){ M.setMuteTV(v); }
+function mickaTestVoice(){ M.test(); }
 window.mickaCommand=txt=>M.cmd(txt);
 </script>
+
 </body>
 </html>
