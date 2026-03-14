@@ -3308,7 +3308,8 @@ const S = {
     paused:  false,
     rec:     null,
     hist:    [],        // historique Claude
-    wakeTimer: null,
+    wakeTimer:      null,
+    inactiveTimer:  null,   // 30s sans parole → fermer bulle
 };
 
 // ── DOM ──
@@ -3433,6 +3434,7 @@ function _step() {
 
             if (final && cleaned.length > 1) {
                 clearTimeout(S.wakeTimer);
+                resetInactiveTimer(); // remettre à 0 le 30s
                 showTyping(true);
                 process(cleaned);
             }
@@ -3470,6 +3472,7 @@ function onWake(norm, raw) {
         speak(rep, false);
         clearTimeout(S.wakeTimer);
         S.wakeTimer = setTimeout(() => { if (S.mode === 'wake') { setMode('standby'); } }, 10000);
+        resetInactiveTimer(); // démarrer le 30s dès le wake
     }
 }
 
@@ -3537,6 +3540,7 @@ async function process(txt) {
     showTyping(false);
     addMsg('bot', reply);
     speak(reply, true);
+    resetInactiveTimer(); // 30s repart après chaque réponse
 }
 
 // ================================================================
@@ -3793,8 +3797,9 @@ function localParse(raw) {
         return { action:'none', params:{}, response: r[Math.floor(Math.random()*r.length)] };
     }
     // ── Aide ──
-    if (/aide|help|peux.tu|sais.tu|capacite|fonctionnalit/.test(t)) {
-        return { action:'none', params:{}, response:"Je peux changer de chaîne, régler le volume, gérer les favoris, lancer le plein écran, régler une minuterie, répondre à vos questions, raconter des histoires et bien plus ! Que voulez-vous ?" };
+    if (/aide|help|peux.tu|sais.tu|capacite|fonctionnalit|commande|liste|que.*di/.test(t)) {
+        showHelp();
+        return { action:'none', params:{}, response:"Voici tout ce que vous pouvez me demander !" };
     }
     // ── Changer de chaîne — patterns larges ──
     const chPatterns = [
@@ -3879,9 +3884,77 @@ function localParse(raw) {
             if (cat.length > 2 && t.includes(cat.toLowerCase())) return { action:'show_category', params:{category:cat}, response:`Catégorie ${cat} !` };
         }
     }
-    // ── Non compris ──
-    const confused = ["Je n'ai pas compris, répétez !","Pouvez-vous reformuler autrement ?","Je n'ai pas saisi, réessayez !"];
-    return { action:'none', params:{}, response: confused[Math.floor(Math.random()*confused.length)] };
+    // ── Non compris → afficher TOUTES les commandes disponibles ──
+    showHelp();
+    return { action:'none', params:{}, response: "Je n'ai pas compris. Voici tout ce que vous pouvez me demander !" };
+}
+
+// ================================================================
+// AIDE COMPLÈTE — Affichage de toutes les commandes
+// ================================================================
+function showHelp() {
+    const helpHTML = `
+<div style="font-size:11px;color:#8b6fff;font-family:'Orbitron',sans-serif;letter-spacing:1px;margin-bottom:10px;">📋 COMMANDES DISPONIBLES</div>
+
+<div style="display:flex;flex-direction:column;gap:6px;">
+
+<div style="background:rgba(0,170,255,.1);border:1px solid rgba(0,170,255,.2);border-radius:8px;padding:7px 10px;">
+<div style="font-size:9px;color:#0af;font-weight:700;margin-bottom:4px;">📺 CHAÎNES</div>
+<div style="font-size:10px;color:#aaa;line-height:1.7;">
+🔹 <b style="color:#fff">"Micka mets Novelas TV"</b><br>
+🔹 <b style="color:#fff">"Lance la chaîne sport"</b><br>
+🔹 <b style="color:#fff">"Chaîne suivante / précédente"</b><br>
+🔹 <b style="color:#fff">"Cherche les chaînes music"</b><br>
+🔹 <b style="color:#fff">"Mes favoris"</b> / <b style="color:#fff">"Chaînes HD"</b>
+</div></div>
+
+<div style="background:rgba(46,204,113,.1);border:1px solid rgba(46,204,113,.2);border-radius:8px;padding:7px 10px;">
+<div style="font-size:9px;color:#2ecc71;font-weight:700;margin-bottom:4px;">🔊 VOLUME & SON</div>
+<div style="font-size:10px;color:#aaa;line-height:1.7;">
+🔹 <b style="color:#fff">"Monte le son"</b> / <b style="color:#fff">"Baisse le volume"</b><br>
+🔹 <b style="color:#fff">"Volume maximum"</b> / <b style="color:#fff">"Volume 50%"</b><br>
+🔹 <b style="color:#fff">"Coupe le son"</b> / <b style="color:#fff">"Silence"</b>
+</div></div>
+
+<div style="background:rgba(255,200,0,.08);border:1px solid rgba(255,200,0,.2);border-radius:8px;padding:7px 10px;">
+<div style="font-size:9px;color:#ffc800;font-weight:700;margin-bottom:4px;">🖥️ AFFICHAGE</div>
+<div style="font-size:10px;color:#aaa;line-height:1.7;">
+🔹 <b style="color:#fff">"Plein écran"</b> / <b style="color:#fff">"Quitter plein écran"</b><br>
+🔹 <b style="color:#fff">"Ouvre le menu"</b> / <b style="color:#fff">"Ferme le menu"</b><br>
+🔹 <b style="color:#fff">"Mini lecteur"</b> / <b style="color:#fff">"Paramètres"</b><br>
+🔹 <b style="color:#fff">"Infos chaîne"</b>
+</div></div>
+
+<div style="background:rgba(229,9,20,.08);border:1px solid rgba(229,9,20,.2);border-radius:8px;padding:7px 10px;">
+<div style="font-size:9px;color:#e50914;font-weight:700;margin-bottom:4px;">⚙️ SYSTÈME</div>
+<div style="font-size:10px;color:#aaa;line-height:1.7;">
+🔹 <b style="color:#fff">"Minuterie 30 minutes"</b><br>
+🔹 <b style="color:#fff">"Mode premium"</b> / <b style="color:#fff">"Mode complet"</b><br>
+🔹 <b style="color:#fff">"Mon compte"</b> / <b style="color:#fff">"Réseau"</b><br>
+🔹 <b style="color:#fff">"Mise en veille"</b> / <b style="color:#fff">"Déconnexion"</b>
+</div></div>
+
+<div style="background:rgba(110,58,255,.1);border:1px solid rgba(110,58,255,.2);border-radius:8px;padding:7px 10px;">
+<div style="font-size:9px;color:#a78bff;font-weight:700;margin-bottom:4px;">💬 CONVERSATION</div>
+<div style="font-size:10px;color:#aaa;line-height:1.7;">
+🔹 <b style="color:#fff">"Quelle heure est-il ?"</b><br>
+🔹 <b style="color:#fff">"Dis-moi une blague"</b><br>
+🔹 <b style="color:#fff">"Raconte-moi une histoire"</b><br>
+🔹 <b style="color:#fff">"Calcul : 25 plus 17"</b>
+</div></div>
+
+</div>
+<div style="margin-top:8px;font-size:9px;color:#444;text-align:center;">💡 Dites toujours <b style="color:#8b6fff">MICKA</b> puis votre demande</div>`;
+
+    // Afficher dans le chat log comme un message spécial
+    const logEl = document.getElementById('micka-log');
+    if (!logEl) return;
+    const d = document.createElement('div');
+    d.className = 'micka-msg';
+    d.style.cssText = 'animation:msgIn .3s ease;';
+    d.innerHTML = `<div class="m-auth bot">🤖 Micka</div><div class="m-bub bot" style="max-width:100%;padding:10px 12px;">${helpHTML}</div>`;
+    logEl.appendChild(d);
+    setTimeout(() => { logEl.scrollTop = logEl.scrollHeight; }, 50);
 }
 
 // ================================================================
@@ -3920,6 +3993,21 @@ function lev(a,b) {
 }
 
 // ================================================================
+// TIMER D'INACTIVITÉ — 30s sans parole → fermer bulle (micro reste actif)
+// ================================================================
+function resetInactiveTimer() {
+    clearTimeout(S.inactiveTimer);
+    S.inactiveTimer = setTimeout(() => {
+        // Fermer la bulle silencieusement
+        if (S.mode !== 'think' && S.mode !== 'speak') {
+            setMode('standby');       // retour en veille visuelle
+            hideBox();                // fermer la bulle
+            // Le micro continue de tourner en arrière-plan (loopStart reste actif)
+        }
+    }, 30000); // 30 secondes
+}
+
+// ================================================================
 // TTS — Parole avec mute TV automatique
 // ================================================================
 function speak(text, returnStandby=true) {
@@ -3950,7 +4038,7 @@ function speak(text, returnStandby=true) {
             setTimeout(() => {
                 setMode('standby');
                 clearTimeout(box._hideTimer);
-                box._hideTimer = setTimeout(hideBox, 10000);
+                resetInactiveTimer(); // ferme après 30s d'inactivité
             }, 300);
         } else {
             // Après wake → passer en mode écoute active
