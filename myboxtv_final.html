@@ -3142,27 +3142,35 @@ document.addEventListener('keydown', (e) => {
 </script>
 
 
+
 <!-- ============================================================
-     🤖 MICKA — Assistante vocale Alexa-style | My Box TV
-     Wake word | Toutes actions | Chat log | Mute TV auto
+     🤖 MICKA v2 — IA Vocale complète | My Box TV
+     • Wake word "Micka" toujours actif
+     • Claude API → analyse action TV OU recherche web
+     • Recherche internet en temps réel (DuckDuckGo + Wikipedia)
+     • Radios en ligne, blagues fraîches, actualités, météo
+     • Chat log avec qui parle
+     • Mute TV auto pendant la parole
+     • Fermeture bulle 30s inactivité, micro reste actif
      ============================================================ -->
 <style>
 #micka-orb {
-    position:fixed; bottom:88px; left:16px; width:58px; height:58px;
-    border-radius:50%; cursor:pointer; z-index:9500;
-    display:flex; align-items:center; justify-content:center;
-    border:2px solid rgba(255,255,255,0.15); transition:all 0.3s;
+    position:fixed;bottom:88px;left:16px;width:58px;height:58px;
+    border-radius:50%;cursor:pointer;z-index:9500;
+    display:flex;align-items:center;justify-content:center;
+    border:2px solid rgba(255,255,255,0.15);transition:all 0.3s;
     background:linear-gradient(135deg,#6e3aff,#0af);
     box-shadow:0 0 22px rgba(110,58,255,0.5),0 4px 18px rgba(0,0,0,0.7);
 }
 #micka-orb:hover{transform:scale(1.08);}
-#micka-orb.idle   {background:linear-gradient(135deg,#6e3aff,#0af);}
-#micka-orb.wake   {background:linear-gradient(135deg,#ff8c00,#ffe000);animation:mWake .4s ease;box-shadow:0 0 35px rgba(255,200,0,.8);}
-#micka-orb.listen {background:linear-gradient(135deg,#ff3c3c,#ff8c00);animation:mListen 1s infinite;box-shadow:0 0 30px rgba(255,60,60,.8);}
-#micka-orb.think  {background:conic-gradient(#6e3aff,#0af,#2ecc71,#6e3aff);animation:mThink 1.2s linear infinite;}
-#micka-orb.speak  {background:linear-gradient(135deg,#2ecc71,#0af);animation:mSpeak .5s ease-in-out infinite alternate;box-shadow:0 0 28px rgba(46,204,113,.7);}
+#micka-orb.idle  {background:linear-gradient(135deg,#6e3aff,#0af);}
+#micka-orb.wake  {background:linear-gradient(135deg,#ff8c00,#ffe000);animation:mWake .4s ease;box-shadow:0 0 35px rgba(255,200,0,.8);}
+#micka-orb.listen{background:linear-gradient(135deg,#ff3c3c,#ff8c00);animation:mListen 1s infinite;box-shadow:0 0 30px rgba(255,60,60,.8);}
+#micka-orb.think {background:conic-gradient(#6e3aff,#0af,#2ecc71,#6e3aff);animation:mThink 1.2s linear infinite;}
+#micka-orb.search{background:linear-gradient(135deg,#0af,#00e5ff);animation:mListen 1s infinite;box-shadow:0 0 30px rgba(0,200,255,.8);}
+#micka-orb.speak {background:linear-gradient(135deg,#2ecc71,#0af);animation:mSpeak .5s ease-in-out infinite alternate;box-shadow:0 0 28px rgba(46,204,113,.7);}
 @keyframes mWake  {0%{transform:scale(1)}50%{transform:scale(1.25)}100%{transform:scale(1)}}
-@keyframes mListen{0%,100%{transform:scale(1);box-shadow:0 0 20px rgba(255,60,60,.5)}50%{transform:scale(1.12);box-shadow:0 0 40px rgba(255,60,60,1)}}
+@keyframes mListen{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
 @keyframes mThink {0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
 @keyframes mSpeak {0%{transform:scale(1)}100%{transform:scale(1.1)}}
 #micka-orb-icon{font-size:22px;color:#fff;pointer-events:none;position:absolute;}
@@ -3170,84 +3178,70 @@ document.addEventListener('keydown', (e) => {
 
 #micka-rings{position:fixed;bottom:88px;left:16px;width:58px;height:58px;z-index:9490;pointer-events:none;border-radius:50%;}
 .m-ring{position:absolute;inset:0;border-radius:50%;border:1.5px solid rgba(110,58,255,.3);animation:mRing 3s ease-out infinite;}
-.m-ring:nth-child(2){animation-delay:1s;border-color:rgba(0,170,255,.2);}
-.m-ring:nth-child(3){animation-delay:2s;border-color:rgba(46,204,113,.15);}
+.m-ring:nth-child(2){animation-delay:1s;}.m-ring:nth-child(3){animation-delay:2s;}
 #micka-rings.hot .m-ring{border-color:rgba(255,60,60,.6);animation-duration:1s;}
+#micka-rings.web .m-ring{border-color:rgba(0,200,255,.6);animation-duration:1.2s;}
 @keyframes mRing{0%{transform:scale(1);opacity:.7}100%{transform:scale(3.5);opacity:0}}
 
 #micka-viz{position:fixed;bottom:155px;left:6px;width:68px;height:32px;display:none;align-items:flex-end;justify-content:center;gap:3px;z-index:9500;pointer-events:none;}
 #micka-viz.on{display:flex;}
 .m-bar{width:5px;border-radius:3px;background:linear-gradient(180deg,#0af,#6e3aff);animation:mBar .5s ease-in-out infinite alternate;min-height:3px;}
-.m-bar:nth-child(1){animation-delay:0s;   --bh:10px}
-.m-bar:nth-child(2){animation-delay:.1s;  --bh:26px}
-.m-bar:nth-child(3){animation-delay:.05s; --bh:18px}
-.m-bar:nth-child(4){animation-delay:.15s; --bh:30px}
-.m-bar:nth-child(5){animation-delay:.08s; --bh:14px}
+.m-bar:nth-child(1){animation-delay:0s;--bh:10px}.m-bar:nth-child(2){animation-delay:.1s;--bh:26px}
+.m-bar:nth-child(3){animation-delay:.05s;--bh:18px}.m-bar:nth-child(4){animation-delay:.15s;--bh:30px}
+.m-bar:nth-child(5){animation-delay:.08s;--bh:14px}
 @keyframes mBar{0%{height:3px}100%{height:var(--bh,20px)}}
 
-/* Bulle principale */
+/* ── Bulle principale ── */
 #micka-box{
-    position:fixed;bottom:158px;left:12px;
-    width:min(340px,82vw);
+    position:fixed;bottom:158px;left:12px;width:min(360px,84vw);
     background:rgba(5,5,20,.97);backdrop-filter:blur(24px);
     border:1px solid rgba(110,58,255,.4);border-radius:20px 20px 20px 4px;
-    z-index:9600;display:none;
+    z-index:9600;display:none;flex-direction:column;overflow:hidden;
     box-shadow:0 8px 40px rgba(0,0,0,.85),0 0 24px rgba(110,58,255,.15);
-    flex-direction:column;overflow:hidden;
+    transition:opacity .3s,transform .3s;
 }
 #micka-box.on{display:flex;}
-#micka-box-head{
-    display:flex;align-items:center;gap:8px;padding:10px 14px 8px;
-    background:linear-gradient(180deg,rgba(110,58,255,.12),transparent);
-    border-bottom:1px solid rgba(255,255,255,.05);flex-shrink:0;
-}
+#micka-box-head{display:flex;align-items:center;gap:8px;padding:10px 14px 8px;background:linear-gradient(180deg,rgba(110,58,255,.12),transparent);border-bottom:1px solid rgba(255,255,255,.05);flex-shrink:0;}
 #micka-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#6e3aff,#0af);display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;flex-shrink:0;}
-#micka-head-name{font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:2px;color:#8b6fff;}
-#micka-dot{width:7px;height:7px;border-radius:50%;background:#2ecc71;box-shadow:0 0 6px #2ecc71;margin-left:auto;flex-shrink:0;transition:.3s;}
+#micka-head-name{font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:2px;color:#8b6fff;flex:1;}
+#micka-mode-badge{font-size:8px;padding:2px 7px;border-radius:10px;font-weight:700;background:rgba(110,58,255,.2);color:#a78bff;font-family:'Orbitron',sans-serif;}
+#micka-dot{width:7px;height:7px;border-radius:50%;background:#2ecc71;box-shadow:0 0 6px #2ecc71;margin-left:6px;flex-shrink:0;transition:.3s;}
 
 /* Chat log */
-#micka-log{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:8px;max-height:240px;scrollbar-width:thin;scrollbar-color:#333 transparent;}
+#micka-log{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:7px;max-height:260px;scrollbar-width:thin;scrollbar-color:#333 transparent;}
 #micka-log::-webkit-scrollbar{width:2px;}
 #micka-log::-webkit-scrollbar-thumb{background:#333;}
 .m-msg{display:flex;flex-direction:column;gap:2px;animation:msgIn .3s ease;}
 @keyframes msgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .m-auth{font-size:9px;font-weight:700;letter-spacing:1px;}
-.m-auth.you{color:#0af;}
-.m-auth.bot{color:#a78bff;}
-.m-bub{padding:8px 11px;border-radius:12px;font-size:12.5px;line-height:1.55;max-width:95%;}
+.m-auth.you{color:#0af;}.m-auth.bot{color:#a78bff;}.m-auth.web{color:#00e5ff;}
+.m-bub{padding:8px 11px;border-radius:12px;font-size:12.5px;line-height:1.55;max-width:98%;}
 .m-bub.you{background:rgba(0,170,255,.12);border:1px solid rgba(0,170,255,.2);color:#cce8ff;align-self:flex-end;border-radius:12px 12px 3px 12px;}
 .m-bub.bot{background:rgba(110,58,255,.12);border:1px solid rgba(110,58,255,.2);color:#e8e0ff;align-self:flex-start;border-radius:12px 12px 12px 3px;}
-.m-interim .m-bub{opacity:.6;font-style:italic;}
+.m-bub.web{background:rgba(0,200,255,.08);border:1px solid rgba(0,200,255,.2);color:#b8f0ff;align-self:flex-start;border-radius:12px 12px 12px 3px;}
+.m-bub.system{background:rgba(255,200,0,.08);border:1px solid rgba(255,200,0,.15);color:#fff3b8;font-size:11px;align-self:flex-start;border-radius:12px 12px 12px 3px;}
+.m-interim .m-bub{opacity:.55;font-style:italic;}
 
-/* Typing dots */
+/* Typing */
 #micka-typing{display:none;padding:4px 12px 8px;gap:4px;align-items:center;}
 #micka-typing.on{display:flex;}
 .tdot{width:5px;height:5px;border-radius:50%;background:#6e3aff;animation:tdot .8s infinite;}
 .tdot:nth-child(2){animation-delay:.2s;}.tdot:nth-child(3){animation-delay:.4s;}
 @keyframes tdot{0%,100%{opacity:.2;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
 
-/* Toast action */
-#micka-toast{
-    position:fixed;top:58px;left:50%;transform:translateX(-50%) translateY(-20px);
-    background:linear-gradient(135deg,rgba(110,58,255,.2),rgba(0,170,255,.2));
-    backdrop-filter:blur(16px);border:1px solid rgba(110,58,255,.5);
-    border-radius:30px;padding:8px 20px;font-size:12px;color:#a78bff;font-weight:700;
-    z-index:9700;white-space:nowrap;
-    display:none;align-items:center;gap:8px;transition:all .3s ease;
-}
+/* Toast */
+#micka-toast{position:fixed;top:58px;left:50%;transform:translateX(-50%) translateY(-20px);background:linear-gradient(135deg,rgba(110,58,255,.2),rgba(0,170,255,.2));backdrop-filter:blur(16px);border:1px solid rgba(110,58,255,.5);border-radius:30px;padding:8px 20px;font-size:12px;color:#a78bff;font-weight:700;z-index:9700;white-space:nowrap;display:none;align-items:center;gap:8px;transition:all .3s ease;}
 #micka-toast.on{display:flex;transform:translateX(-50%) translateY(0);}
 
-/* Flash wake */
+/* Sbar & flash */
+#micka-sbar{position:fixed;bottom:152px;left:84px;background:rgba(5,5,20,.9);border:1px solid rgba(110,58,255,.3);border-radius:20px;padding:4px 12px;font-size:9px;color:#8b6fff;font-family:'Orbitron',sans-serif;letter-spacing:1.5px;display:none;z-index:9500;pointer-events:none;animation:sblink 1.5s ease-in-out infinite;}
+#micka-sbar.on{display:block;}
+@keyframes sblink{0%,100%{opacity:1}50%{opacity:.4}}
 #micka-flash{position:fixed;inset:0;z-index:9400;pointer-events:none;background:radial-gradient(circle at 4% 95%,rgba(110,58,255,.25) 0%,transparent 60%);opacity:0;transition:opacity .3s;}
 #micka-flash.on{opacity:1;}
 
-/* Statut bar */
-#micka-sbar{position:fixed;bottom:152px;left:84px;background:rgba(5,5,20,.9);border:1px solid rgba(110,58,255,.3);border-radius:20px;padding:4px 12px;font-size:9px;color:#8b6fff;font-family:'Orbitron',sans-serif;letter-spacing:1.5px;display:none;z-index:9500;pointer-events:none;animation:sblink 1.5s ease-in-out infinite;}
-#micka-sbar.on{display:block;}
-@keyframes sblink{0%,100%{opacity:1}50%{opacity:.5}}
-
-/* Panel clic droit */
-#micka-panel{position:fixed;bottom:155px;left:80px;width:200px;background:rgba(5,5,20,.97);border:1px solid rgba(110,58,255,.3);border-radius:14px;padding:10px;z-index:9600;display:none;box-shadow:0 8px 30px rgba(0,0,0,.8);}
+/* Panel */
+#micka-panel{position:fixed;bottom:155px;left:80px;width:210px;background:rgba(5,5,20,.97);border:1px solid rgba(110,58,255,.3);border-radius:14px;padding:10px;z-index:9600;display:none;box-shadow:0 8px 30px rgba(0,0,0,.8);}
 #micka-panel.on{display:block;}
 .mpbtn{padding:8px 12px;border-radius:8px;cursor:pointer;font-size:11px;color:#aaa;display:flex;align-items:center;gap:8px;transition:background .2s;}
 .mpbtn:hover{background:rgba(110,58,255,.15);color:#fff;}
@@ -3257,7 +3251,7 @@ document.addEventListener('keydown', (e) => {
 <!-- DOM -->
 <div id="micka-flash"></div>
 <div id="micka-rings"><div class="m-ring"></div><div class="m-ring"></div><div class="m-ring"></div></div>
-<div id="micka-orb" onclick="M.toggle()" oncontextmenu="M.panel(event)" title="Micka — Clic droit pour options">
+<div id="micka-orb" onclick="M.toggle()" oncontextmenu="M.panel(event)" title="Micka IA — Clic droit pour options">
     <i class="fas fa-microphone" id="micka-orb-icon"></i>
     <span id="micka-label">MICKA</span>
 </div>
@@ -3267,6 +3261,7 @@ document.addEventListener('keydown', (e) => {
     <div id="micka-box-head">
         <div id="micka-avatar"><i class="fas fa-robot"></i></div>
         <div id="micka-head-name">MICKA · MY BOX TV</div>
+        <div id="micka-mode-badge">IA</div>
         <div id="micka-dot"></div>
     </div>
     <div id="micka-log"></div>
@@ -3280,307 +3275,293 @@ document.addEventListener('keydown', (e) => {
     <div class="mpbtn" onclick="M.toggleWake()"><i class="fas fa-ear-listen"></i><span id="mpwake-lbl">Désactiver wake word</span></div>
     <div class="mpbtn" onclick="M.toggleVoice()"><i class="fas fa-volume-mute"></i><span id="mpvox-lbl">Couper voix Micka</span></div>
     <div class="mpbtn" onclick="M.clearChat()"><i class="fas fa-trash"></i><span>Effacer historique</span></div>
+    <div class="mpbtn" onclick="M.showCmds()"><i class="fas fa-list"></i><span>Voir commandes</span></div>
     <div class="mpbtn" onclick="M.panel(null)"><i class="fas fa-times"></i><span>Fermer</span></div>
 </div>
 
 <script>
 // ================================================================
-//  🤖  M I C K A  — Assistante vocale complète
-//  Objet M = interface publique
+//  🤖  M I C K A  v2 — IA Vocale complète
+//  Analyse automatique : Action TV | Recherche Web | Conversation
 // ================================================================
 const M = (() => {
 
-// ── Config ──
 const CFG = {
     KEY:   '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',
     MODEL: 'claude-sonnet-4-20250514',
     LANG:  'fr-FR',
-    WAKE:  ['micka','mica','mika','mecca','mickey','mikka','meca'],
+    WAKE:  ['micka','mica','mika','mecca','mickey','mikka','meca','micah'],
 };
 
-// ── État ──
 const S = {
-    mode:    'standby', // standby|wake|listen|think|speak
-    wakeOn:  true,
-    voiceOn: true,
-    loop:    false,
-    busy:    false,
-    paused:  false,
-    rec:     null,
-    hist:    [],        // historique Claude
-    wakeTimer:      null,
-    inactiveTimer:  null,   // 30s sans parole → fermer bulle
+    mode:'standby', wakeOn:true, voiceOn:true,
+    loop:false, busy:false, paused:false,
+    rec:null, hist:[], wakeTimer:null, inactiveTimer:null,
 };
 
-// ── DOM ──
-const $ = id => document.getElementById(id);
-const orb      = $('micka-orb');
-const orbIcon  = $('micka-orb-icon');
-const box      = $('micka-box');
-const log      = $('micka-log');
-const typing   = $('micka-typing');
-const sbar     = $('micka-sbar');
-const viz      = $('micka-viz');
-const rings    = $('micka-rings');
-const toast    = $('micka-toast');
-const toastTxt = $('micka-toast-txt');
-const dot      = $('micka-dot');
-const flash    = $('micka-flash');
+const $      = id => document.getElementById(id);
+const orb    = $('micka-orb');
+const orbIco = $('micka-orb-icon');
+const box    = $('micka-box');
+const log    = $('micka-log');
+const typing = $('micka-typing');
+const sbar   = $('micka-sbar');
+const viz    = $('micka-viz');
+const rings  = $('micka-rings');
+const toast  = $('micka-toast');
+const tTxt   = $('micka-toast-txt');
+const dot    = $('micka-dot');
+const flash  = $('micka-flash');
+const badge  = $('micka-mode-badge');
 
-// ================================================================
-// ÉTAT VISUEL
-// ================================================================
+// ── État visuel ──
 function setMode(m) {
     S.mode = m;
-    orb.className = '';
-    orb.classList.add(m === 'standby' ? 'idle' : m === 'wake' ? 'wake' : m === 'listen' ? 'listen' : m === 'think' ? 'think' : 'speak');
-    const icons = { standby:'fa-microphone', wake:'fa-star', listen:'fa-microphone-alt', think:'fa-brain', speak:'fa-volume-up' };
-    orbIcon.className = 'fas ' + (icons[m] || 'fa-microphone');
-    viz.classList.toggle('on', m === 'listen' || m === 'speak');
-    rings.classList.toggle('hot', m === 'listen');
-    sbar.classList.toggle('on', m !== 'standby' && m !== 'speak');
-    sbar.innerText = m === 'listen' ? 'EN ÉCOUTE...' : m === 'think' ? 'JE RÉFLÉCHIS...' : m === 'wake' ? 'OUI ?' : '';
-    dot.style.background = m === 'speak' ? '#2ecc71' : m === 'listen' ? '#0af' : m === 'think' ? '#ffd700' : '#6e3aff';
-    dot.style.boxShadow  = `0 0 6px ${dot.style.background}`;
+    const cls = {standby:'idle',wake:'wake',listen:'listen',think:'think',search:'search',speak:'speak'};
+    orb.className = ''; orb.classList.add(cls[m]||'idle');
+    const ico = {standby:'fa-microphone',wake:'fa-star',listen:'fa-microphone-alt',think:'fa-brain',search:'fa-globe',speak:'fa-volume-up'};
+    orbIco.className = 'fas '+(ico[m]||'fa-microphone');
+    viz.classList.toggle('on', m==='listen'||m==='speak'||m==='search');
+    rings.className = '';
+    if (m==='listen') rings.classList.add('hot');
+    if (m==='search') rings.classList.add('web');
+    sbar.classList.toggle('on', m!=='standby'&&m!=='speak');
+    sbar.innerText = {listen:'EN ÉCOUTE...',think:'JE RÉFLÉCHIS...',search:'JE CHERCHE...',wake:'OUI ?'}[m]||'';
+    const dc = {standby:'#6e3aff',wake:'#ffc800',listen:'#0af',think:'#ffd700',search:'#00e5ff',speak:'#2ecc71'};
+    dot.style.background = dc[m]||'#6e3aff'; dot.style.boxShadow = `0 0 6px ${dot.style.background}`;
+    const bl = {standby:'VEILLE',wake:'ACTIF',listen:'ÉCOUTE',think:'IA',search:'WEB',speak:'PARLE'};
+    badge.innerText = bl[m]||'IA';
 }
 
-// ================================================================
-// CHAT LOG
-// ================================================================
-function addMsg(who, text, isInterim=false) {
-    // Supprimer l'interim précédent
-    const old = log.querySelector('.micka-interim');
-    if (old) old.remove();
-
+// ── Chat log ──
+function addMsg(who, html, cls='') {
+    const old = log.querySelector('.micka-interim'); if(old) old.remove();
     const d = document.createElement('div');
-    d.className = 'micka-msg' + (isInterim ? ' micka-interim' : '');
-    d.innerHTML = `<div class="m-auth ${who}">${who==='you'?'🎙 Vous':'🤖 Micka'}</div><div class="m-bub ${who}">${text}</div>`;
+    d.className = 'micka-msg'+(cls?' '+cls:'');
+    const labels = {you:'🎙 Vous', bot:'🤖 Micka', web:'🌐 Web'};
+    d.innerHTML = `<div class="m-auth ${who}">${labels[who]||'🤖 Micka'}</div><div class="m-bub ${who}">${html}</div>`;
     log.appendChild(d);
-    setTimeout(() => { log.scrollTop = log.scrollHeight; }, 30);
-    // Limiter à 20 messages
-    while (log.children.length > 20) log.removeChild(log.firstChild);
+    while(log.children.length > 30) log.removeChild(log.firstChild);
+    setTimeout(()=>{ log.scrollTop = log.scrollHeight; }, 40);
+}
+function showTyping(v){ typing.classList.toggle('on',v); log.scrollTop=log.scrollHeight; }
+function showBox(){ box.classList.add('on'); box.style.display='flex'; }
+function hideBox(){ box.classList.remove('on'); setTimeout(()=>{ if(!box.classList.contains('on')) box.style.display='none'; },300); }
+
+// ── Timer inactivité 30s ──
+function resetIdle() {
+    clearTimeout(S.inactiveTimer);
+    S.inactiveTimer = setTimeout(()=>{
+        if(S.mode!=='think'&&S.mode!=='speak'&&S.mode!=='search'){
+            setMode('standby'); hideBox();
+        }
+    }, 30000);
 }
 
-function showTyping(v) { typing.classList.toggle('on', v); log.scrollTop = log.scrollHeight; }
+// ── Boucle micro (sessions courtes) ──
+function loopStart(){ S.loop=true; _step(); }
+function loopStop(){ S.loop=false; S.busy=false; try{S.rec?.abort();}catch(e){} }
 
-function showBox() {
-    box.classList.add('on');
-    box.style.display = 'flex';
-}
-function hideBox() { box.classList.remove('on'); }
-
-// ================================================================
-// BOUCLE MICRO — sessions courtes redémarrées automatiquement
-// ================================================================
-function loopStart() { S.loop = true; _step(); }
-function loopStop()  { S.loop = false; S.busy = false; try{ S.rec?.abort(); } catch(e){} }
-
-function _step() {
-    if (!S.loop) return;
-    if (S.paused || S.busy) { setTimeout(_step, 300); return; }
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) return;
-
+function _step(){
+    if(!S.loop) return;
+    if(S.paused||S.busy){ setTimeout(_step,300); return; }
+    const SR = window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR) return;
     const r = new SR();
-    r.lang = CFG.LANG;
-    r.interimResults = true;
-    r.continuous = false;
-    r.maxAlternatives = 3;
-    S.rec = r; S.busy = true;
-
-    r.onstart = () => {};
-    r.onerror = e => {
-        S.busy = false;
-        if (e.error === 'not-allowed') { loopStop(); addMsg('bot','⛔ Autorisez le microphone dans votre navigateur.'); showBox(); return; }
-        setTimeout(_step, e.error === 'aborted' ? 150 : 600);
+    r.lang=CFG.LANG; r.interimResults=true; r.continuous=false; r.maxAlternatives=3;
+    S.rec=r; S.busy=true;
+    r.onstart=()=>{};
+    r.onerror=e=>{
+        S.busy=false;
+        if(e.error==='not-allowed'){ loopStop(); addMsg('bot','⛔ Autorisez le microphone dans Chrome.'); showBox(); return; }
+        setTimeout(_step, e.error==='aborted'?150:600);
     };
-    r.onend = () => { S.busy = false; if (S.loop) setTimeout(_step, 120); };
-
-    r.onresult = e => {
-        let interim = '', final = '';
-        for (let i = e.resultIndex; i < e.results.length; i++) {
-            const t = e.results[i][0].transcript || '';
-            if (e.results[i].isFinal) final += t; else interim += t;
+    r.onend=()=>{ S.busy=false; if(S.loop) setTimeout(_step,120); };
+    r.onresult=e=>{
+        let interim='', final='';
+        for(let i=e.resultIndex;i<e.results.length;i++){
+            const t=e.results[i][0].transcript||'';
+            if(e.results[i].isFinal) final+=t; else interim+=t;
         }
-        const raw  = (final || interim).trim();
-        if (!raw || raw.length < 1) return;
+        const raw=(final||interim).trim(); if(!raw||raw.length<1) return;
+        const norm=raw.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 
-        // Normaliser pour la comparaison
-        const norm = raw.toLowerCase()
-            .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-            .replace(/['']/g,"'");
-
-        // ── STANDBY → chercher wake word ──
-        if (S.mode === 'standby') {
-            if (CFG.WAKE.some(w => norm.includes(w))) onWake(norm, raw);
-            return;
+        if(S.mode==='standby'){
+            if(CFG.WAKE.some(w=>norm.includes(w))) onWake(raw); return;
         }
-        // ── PENSER / PARLER → ignorer ──
-        if (S.mode === 'think' || S.mode === 'speak') return;
+        if(S.mode==='think'||S.mode==='speak'||S.mode==='search') return;
 
-        // ── ÉVEILLÉE → afficher interim + traiter final ──
-        if (S.mode === 'wake' || S.mode === 'listen') {
-            // Retirer le wake word du début si présent
-            let cleaned = raw;
-            CFG.WAKE.forEach(w => {
-                const rx = new RegExp('^' + w + '[,\\s]*', 'i');
-                cleaned = cleaned.replace(rx, '').trim();
-            });
-            if (!cleaned) return;
-
-            setMode('listen');
-            showBox();
-            addMsg('you', cleaned, !final); // interim = non-final
-
-            if (final && cleaned.length > 1) {
+        if(S.mode==='wake'||S.mode==='listen'){
+            let clean=raw;
+            CFG.WAKE.forEach(w=>{ clean=clean.replace(new RegExp(w+'[,\\s]*','gi'),'').trim(); });
+            if(!clean) return;
+            setMode('listen'); showBox();
+            // Interim
+            let tmp=log.querySelector('.micka-interim');
+            if(!tmp){ tmp=document.createElement('div'); tmp.className='micka-msg micka-interim'; tmp.innerHTML=`<div class="m-auth you">🎙 Vous</div><div class="m-bub you" id="m-itxt"></div>`; log.appendChild(tmp); }
+            const itxt=tmp.querySelector('#m-itxt'); if(itxt) itxt.innerText=clean;
+            log.scrollTop=log.scrollHeight;
+            if(final&&clean.length>1){
                 clearTimeout(S.wakeTimer);
-                resetInactiveTimer(); // remettre à 0 le 30s
+                const old=log.querySelector('.micka-interim'); if(old) old.remove();
+                addMsg('you', escHtml(clean));
                 showTyping(true);
-                process(cleaned);
+                resetIdle();
+                process(clean);
             }
         }
     };
-
-    try { r.start(); } catch(e) { S.busy = false; setTimeout(_step, 800); }
+    try{ r.start(); }catch(e){ S.busy=false; setTimeout(_step,800); }
 }
 
-// ================================================================
-// WAKE WORD
-// ================================================================
-function onWake(norm, raw) {
-    // Retirer le wake word et garder la suite comme commande directe
-    let afterWake = raw;
-    CFG.WAKE.forEach(w => {
-        const rx = new RegExp(w + '[,\\s]*', 'i');
-        afterWake = afterWake.replace(rx, '').trim();
-    });
+function escHtml(t){ return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+// ── Wake word ──
+function onWake(raw){
+    let afterWake=raw;
+    CFG.WAKE.forEach(w=>{ afterWake=afterWake.replace(new RegExp(w+'[,\\s]*','gi'),'').trim(); });
     setMode('wake');
-    flash.classList.add('on'); setTimeout(() => flash.classList.remove('on'), 500);
-    showBox();
+    flash.classList.add('on'); setTimeout(()=>flash.classList.remove('on'),500);
+    showBox(); resetIdle();
 
-    if (afterWake.length > 2) {
-        // Commande directe après le wake word ex: "Micka mets Novelas"
-        addMsg('you', afterWake);
+    if(afterWake.length>2){
+        addMsg('you', escHtml(afterWake));
         showTyping(true);
         process(afterWake);
     } else {
-        // Wake seul → répondre et attendre
-        const replies = ['Oui, je vous écoute !','Je suis là !','À votre service !','Dites-moi tout !','Je vous écoute !'];
-        const rep = replies[Math.floor(Math.random()*replies.length)];
+        const reps=['Oui, je vous écoute !','Je suis là !','À votre service !','Dites-moi tout !'];
+        const rep=reps[Math.floor(Math.random()*reps.length)];
         addMsg('bot', rep);
         speak(rep, false);
         clearTimeout(S.wakeTimer);
-        S.wakeTimer = setTimeout(() => { if (S.mode === 'wake') { setMode('standby'); } }, 10000);
-        resetInactiveTimer(); // démarrer le 30s dès le wake
+        S.wakeTimer=setTimeout(()=>{ if(S.mode==='wake'){ setMode('standby'); } },10000);
     }
 }
 
 // ================================================================
-// TRAITEMENT — Claude API puis fallback local
+//  TRAITEMENT PRINCIPAL — Claude analyse TOUT
 // ================================================================
-async function process(txt) {
-    if (!txt || S.mode === 'think') return;
+async function process(txt){
+    if(!txt||S.mode==='think'||S.mode==='search') return;
     setMode('think');
 
-    // Mute TV dès le début du traitement
-    const tv = document.getElementById('video');
-    const tvWasMuted = tv?.muted;
-    const tvVol = tv?.volume ?? 1;
-    if (tv && !tv.muted) tv.muted = true;
+    // Mute TV
+    const tv=document.getElementById('video');
+    const tvWas=tv?.muted; const tvVol=tv?.volume??1;
+    if(tv&&!tv.muted) tv.muted=true;
 
-    let result = null;
+    let result=null;
 
-    // ── Claude API ──
-    if (CFG.KEY && CFG.KEY.length > 20) {
-        try {
-            const msgs = [...S.hist.slice(-10), { role:'user', content: txt }];
-            const res = await fetch('https://api.anthropic.com/v1/messages', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': CFG.KEY,
-                    'anthropic-version': '2023-06-01',
-                    'anthropic-dangerous-direct-browser-access': 'true'
-                },
-                body: JSON.stringify({ model: CFG.MODEL, max_tokens: 500, system: sysPrompt(), messages: msgs })
+    if(CFG.KEY&&CFG.KEY.length>20){
+        try{
+            const msgs=[...S.hist.slice(-10),{role:'user',content:txt}];
+            const res=await fetch('https://api.anthropic.com/v1/messages',{
+                method:'POST',
+                headers:{'Content-Type':'application/json','x-api-key':CFG.KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+                body:JSON.stringify({model:CFG.MODEL,max_tokens:700,system:buildPrompt(),messages:msgs})
             });
-
-            if (res.ok) {
-                const data = await res.json();
-                const rawTxt = data.content?.[0]?.text?.trim() || '';
-                // Extraire le JSON même entouré de texte
-                const jsonMatch = rawTxt.match(/\{[\s\S]*?\}/);
-                if (jsonMatch) {
-                    try { result = JSON.parse(jsonMatch[0]); } catch(e) {}
-                }
-                if (!result && rawTxt) {
-                    result = { action:'none', params:{}, response: rawTxt.replace(/```[a-z]*|```/g,'').trim().substring(0,300) };
-                }
-                S.hist.push({ role:'user', content:txt });
-                S.hist.push({ role:'assistant', content: JSON.stringify(result) });
-                if (S.hist.length > 20) S.hist = S.hist.slice(-20);
+            if(res.ok){
+                const data=await res.json();
+                const raw=data.content?.[0]?.text?.trim()||'';
+                const m=raw.match(/\{[\s\S]*?\}/);
+                if(m){ try{ result=JSON.parse(m[0]); }catch(e){} }
+                if(!result&&raw) result={action:'none',params:{},response:raw.replace(/```[a-z]*|```/g,'').trim().substring(0,400)};
+                S.hist.push({role:'user',content:txt});
+                S.hist.push({role:'assistant',content:JSON.stringify(result)});
+                if(S.hist.length>24) S.hist=S.hist.slice(-24);
             } else {
-                const ed = await res.json().catch(()=>({}));
-                console.warn('[Micka API]', res.status, ed.error?.message);
+                const ed=await res.json().catch(()=>({}));
+                console.warn('[Micka API]',res.status,ed.error?.message);
             }
-        } catch(e) { console.warn('[Micka fetch]', e.message); }
+        }catch(e){ console.warn('[Micka fetch]',e.message); }
     }
 
-    // ── Fallback local si API échoue ──
-    if (!result) result = localParse(txt);
+    // Fallback si API KO
+    if(!result) result=quickParse(txt);
 
     // Restaurer TV
-    if (tv) { tv.muted = tvWasMuted; tv.volume = tvVol; }
+    if(tv){ tv.muted=tvWas; tv.volume=tvVol; }
 
-    // Exécuter l'action
-    const actionMsg = await doAction(result.action, result.params || {});
-    const reply = result.response || actionMsg || 'Fait !';
+    // ── Action spéciale : recherche web ──
+    if(result.action==='web_search'){
+        setMode('search');
+        showTyping(true);
+        const webResult=await webSearch(result.params?.query||txt);
+        showTyping(false);
+        addMsg('web', webResult);
+        speak(stripHtml(webResult).substring(0,300), true);
+        resetIdle();
+        return;
+    }
 
+    // ── Action spéciale : radio ──
+    if(result.action==='play_radio'){
+        const radioUrl=result.params?.url||'';
+        const radioName=result.params?.name||'Radio';
+        if(radioUrl){
+            const tv2=document.getElementById('video');
+            if(tv2){ if(typeof hls!=='undefined'&&hls){hls.destroy();hls=null;} tv2.src=radioUrl; tv2.play().catch(()=>{}); }
+        }
+        showTyping(false);
+        addMsg('bot', `📻 ${escHtml(radioName)} en cours !`);
+        speak(result.response||`Je lance ${radioName} !`, true);
+        resetIdle(); return;
+    }
+
+    // ── Commande non comprise → aide vocale ──
+    if(result.action==='unknown'){
+        showTyping(false);
+        const helpTxt=buildHelpText();
+        addMsg('bot', helpTxt, 'system');
+        speak(result.response||"Je n'ai pas compris. Voici ce que vous pouvez me demander.", true);
+        resetIdle(); return;
+    }
+
+    // ── Toutes les autres actions TV/système ──
+    const actionMsg=await doAction(result.action, result.params||{});
+    const reply=result.response||actionMsg||'Fait !';
     showTyping(false);
-    addMsg('bot', reply);
+    addMsg('bot', escHtml(reply));
     speak(reply, true);
-    resetInactiveTimer(); // 30s repart après chaque réponse
+    resetIdle();
 }
 
 // ================================================================
-// SYSTEM PROMPT COMPLET
+//  SYSTEM PROMPT — Intelligence de routage complète
 // ================================================================
-function sysPrompt() {
-    const tv    = document.getElementById('video');
-    const ch    = (typeof allChannels !== 'undefined') ? (allChannels[currentChannelIndex] || {}) : {};
-    const chans = (typeof allChannels !== 'undefined' ? allChannels : []).slice(0,200)
-                  .map((c,i) => `${i}:"${c.name}"[${c.category||'?'}]`).join(',');
-    const cats  = typeof allCategories !== 'undefined' ? Array.from(allCategories).join(',') : '';
-    const now   = new Date();
-    const dt    = now.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-    const hr    = now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-    const vol   = Math.round((tv?.volume ?? 1)*100);
+function buildPrompt(){
+    const tv=document.getElementById('video');
+    const ch=(typeof allChannels!=='undefined')?(allChannels[currentChannelIndex]||{}):{};
+    const chans=(typeof allChannels!=='undefined'?allChannels:[]).slice(0,200).map((c,i)=>`${i}:"${c.name}"[${c.category||'?'}]`).join(',');
+    const cats=typeof allCategories!=='undefined'?Array.from(allCategories).join(','):'';
+    const now=new Date();
+    const dt=now.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+    const hr=now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    const vol=Math.round((tv?.volume??1)*100);
 
-    return `Tu es MICKA, assistante vocale intelligente de My Box TV — comme Alexa mais en français et plus chaleureuse.
-Tu réponds TOUJOURS en JSON strict, rien d'autre. Jamais de texte avant ou après le JSON.
-Tu parles de façon naturelle, courte (max 2 phrases), chaleureuse, jamais robotique.
+return `Tu es MICKA, assistante vocale IA intégrée à My Box TV. Tu es intelligente, naturelle, créative.
+Tu dois TOUJOURS analyser la demande et décider automatiquement si c'est :
+  1. Une COMMANDE TV/système → exécuter
+  2. Une RECHERCHE WEB (info, actualité, météo, sport, news...) → chercher
+  3. Une CONVERSATION (blague, histoire, calcul, question générale) → répondre intelligemment
 
-CONTEXTE :
-- Date/heure : ${dt} ${hr}
-- Chaîne actuelle : "${ch.name||'?'}" (${ch.category||'?'})
-- Volume TV : ${vol}%
-- Catégories : ${cats}
-- Chaînes disponibles : ${chans}
+CONTEXTE : ${dt} ${hr} | Chaîne: "${ch.name||'?'}" | Volume: ${vol}% | Catégories: ${cats}
+CHAÎNES: ${chans}
 
-FORMAT DE RÉPONSE OBLIGATOIRE (JSON pur) :
-{"action":"<ACTION>","params":<PARAMS>,"response":"<texte vocal fr>"}
+RÉPONDS UNIQUEMENT EN JSON STRICT — rien avant ni après :
+{"action":"<ACTION>","params":<PARAMS>,"response":"<réponse vocale courte en français>"}
 
-ACTIONS DISPONIBLES :
-change_channel   {"index":N,"name":"nom"}   — changer de chaîne par nom ou numéro
+═══ ACTIONS TV & SYSTÈME ═══
+change_channel   {"index":N,"name":"nom"}
 next_channel     {}
 prev_channel     {}
 volume_up        {"amount":0.15}
 volume_down      {"amount":0.15}
-set_volume       {"level":0.5}             — niveau 0 à 1
+set_volume       {"level":0.0-1.0}
 mute             {}
 search_channel   {"query":"terme"}
 show_favorites   {}
+show_hd          {}
 show_category    {"category":"nom"}
 add_favorite     {}
 remove_favorite  {}
@@ -3592,529 +3573,299 @@ close_menu       {}
 open_settings    {}
 show_network     {}
 show_account     {}
-sleep_timer      {"minutes":30}
+sleep_timer      {"minutes":N}
 cancel_timer     {}
-switch_mode      {"mode":"premium"}
+switch_mode      {"mode":"premium"|"full"}
 pip_on           {}
 pip_off          {}
 standby          {}
-restart_app      {}
 logout           {}
-show_hd          {}
-none             {}                         — pour conversation, questions, blagues, histoires
 
-RÈGLES IMPORTANTES :
-1. Pour trouver une chaîne : cherche dans la liste le nom LE PLUS PROCHE (tolérance aux fautes, accents, casse).
-2. Pour les questions hors TV (heure, météo, blague, histoire, calcul...) → action "none" + réponse utile.
-3. Si l'utilisateur dit un nombre seul ("chaîne 5", "mets le 3") → change_channel avec index correspondant.
-4. Garde un contexte conversationnel — si l'utilisateur dit "remets-la" après avoir changé de chaîne, il veut revenir à la précédente.
-5. Sois précis sur les chaînes : "Novelas" → cherche "Novelas TV", "foot" → cherche chaîne sport/foot.
-6. JAMAIS de texte avant ou après le JSON. Commence directement par {`;
+═══ RADIO EN LIGNE ═══
+play_radio  {"name":"Nom Radio","url":"URL_STREAM_M3U8_OU_MP3"}
+Pour les radios populaires utilise ces URLs directes :
+- RFI: https://live02.rfi.fr/rfimonde-64.mp3
+- France Inter: https://icecast.radiofrance.fr/franceinter-midfi.mp3
+- BBC World: http://stream.live.vc.bbcmedia.co.uk/bbc_world_service
+- Africa N°1: https://stream.zeno.fm/0r0xa792kwzuv
+- RTI (Côte d'Ivoire): https://stream.zeno.fm/rti1  
+- Bénin FM: utilise une URL de streaming béninoise appropriée
+- Pour toute autre radio cherche une URL de streaming valide
+
+═══ RECHERCHE WEB ═══
+web_search  {"query":"termes de recherche précis"}
+QUAND utiliser web_search :
+- Actualités, nouvelles du jour, événements récents
+- Météo (ex: "météo Cotonou")
+- Résultats sportifs, matchs en cours
+- Prix, cours de bourse
+- Toute info qui change dans le temps
+- Biographies, définitions
+- Recettes, conseils
+- N'importe quelle question sur le monde réel
+
+═══ CONVERSATION GÉNÉRALE ═══
+none  {}
+QUAND utiliser none :
+- Blagues (INVENTE une nouvelle blague ORIGINALE, jamais la même)
+- Histoires (CRÉE une histoire originale et complète, jamais répétée)
+- Calculs mathématiques
+- Questions sur toi-même
+- Remerciements, salutations
+- Devinettes, jeux de mots
+
+═══ NON COMPRIS ═══
+unknown  {}
+Utilise "unknown" SEULEMENT si tu ne comprends absolument rien.
+Dans "response" explique vocalement 2-3 exemples de phrases que l'utilisateur peut dire.
+
+RÈGLES CRITIQUES :
+1. Pour les blagues et histoires → INVENTE toujours quelque chose de NOUVEAU et ORIGINAL. Jamais de blague pré-écrite répétée.
+2. Pour les radios → donne TOUJOURS une URL de stream fonctionnelle.
+3. Pour la recherche web → formule une requête précise et pertinente.
+4. Sois créatif, naturel, jamais robotique. Max 2 phrases dans "response" pour les actions.
+5. Pour les conversations longues (histoires, blagues) → mets le contenu complet dans "response".
+6. TOUJOURS analyser le contexte avant de répondre — ne jamais retourner "unknown" si c'est compréhensible.`;
 }
 
 // ================================================================
-// EXÉCUTEUR D'ACTIONS — TOUTES LES FONCTIONS SYSTÈME
+//  RECHERCHE WEB — DuckDuckGo + Wikipedia
 // ================================================================
-async function doAction(action, p) {
-    showActionToast(action, p);
-    switch(action) {
+async function webSearch(query){
+    setMode('search');
+    try{
+        // Essai DuckDuckGo Instant Answer
+        const ddgUrl=`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1&no_redirect=1`;
+        const proxies=[
+            u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,
+            u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+        ];
 
-        // ── CHAÎNES ──
-        case 'change_channel': {
-            let idx = (typeof p.index === 'number') ? p.index : findChannel(p.name||'');
-            if (idx >= 0 && idx < allChannels.length) {
-                typeof tryPlayChannel === 'function' ? tryPlayChannel(idx) : playChannel(idx);
-                return `Je lance ${allChannels[idx].name} !`;
+        let ddgData=null;
+        for(const mkProxy of proxies){
+            try{
+                const r=await fetch(mkProxy(ddgUrl),{signal:AbortSignal.timeout(6000)});
+                if(r.ok){ ddgData=await r.json(); break; }
+            }catch(e){}
+        }
+
+        if(ddgData){
+            let answer='';
+            if(ddgData.AbstractText) answer=ddgData.AbstractText;
+            else if(ddgData.Answer) answer=ddgData.Answer;
+            else if(ddgData.Definition) answer=ddgData.Definition;
+            else if(ddgData.RelatedTopics?.length){
+                answer=ddgData.RelatedTopics.slice(0,3).map(t=>t.Text||'').filter(Boolean).join(' • ');
             }
-            return `Désolé, je n'ai pas trouvé cette chaîne.`;
+
+            if(answer && answer.length>20){
+                const src=ddgData.AbstractSource||ddgData.AnswerType||'Web';
+                return `<b>🔍 ${escHtml(query)}</b><br><br>${escHtml(answer.substring(0,400))}<br><br><span style="font-size:10px;color:#555;">Source: ${escHtml(src)}</span>`;
+            }
+        }
+    }catch(e){}
+
+    // Fallback : demander à Claude de répondre depuis sa connaissance
+    try{
+        const res=await fetch('https://api.anthropic.com/v1/messages',{
+            method:'POST',
+            headers:{'Content-Type':'application/json','x-api-key':CFG.KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+            body:JSON.stringify({
+                model:CFG.MODEL, max_tokens:400,
+                system:`Tu es un moteur de recherche vocal. Réponds à la question en français, de manière courte et factuelle (3-5 phrases max). Date actuelle: ${new Date().toLocaleDateString('fr-FR')}.`,
+                messages:[{role:'user',content:`Recherche: ${query}`}]
+            })
+        });
+        if(res.ok){
+            const d=await res.json();
+            const ans=d.content?.[0]?.text?.trim()||'';
+            if(ans) return `<b>🔍 ${escHtml(query)}</b><br><br>${escHtml(ans.substring(0,400))}<br><br><span style="font-size:10px;color:#555;">Source: Micka IA</span>`;
+        }
+    }catch(e){}
+
+    return `<b>🔍 ${escHtml(query)}</b><br><br>Je n'ai pas pu obtenir de résultat pour cette recherche. Vérifiez votre connexion Internet.`;
+}
+
+function stripHtml(h){ return h.replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>'); }
+
+// ================================================================
+//  EXÉCUTEUR D'ACTIONS
+// ================================================================
+async function doAction(action, p){
+    showToast(action, p);
+    switch(action){
+        case 'change_channel':{
+            let idx=(typeof p.index==='number')?p.index:findCh(p.name||'');
+            if(idx>=0&&idx<(allChannels?.length||0)){ typeof tryPlayChannel==='function'?tryPlayChannel(idx):playChannel(idx); return `Je lance ${allChannels[idx].name} !`; }
+            return `Désolé, chaîne introuvable.`;
         }
         case 'next_channel':    nextChannel?.(); return 'Chaîne suivante !';
         case 'prev_channel':    prevChannel?.(); return 'Chaîne précédente !';
-        case 'add_favorite': {
-            const c = allChannels?.[currentChannelIndex];
-            if (c) { toggleFavorite?.(c.url, {stopPropagation:()=>{}}); return `${c.name} ajouté aux favoris !`; }
-            return 'Impossible.';
-        }
-        case 'remove_favorite': {
-            const c = allChannels?.[currentChannelIndex];
-            if (c) { toggleFavorite?.(c.url, {stopPropagation:()=>{}}); return `${c.name} retiré des favoris.`; }
-            return 'Impossible.';
-        }
-        case 'show_favorites': {
-            if (typeof isFavFilter !== 'undefined' && !isFavFilter) toggleOnlyFavorites?.();
-            if (!document.body.classList.contains('menu-open')) toggleMenu?.();
-            return 'Vos favoris !';
-        }
-        case 'show_hd': {
-            if (typeof isHDFilter !== 'undefined' && !isHDFilter) toggleOnlyHD?.();
-            if (!document.body.classList.contains('menu-open')) toggleMenu?.();
-            return 'Chaînes HD !';
-        }
-        case 'show_category': {
-            const cat = p.category||'';
-            if (cat && typeof selectedCategories !== 'undefined' && !selectedCategories.includes(cat)) toggleCat?.(cat);
-            if (!document.body.classList.contains('menu-open')) toggleMenu?.();
-            return `Catégorie ${cat} !`;
-        }
-        case 'search_channel': {
-            const inp = document.getElementById('searchInput');
-            if (inp) { inp.value = p.query||''; onSearch?.(); }
-            if (!document.body.classList.contains('menu-open')) toggleMenu?.();
-            return `Je cherche "${p.query}" !`;
-        }
-        case 'hide_channel': hideCurrentChannel?.(); return 'Chaîne masquée.';
-
-        // ── VOLUME ──
-        case 'volume_up': {
-            const v = document.getElementById('video');
-            if (v) { v.volume = Math.min(1, v.volume + (p.amount||0.15)); syncVolUI?.(); }
-            return 'Volume augmenté !';
-        }
-        case 'volume_down': {
-            const v = document.getElementById('video');
-            if (v) { v.volume = Math.max(0, v.volume - (p.amount||0.15)); syncVolUI?.(); }
-            return 'Volume baissé !';
-        }
-        case 'set_volume': {
-            const v = document.getElementById('video');
-            const lvl = Math.max(0, Math.min(1, p.level ?? 0.5));
-            if (v) { v.volume = lvl; syncVolUI?.(); }
-            return `Volume à ${Math.round(lvl*100)}% !`;
-        }
-        case 'mute': toggleMute?.(); return 'Son coupé / rétabli.';
-
-        // ── INTERFACE ──
-        case 'show_info':       showChannelInfo?.(); return 'Infos chaîne !';
+        case 'add_favorite':{
+            const c=allChannels?.[currentChannelIndex];
+            if(c){ toggleFavorite?.(c.url,{stopPropagation:()=>{}}); return `${c.name} ajouté !`; } return ''; }
+        case 'remove_favorite':{
+            const c=allChannels?.[currentChannelIndex];
+            if(c){ toggleFavorite?.(c.url,{stopPropagation:()=>{}}); return `${c.name} retiré.`; } return ''; }
+        case 'show_favorites':  if(typeof isFavFilter!=='undefined'&&!isFavFilter) toggleOnlyFavorites?.(); if(!document.body.classList.contains('menu-open')) toggleMenu?.(); return 'Favoris !';
+        case 'show_hd':         if(typeof isHDFilter!=='undefined'&&!isHDFilter) toggleOnlyHD?.(); if(!document.body.classList.contains('menu-open')) toggleMenu?.(); return 'Chaînes HD !';
+        case 'show_category':   if(p.category&&typeof selectedCategories!=='undefined'&&!selectedCategories.includes(p.category)) toggleCat?.(p.category); if(!document.body.classList.contains('menu-open')) toggleMenu?.(); return `Catégorie ${p.category} !`;
+        case 'search_channel':{ const inp=document.getElementById('searchInput'); if(inp){inp.value=p.query||'';onSearch?.();} if(!document.body.classList.contains('menu-open')) toggleMenu?.(); return `Je cherche "${p.query}" !`; }
+        case 'volume_up':{ const v=document.getElementById('video'); if(v){v.volume=Math.min(1,v.volume+(p.amount||.15));syncVolUI?.();} return 'Volume +'; }
+        case 'volume_down':{ const v=document.getElementById('video'); if(v){v.volume=Math.max(0,v.volume-(p.amount||.15));syncVolUI?.();} return 'Volume -'; }
+        case 'set_volume':{ const v=document.getElementById('video'); const lv=Math.max(0,Math.min(1,p.level??0.5)); if(v){v.volume=lv;syncVolUI?.();} return `Volume ${Math.round(lv*100)}% !`; }
+        case 'mute':            toggleMute?.(); return 'Mute !';
+        case 'show_info':       showChannelInfo?.(); return 'Infos !';
         case 'fullscreen':      toggleFullScreen?.(); return 'Plein écran !';
         case 'exit_fullscreen': document.exitFullscreen?.(); return 'Retour normal.';
         case 'open_menu':       document.body.classList.add('menu-open'); return 'Menu ouvert !';
-        case 'close_menu':      document.body.classList.remove('menu-open'); return 'Menu fermé.';
+        case 'close_menu':      document.body.classList.remove('menu-open'); return 'Fermé.';
         case 'open_settings':   openSettings?.(); return 'Paramètres !';
-        case 'show_network':    openSettings?.(); setTimeout(()=>showTab?.('tab-net'), 300); return 'Infos réseau !';
-        case 'show_account':    openSettings?.(); setTimeout(()=>showTab?.('tab-sub'), 300); return 'Votre compte !';
-        case 'pip_on':          typeof openPiP === 'function' ? openPiP() : togglePiP?.(); return 'Mini lecteur !';
-        case 'pip_off':         typeof closePiP === 'function' ? closePiP(false) : togglePiP?.(); return 'Mini lecteur fermé.';
-
-        // ── MINUTERIE ──
-        case 'sleep_timer': {
-            const mins = parseInt(p.minutes) || 30;
-            if (typeof setSleep === 'function') {
-                const e = { target:{ classList:{ add:()=>{}, remove:()=>{} } } };
-                window.event = e; setSleep(mins);
-            }
-            return `Minuterie ${mins} minutes !`;
-        }
-        case 'cancel_timer': {
-            if (typeof setSleep === 'function') { const e={target:{classList:{add:()=>{},remove:()=>{}}}}; window.event=e; setSleep(0); }
-            return 'Minuterie annulée.';
-        }
-
-        // ── SYSTÈME ──
-        case 'switch_mode':  changeSourceMode?.(p.mode||'premium'); return `Mode ${p.mode||'premium'} !`;
-        case 'standby':      standbySystem?.(); return 'Mise en veille...';
-        case 'restart_app':  showMyConfirm?.('Réinitialiser ?', ()=>forceReload?.()); return '';
-        case 'logout':       logout?.(); return 'Déconnexion...';
-
+        case 'show_network':    openSettings?.(); setTimeout(()=>showTab?.('tab-net'),300); return 'Réseau !';
+        case 'show_account':    openSettings?.(); setTimeout(()=>showTab?.('tab-sub'),300); return 'Votre compte !';
+        case 'pip_on':          typeof openPiP==='function'?openPiP():togglePiP?.(); return 'Mini lecteur !';
+        case 'pip_off':         typeof closePiP==='function'?closePiP(false):togglePiP?.(); return 'Mini lecteur fermé.';
+        case 'sleep_timer':{ const m=parseInt(p.minutes)||30; if(typeof setSleep==='function'){const e={target:{classList:{add:()=>{},remove:()=>{}}}};window.event=e;setSleep(m);} return `Minuterie ${m} min !`; }
+        case 'cancel_timer':{ if(typeof setSleep==='function'){const e={target:{classList:{add:()=>{},remove:()=>{}}}};window.event=e;setSleep(0);} return 'Minuterie annulée.'; }
+        case 'switch_mode':     changeSourceMode?.(p.mode||'premium'); return `Mode ${p.mode||'premium'} !`;
+        case 'standby':         standbySystem?.(); return 'Veille...';
+        case 'logout':          logout?.(); return 'Déconnexion...';
         default: return '';
     }
 }
 
-// ================================================================
-// TOAST ACTION
-// ================================================================
-function showActionToast(action, p) {
-    const L = {
-        change_channel: '📺 '+(p.name||'Chaîne'),
-        next_channel:'⏭ Suivante', prev_channel:'⏮ Précédente',
-        volume_up:'🔊 Volume +', volume_down:'🔉 Volume −',
-        set_volume:`🔊 ${Math.round((p.level||.5)*100)}%`,
-        mute:'🔇 Mute', show_favorites:'⭐ Favoris', show_hd:'🔵 HD',
-        show_category:'📁 '+p.category, add_favorite:'⭐ Ajouté',
-        show_info:'ℹ Infos', fullscreen:'⛶ Plein écran',
-        open_menu:'📋 Menu', close_menu:'✕ Menu',
-        open_settings:'⚙ Paramètres', show_network:'📶 Réseau',
-        show_account:'👤 Compte', sleep_timer:`🌙 ${p.minutes} min`,
-        cancel_timer:'🌙 Annulé', pip_on:'📱 Mini lecteur',
-        pip_off:'📱 Fermé', standby:'💤 Veille',
-        switch_mode:'🔄 '+(p.mode||''), logout:'🚪 Déco',
-        search_channel:'🔍 "'+p.query+'"',
-    };
-    const txt = L[action]; if (!txt) return;
-    toastTxt.innerText = txt; toast.classList.add('on');
-    clearTimeout(toast._t); toast._t = setTimeout(()=>toast.classList.remove('on'), 3000);
+// ── Toast ──
+function showToast(action, p){
+    const L={change_channel:'📺 '+(p.name||''),next_channel:'⏭',prev_channel:'⏮',volume_up:'🔊+',volume_down:'🔉-',set_volume:`🔊${Math.round((p.level||.5)*100)}%`,mute:'🔇',show_favorites:'⭐',show_hd:'🔵 HD',show_category:'📁 '+p.category,add_favorite:'⭐+',show_info:'ℹ',fullscreen:'⛶',open_menu:'📋',open_settings:'⚙',show_network:'📶',show_account:'👤',sleep_timer:`🌙${p.minutes}min`,pip_on:'📱',standby:'💤',logout:'🚪',web_search:'🔍 '+p.query,play_radio:'📻 '+p.name,search_channel:'🔍 '+p.query};
+    const txt=L[action]; if(!txt) return;
+    tTxt.innerText=txt; toast.classList.add('on'); clearTimeout(toast._t); toast._t=setTimeout(()=>toast.classList.remove('on'),3000);
 }
 
-// ================================================================
-// FALLBACK LOCAL — Intelligence sans API
-// ================================================================
-function localParse(raw) {
-    const t = raw.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/['']/g,"'");
-
-    // ── Heure ──
-    if (/heure|time|il est|quelle heure/.test(t)) {
-        const h = new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-        return { action:'none', params:{}, response:`Il est ${h} !` };
-    }
-    // ── Date ──
-    if (/quel.*jour|quelle.*date|on est|aujourd'hui/.test(t)) {
-        const d = new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-        return { action:'none', params:{}, response:`Nous sommes le ${d} !` };
-    }
-    // ── Calcul ──
-    const calc = t.match(/combien.*?(\d+[\+\-\*\/]\d+)|(\d+)\s*(plus|moins|fois|divise|divisé)\s*(\d+)/);
-    if (calc) {
-        try {
-            const expr = (calc[1]||(calc[2]+({'plus':'+','moins':'-','fois':'*','divise':'/','divisé':'/'}[calc[3]]||'+')+calc[4]));
-            const res = Function(`"use strict"; return (${expr})`)();
-            return { action:'none', params:{}, response:`${expr} = ${res}` };
-        } catch(e){}
-    }
-    // ── Blague ──
-    if (/blague|rigol|drole|drôle|humour|joke|rire/.test(t)) {
-        const b = [
-            "Pourquoi les plongeurs plongent-ils en arrière ? Parce qu'en avant ils tomberaient dans le bateau !",
-            "Un homme entre en bibliothèque : 'Des livres sur la paranoïa ?' La bibliothécaire chuchote : 'Ils sont juste derrière vous !'",
-            "Pourquoi l'épouvantail a reçu un prix ? Il était exceptionnel dans son domaine !",
-            "Qu'est-ce qu'un canif ? Un petit fien !",
-        ];
-        return { action:'none', params:{}, response: b[Math.floor(Math.random()*b.length)] };
-    }
-    // ── Histoire ──
-    if (/histoire|raconte|conte|récit/.test(t)) {
-        return { action:'none', params:{}, response:"Il était une fois un petit renard qui voulait regarder la télé... mais il n'avait pas My Box TV ! Heureusement vous, oui. Que voulez-vous regarder ?" };
-    }
-    // ── Qui es-tu ──
-    if (/qui.*tu|ton nom|tu t.appel|presente/.test(t)) {
-        return { action:'none', params:{}, response:"Je suis Micka, votre assistante vocale My Box TV ! Je contrôle la télé, réponds à vos questions, et je suis toujours là dès que vous dites mon nom !" };
-    }
-    // ── Météo ──
-    if (/meteo|temps.*aujourd|temperature|pluie|soleil/.test(t)) {
-        return { action:'none', params:{}, response:"Je n'ai pas accès à la météo en direct, mais vous pouvez le demander à Google ou activer mon API pour que je le cherche !" };
-    }
-    // ── Merci ──
-    if (/merci|super|parfait|bravo|excellent|génial|genial/.test(t)) {
-        const r = ["Avec plaisir !","De rien, c'est mon travail !","Toujours là pour vous !","😊 Ravi de vous aider !"];
-        return { action:'none', params:{}, response: r[Math.floor(Math.random()*r.length)] };
-    }
-    // ── Aide ──
-    if (/aide|help|peux.tu|sais.tu|capacite|fonctionnalit|commande|liste|que.*di/.test(t)) {
-        showHelp();
-        return { action:'none', params:{}, response:"Voici tout ce que vous pouvez me demander !" };
-    }
-    // ── Changer de chaîne — patterns larges ──
-    const chPatterns = [
-        /(?:mets?|lance|ouvre|va sur|passe (?:a|sur|à)|change(?:r)?(?: de)?(?: sur)?|allume|je veux voir|je veux regarder|montre|affiche|mets?-moi|démarre|demarrer)\s+(?:la\s+)?(?:cha[iî]ne\s+)?(.+)/,
-        /(?:cha[iî]ne|channel)\s+(.+)/,
-        /(.+)\s+(?:s.il vous pla[iî]t|stp|svp|maintenant)/,
-    ];
-    for (const rx of chPatterns) {
-        const m = t.match(rx);
-        if (m) {
-            const q = m[1].replace(/\s*(maintenant|stp|svp|s\.v\.p\.|please|la|une|un|le|les)$/i,'').trim();
-            if (q.length > 1) {
-                const idx = findChannel(q);
-                if (idx >= 0) return { action:'change_channel', params:{index:idx, name:allChannels[idx].name}, response:`Je lance ${allChannels[idx].name} !` };
-                return { action:'none', params:{}, response:`Je n'ai pas trouvé "${q}". Dites le nom complet ou cherchez dans le menu !` };
-            }
-        }
-    }
-    // ── Numéro de chaîne ──
-    const numM = t.match(/(?:cha[iî]ne)?\s*(\d+)/);
-    if (numM) {
-        const idx = parseInt(numM[1]);
-        if (typeof allChannels !== 'undefined' && idx < allChannels.length)
-            return { action:'change_channel', params:{index:idx, name:allChannels[idx]?.name}, response:`Je lance la chaîne ${idx} !` };
-    }
-    // ── Navigation ──
-    if (/suivante?|prochaine?|apres|après|next|continue/.test(t)) return { action:'next_channel', params:{}, response:'Chaîne suivante !' };
-    if (/precedente?|précédente?|avant|retour|back|reviens/.test(t)) return { action:'prev_channel', params:{}, response:'Chaîne précédente !' };
-    // ── Volume ──
-    if (/monte|augmente|plus fort|hausse|loud|fort/.test(t)) return { action:'volume_up', params:{amount:0.15}, response:'Volume +' };
-    if (/baisse|diminue|moins fort|doucement|bas/.test(t)) return { action:'volume_down', params:{amount:0.15}, response:'Volume -' };
-    if (/coupe|silence|mute|sourdine|muet|tais-toi/.test(t)) return { action:'mute', params:{}, response:'Mute !' };
-    if (/max|maximum|100|a fond/.test(t)) return { action:'set_volume', params:{level:1}, response:'Volume max !' };
-    if (/50|demi/.test(t)) return { action:'set_volume', params:{level:0.5}, response:'Volume 50% !' };
-    // ── Favoris ──
-    if (/favori/.test(t)) {
-        if (/ajoute|mets|enregistre|sauv/.test(t)) return { action:'add_favorite', params:{}, response:'Ajouté aux favoris !' };
-        if (/enleve|retire|supprime|efface/.test(t)) return { action:'remove_favorite', params:{}, response:'Retiré !' };
-        return { action:'show_favorites', params:{}, response:'Vos favoris !' };
-    }
-    // ── Recherche ──
-    const srch = t.match(/(?:cherche|recherche|trouve?|search)\s+(.+)/);
-    if (srch) return { action:'search_channel', params:{query:srch[1].trim()}, response:`Je cherche "${srch[1].trim()}" !` };
-    // ── HD ──
-    if (/\bhd\b|haute.def/.test(t)) return { action:'show_hd', params:{}, response:'Chaînes HD !' };
-    // ── Info ──
-    if (/info|programme|c'est quoi|quelle chaine|en ce moment/.test(t)) return { action:'show_info', params:{}, response:'Voici les infos !' };
-    // ── Plein écran ──
-    if (/plein.?ecran|fullscreen|grand|agrandir/.test(t)) return { action:'fullscreen', params:{}, response:'Plein écran !' };
-    if (/quitter.*ecran|ecran.*normal|sortir.*plein/.test(t)) return { action:'exit_fullscreen', params:{}, response:'Retour normal.' };
-    // ── Menu ──
-    if (/(?:ouvre|affiche|montre).*menu|(?:ouvrir).*menu/.test(t)) return { action:'open_menu', params:{}, response:'Menu ouvert !' };
-    if (/(?:ferme|cache|masque).*menu/.test(t)) return { action:'close_menu', params:{}, response:'Fermé !' };
-    // ── Paramètres ──
-    if (/param|reglage|setting/.test(t)) return { action:'open_settings', params:{}, response:'Paramètres !' };
-    // ── Compte ──
-    if (/compte|abonnement|profil/.test(t)) return { action:'show_account', params:{}, response:'Votre compte !' };
-    // ── Réseau ──
-    if (/reseau|connexion|internet|vitesse|debit/.test(t)) return { action:'show_network', params:{}, response:'Réseau !' };
-    // ── PiP ──
-    if (/mini|pip|flottan|petite fenetre/.test(t)) return { action:'pip_on', params:{}, response:'Mini lecteur !' };
-    // ── Minuterie ──
-    const slp = t.match(/(?:minuterie|dans|eteindre dans|arreter dans|sleep)\s*(\d+)\s*(?:min|h|heure)?/);
-    if (slp) { const m=parseInt(slp[1]); return { action:'sleep_timer', params:{minutes:m}, response:`Minuterie ${m} min !` }; }
-    if (/annule.*timer|pas de minuterie|stop.*minuterie/.test(t)) return { action:'cancel_timer', params:{}, response:'Minuterie annulée.' };
-    // ── Veille ──
-    if (/veille|standby|eteins|dors|dort/.test(t)) return { action:'standby', params:{}, response:'Veille...' };
-    // ── Mode ──
-    if (/mode premium|premium/.test(t)) return { action:'switch_mode', params:{mode:'premium'}, response:'Mode Premium !' };
-    if (/mode complet|full|transpond/.test(t)) return { action:'switch_mode', params:{mode:'full'}, response:'Mode Complet !' };
-    // ── Salutation ──
-    if (/bonjour|bonsoir|salut|coucou|hello/.test(t)) {
-        const ch = typeof allChannels !== 'undefined' ? allChannels[currentChannelIndex] : null;
-        const sal = new Date().getHours() < 18 ? 'Bonjour' : 'Bonsoir';
-        return { action:'none', params:{}, response:`${sal} ! Je suis Micka${ch?', vous regardez '+ch.name:''}. Comment puis-je vous aider ?` };
-    }
-    // ── Déconnexion ──
-    if (/deconnect|logout|quitter.*session/.test(t)) return { action:'logout', params:{}, response:'Déconnexion !' };
-    // ── Catégories dynamiques ──
-    if (typeof allCategories !== 'undefined') {
-        for (const cat of allCategories) {
-            if (cat.length > 2 && t.includes(cat.toLowerCase())) return { action:'show_category', params:{category:cat}, response:`Catégorie ${cat} !` };
-        }
-    }
-    // ── Non compris → afficher TOUTES les commandes disponibles ──
-    showHelp();
-    return { action:'none', params:{}, response: "Je n'ai pas compris. Voici tout ce que vous pouvez me demander !" };
-}
-
-// ================================================================
-// AIDE COMPLÈTE — Affichage de toutes les commandes
-// ================================================================
-function showHelp() {
-    const helpHTML = `
-<div style="font-size:11px;color:#8b6fff;font-family:'Orbitron',sans-serif;letter-spacing:1px;margin-bottom:10px;">📋 COMMANDES DISPONIBLES</div>
-
-<div style="display:flex;flex-direction:column;gap:6px;">
-
-<div style="background:rgba(0,170,255,.1);border:1px solid rgba(0,170,255,.2);border-radius:8px;padding:7px 10px;">
-<div style="font-size:9px;color:#0af;font-weight:700;margin-bottom:4px;">📺 CHAÎNES</div>
-<div style="font-size:10px;color:#aaa;line-height:1.7;">
-🔹 <b style="color:#fff">"Micka mets Novelas TV"</b><br>
-🔹 <b style="color:#fff">"Lance la chaîne sport"</b><br>
-🔹 <b style="color:#fff">"Chaîne suivante / précédente"</b><br>
-🔹 <b style="color:#fff">"Cherche les chaînes music"</b><br>
-🔹 <b style="color:#fff">"Mes favoris"</b> / <b style="color:#fff">"Chaînes HD"</b>
-</div></div>
-
-<div style="background:rgba(46,204,113,.1);border:1px solid rgba(46,204,113,.2);border-radius:8px;padding:7px 10px;">
-<div style="font-size:9px;color:#2ecc71;font-weight:700;margin-bottom:4px;">🔊 VOLUME & SON</div>
-<div style="font-size:10px;color:#aaa;line-height:1.7;">
-🔹 <b style="color:#fff">"Monte le son"</b> / <b style="color:#fff">"Baisse le volume"</b><br>
-🔹 <b style="color:#fff">"Volume maximum"</b> / <b style="color:#fff">"Volume 50%"</b><br>
-🔹 <b style="color:#fff">"Coupe le son"</b> / <b style="color:#fff">"Silence"</b>
-</div></div>
-
-<div style="background:rgba(255,200,0,.08);border:1px solid rgba(255,200,0,.2);border-radius:8px;padding:7px 10px;">
-<div style="font-size:9px;color:#ffc800;font-weight:700;margin-bottom:4px;">🖥️ AFFICHAGE</div>
-<div style="font-size:10px;color:#aaa;line-height:1.7;">
-🔹 <b style="color:#fff">"Plein écran"</b> / <b style="color:#fff">"Quitter plein écran"</b><br>
-🔹 <b style="color:#fff">"Ouvre le menu"</b> / <b style="color:#fff">"Ferme le menu"</b><br>
-🔹 <b style="color:#fff">"Mini lecteur"</b> / <b style="color:#fff">"Paramètres"</b><br>
-🔹 <b style="color:#fff">"Infos chaîne"</b>
-</div></div>
-
-<div style="background:rgba(229,9,20,.08);border:1px solid rgba(229,9,20,.2);border-radius:8px;padding:7px 10px;">
-<div style="font-size:9px;color:#e50914;font-weight:700;margin-bottom:4px;">⚙️ SYSTÈME</div>
-<div style="font-size:10px;color:#aaa;line-height:1.7;">
-🔹 <b style="color:#fff">"Minuterie 30 minutes"</b><br>
-🔹 <b style="color:#fff">"Mode premium"</b> / <b style="color:#fff">"Mode complet"</b><br>
-🔹 <b style="color:#fff">"Mon compte"</b> / <b style="color:#fff">"Réseau"</b><br>
-🔹 <b style="color:#fff">"Mise en veille"</b> / <b style="color:#fff">"Déconnexion"</b>
-</div></div>
-
-<div style="background:rgba(110,58,255,.1);border:1px solid rgba(110,58,255,.2);border-radius:8px;padding:7px 10px;">
-<div style="font-size:9px;color:#a78bff;font-weight:700;margin-bottom:4px;">💬 CONVERSATION</div>
-<div style="font-size:10px;color:#aaa;line-height:1.7;">
-🔹 <b style="color:#fff">"Quelle heure est-il ?"</b><br>
-🔹 <b style="color:#fff">"Dis-moi une blague"</b><br>
-🔹 <b style="color:#fff">"Raconte-moi une histoire"</b><br>
-🔹 <b style="color:#fff">"Calcul : 25 plus 17"</b>
-</div></div>
-
+// ── Aide visuelle ──
+function buildHelpText(){
+    return `<div style="font-size:10px;color:#8b6fff;font-family:'Orbitron',sans-serif;margin-bottom:8px;">📋 JE COMPRENDS PAR EXEMPLE :</div>
+<div style="display:flex;flex-direction:column;gap:5px;font-size:11px;color:#aaa;line-height:1.7;">
+<div>📺 <b style="color:#fff">"Micka mets [nom chaîne]"</b></div>
+<div>🔊 <b style="color:#fff">"Micka monte le son"</b> / <b style="color:#fff">"baisse le volume"</b></div>
+<div>📻 <b style="color:#fff">"Micka allume RFI"</b> / <b style="color:#fff">"lance Africa N°1"</b></div>
+<div>🌐 <b style="color:#fff">"Micka les infos du jour"</b> / <b style="color:#fff">"météo Cotonou"</b></div>
+<div>😂 <b style="color:#fff">"Micka dis-moi une blague"</b></div>
+<div>📖 <b style="color:#fff">"Micka raconte-moi une histoire"</b></div>
+<div>🕐 <b style="color:#fff">"Micka quelle heure est-il ?"</b></div>
+<div>⭐ <b style="color:#fff">"Micka mes favoris"</b> / <b style="color:#fff">"plein écran"</b></div>
+<div>🔍 <b style="color:#fff">"Micka cherche [n'importe quoi]"</b></div>
 </div>
-<div style="margin-top:8px;font-size:9px;color:#444;text-align:center;">💡 Dites toujours <b style="color:#8b6fff">MICKA</b> puis votre demande</div>`;
-
-    // Afficher dans le chat log comme un message spécial
-    const logEl = document.getElementById('micka-log');
-    if (!logEl) return;
-    const d = document.createElement('div');
-    d.className = 'micka-msg';
-    d.style.cssText = 'animation:msgIn .3s ease;';
-    d.innerHTML = `<div class="m-auth bot">🤖 Micka</div><div class="m-bub bot" style="max-width:100%;padding:10px 12px;">${helpHTML}</div>`;
-    logEl.appendChild(d);
-    setTimeout(() => { logEl.scrollTop = logEl.scrollHeight; }, 50);
+<div style="margin-top:6px;font-size:9px;color:#444;">Commencez toujours par <b style="color:#8b6fff">MICKA</b></div>`;
 }
 
-// ================================================================
-// RECHERCHE FLOUE DE CHAÎNE
-// ================================================================
-function findChannel(q) {
-    if (!q || typeof allChannels === 'undefined' || !allChannels.length) return -1;
-    q = q.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
-    // Exact
-    let i = allChannels.findIndex(c => c.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'') === q);
-    if (i >= 0) return i;
-    // Contient
-    i = allChannels.findIndex(c => c.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes(q));
-    if (i >= 0) return i;
-    // Tous les mots
-    const words = q.split(/\s+/).filter(w=>w.length>2);
-    if (words.length) {
-        i = allChannels.findIndex(c => words.every(w => c.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes(w)));
-        if (i >= 0) return i;
-    }
-    // Levenshtein
-    let best=99, bestI=-1;
-    const limit = Math.min(allChannels.length, 500);
-    for (let k=0; k<limit; k++) {
-        const n = allChannels[k].name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-        const s = lev(q, n.substring(0, q.length+3));
-        if (s < best) { best=s; bestI=k; }
-    }
-    return best <= Math.ceil(q.length*0.45) ? bestI : -1;
+// ── Parser minimal (si API KO) ──
+function quickParse(t){
+    const n=t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    if(/suivante?|next/.test(n)) return {action:'next_channel',params:{},response:'Suivante !'};
+    if(/precedente?|avant/.test(n)) return {action:'prev_channel',params:{},response:'Précédente !'};
+    if(/monte|plus fort/.test(n)) return {action:'volume_up',params:{amount:.15},response:'Volume +'};
+    if(/baisse|moins fort/.test(n)) return {action:'volume_down',params:{amount:.15},response:'Volume -'};
+    if(/mute|silence|coupe/.test(n)) return {action:'mute',params:{},response:'Mute !'};
+    if(/plein.?ecran/.test(n)) return {action:'fullscreen',params:{},response:'Plein écran !'};
+    if(/favori/.test(n)) return {action:'show_favorites',params:{},response:'Favoris !'};
+    if(/cherche|info|actualit|meteo|news|blague|histoire|radio/.test(n))
+        return {action:'web_search',params:{query:t},response:`Je cherche...`};
+    const ch=findCh(t);
+    if(ch>=0) return {action:'change_channel',params:{index:ch,name:allChannels[ch].name},response:`Je lance ${allChannels[ch].name} !`};
+    return {action:'unknown',params:{},response:"Dites par exemple : Micka mets Novelas TV, ou Micka les infos du jour, ou Micka une blague."};
 }
-function lev(a,b) {
-    if (!a) return b.length; if (!b) return a.length;
+
+// ── Recherche floue chaîne ──
+function findCh(q){
+    if(!q||typeof allChannels==='undefined'||!allChannels.length) return -1;
+    q=q.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+    let i=allChannels.findIndex(c=>c.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')===q); if(i>=0) return i;
+    i=allChannels.findIndex(c=>c.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes(q)); if(i>=0) return i;
+    const ws=q.split(/\s+/).filter(w=>w.length>2);
+    if(ws.length){ i=allChannels.findIndex(c=>ws.every(w=>c.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes(w))); if(i>=0) return i; }
+    let best=99,bi=-1;
+    for(let k=0;k<Math.min(allChannels.length,500);k++){
+        const s=lev(q,allChannels[k].name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').substring(0,q.length+4));
+        if(s<best){best=s;bi=k;}
+    }
+    return best<=Math.ceil(q.length*.45)?bi:-1;
+}
+function lev(a,b){
+    if(!a) return b.length; if(!b) return a.length;
     const dp=Array.from({length:a.length+1},(_,i)=>Array.from({length:b.length+1},(_,j)=>i===0?j:j===0?i:0));
     for(let i=1;i<=a.length;i++) for(let j=1;j<=b.length;j++) dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);
     return dp[a.length][b.length];
 }
 
 // ================================================================
-// TIMER D'INACTIVITÉ — 30s sans parole → fermer bulle (micro reste actif)
+//  TTS — Parole avec mute TV automatique
 // ================================================================
-function resetInactiveTimer() {
-    clearTimeout(S.inactiveTimer);
-    S.inactiveTimer = setTimeout(() => {
-        // Fermer la bulle silencieusement
-        if (S.mode !== 'think' && S.mode !== 'speak') {
-            setMode('standby');       // retour en veille visuelle
-            hideBox();                // fermer la bulle
-            // Le micro continue de tourner en arrière-plan (loopStart reste actif)
-        }
-    }, 30000); // 30 secondes
-}
-
-// ================================================================
-// TTS — Parole avec mute TV automatique
-// ================================================================
-function speak(text, returnStandby=true) {
-    if (!text || !S.voiceOn) { if(returnStandby) setMode('standby'); return; }
-    window.speechSynthesis?.cancel();
-    S.paused = true; // pause micro
-
-    // Mute TV
-    const tv = document.getElementById('video');
-    const wasMuted = tv?.muted ?? true;
-    const savedVol = tv?.volume ?? 1;
-    if (tv && !tv.muted) tv.muted = true;
-
-    const utt = new SpeechSynthesisUtterance(text);
-    utt.lang = CFG.LANG; utt.rate = 0.97; utt.pitch = 1.08;
-    const voices = window.speechSynthesis?.getVoices() || [];
-    const fr = voices.find(v=>v.lang.startsWith('fr')&&!v.name.toLowerCase().includes('espeak'))
-            || voices.find(v=>v.lang.startsWith('fr'));
-    if (fr) utt.voice = fr;
-
-    utt.onstart = () => { S.mode !== 'speak' && setMode('speak'); };
-    const done = () => {
-        // Remettre son TV
-        if (tv) { tv.muted = wasMuted; tv.volume = savedVol; }
-        // Relancer micro après 700ms
-        setTimeout(() => { S.paused = false; }, 700);
-        if (returnStandby) {
-            setTimeout(() => {
-                setMode('standby');
-                clearTimeout(box._hideTimer);
-                resetInactiveTimer(); // ferme après 30s d'inactivité
-            }, 300);
+function speak(text, returnStandby=true){
+    if(!text||!S.voiceOn){ if(returnStandby) setMode('standby'); return; }
+    window.speechSynthesis?.cancel(); S.paused=true;
+    const tv=document.getElementById('video');
+    const wasMuted=tv?.muted??true; const savedVol=tv?.volume??1;
+    if(tv&&!tv.muted) tv.muted=true;
+    const utt=new SpeechSynthesisUtterance(text);
+    utt.lang=CFG.LANG; utt.rate=0.97; utt.pitch=1.08;
+    const voices=window.speechSynthesis?.getVoices()||[];
+    const fr=voices.find(v=>v.lang.startsWith('fr')&&!v.name.toLowerCase().includes('espeak'))||voices.find(v=>v.lang.startsWith('fr'));
+    if(fr) utt.voice=fr;
+    utt.onstart=()=>{ setMode('speak'); };
+    const done=()=>{
+        if(tv){tv.muted=wasMuted;tv.volume=savedVol;}
+        setTimeout(()=>{ S.paused=false; },700);
+        if(returnStandby){
+            setTimeout(()=>{ setMode('standby'); },300);
         } else {
-            // Après wake → passer en mode écoute active
-            setTimeout(() => { if(S.mode==='speak') setMode('wake'); }, 300);
+            setTimeout(()=>{ if(S.mode==='speak') setMode('wake'); },300);
         }
     };
-    utt.onend = done; utt.onerror = done;
+    utt.onend=done; utt.onerror=done;
     window.speechSynthesis?.speak(utt);
 }
 
 // ================================================================
-// TOGGLE & PANEL
+//  TOGGLE, PANEL, COMMANDES VISIBLES
 // ================================================================
-function toggle() {
-    if (S.mode === 'speak') { window.speechSynthesis?.cancel(); S.paused=false; setMode('standby'); return; }
-    if (S.mode === 'standby') { onWake('',''); }
-    else { clearTimeout(S.wakeTimer); setMode('standby'); clearTimeout(box._hideTimer); box._hideTimer = setTimeout(hideBox,2000); }
+function toggle(){
+    if(S.mode==='speak'){window.speechSynthesis?.cancel();S.paused=false;setMode('standby');return;}
+    if(S.mode==='standby'){ onWake(''); }
+    else { clearTimeout(S.wakeTimer); setMode('standby'); clearTimeout(S.inactiveTimer); setTimeout(hideBox,2000); }
 }
 
-let _panelOpen = false;
-function panel(e) {
-    if (e) e.preventDefault();
-    _panelOpen = !_panelOpen;
-    $('micka-panel').classList.toggle('on', _panelOpen);
-    $('mpwake-lbl').innerText = S.wakeOn ? 'Désactiver wake word' : 'Activer wake word';
-    $('mpvox-lbl').innerText  = S.voiceOn ? 'Couper voix Micka' : 'Activer voix Micka';
-}
-function toggleWake() {
-    S.wakeOn = !S.wakeOn;
-    panel(null);
-    const msg = S.wakeOn ? 'Wake word réactivé ! Dites Micka pour m\'appeler.' : 'Wake word désactivé. Cliquez sur l\'orbe pour m\'activer.';
-    addMsg('bot', msg); showBox();
-    speak(msg, true);
-}
-function toggleVoice() { S.voiceOn = !S.voiceOn; panel(null); typeof showToastNotif==='function' && showToastNotif(S.voiceOn ? '🔊 Voix activée' : '🔇 Voix coupée'); }
-function clearChat() { log.innerHTML = ''; panel(null); }
+let _po=false;
+function panel(e){ if(e) e.preventDefault(); _po=!_po; $('micka-panel').classList.toggle('on',_po); $('mpwake-lbl').innerText=S.wakeOn?'Désactiver wake word':'Activer wake word'; $('mpvox-lbl').innerText=S.voiceOn?'Couper voix':'Activer voix'; }
+function toggleWake(){ S.wakeOn=!S.wakeOn; panel(null); const m=S.wakeOn?'Wake word réactivé ! Dites Micka.':'Wake word off. Cliquez sur l\'orbe.'; addMsg('bot',m); showBox(); speak(m,true); }
+function toggleVoice(){ S.voiceOn=!S.voiceOn; panel(null); typeof showToastNotif==='function'&&showToastNotif(S.voiceOn?'🔊 Voix activée':'🔇 Voix coupée'); }
+function clearChat(){ log.innerHTML=''; panel(null); }
+function showCmds(){ panel(null); showBox(); addMsg('bot',buildHelpText()); resetIdle(); }
 
-document.addEventListener('click', e => {
-    if (!e.target.closest('#micka-orb') && !e.target.closest('#micka-panel')) { $('micka-panel').classList.remove('on'); _panelOpen=false; }
-});
-document.addEventListener('keydown', e => { if(e.ctrlKey && e.key==='m'){e.preventDefault();toggle();} });
+document.addEventListener('click',e=>{ if(!e.target.closest('#micka-orb')&&!e.target.closest('#micka-panel')){$('micka-panel').classList.remove('on');_po=false;} });
+document.addEventListener('keydown',e=>{ if(e.ctrlKey&&e.key==='m'){e.preventDefault();toggle();} });
 
 // ================================================================
-// INIT
+//  INIT
 // ================================================================
-function init() {
-    if (window.speechSynthesis) {
-        window.speechSynthesis.getVoices();
-        window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
-    }
-
-    const start = () => { if (!S.loop) loopStart(); };
-
-    if (localStorage.getItem('mybox_auth') === 'OK') {
-        setTimeout(() => {
-            const h   = new Date().getHours();
-            const sal = h < 12 ? 'Bonjour' : h < 18 ? 'Bonjour' : 'Bonsoir';
-            const msg = `${sal} ! Je suis Micka, votre assistante vocale My Box TV. Parlez-moi directement — je ferai tout pour vous ! Dites "Micka" à tout moment pour m'appeler.`;
-            showBox();
-            addMsg('bot', msg);
-            speak(msg, true);
-            setTimeout(start, 4000);
-        }, 2500);
-    } else {
-        setTimeout(start, 2000);
-    }
+function init(){
+    if(window.speechSynthesis){ window.speechSynthesis.getVoices(); window.speechSynthesis.onvoiceschanged=()=>window.speechSynthesis.getVoices(); }
+    const start=()=>{ if(!S.loop) loopStart(); };
+    if(localStorage.getItem('mybox_auth')==='OK'){
+        setTimeout(()=>{
+            const h=new Date().getHours();
+            const sal=h<12?'Bonjour':h<18?'Bonjour':'Bonsoir';
+            const msg=`${sal} ! Je suis Micka, votre assistante IA My Box TV. Je peux contrôler votre télé, faire des recherches sur Internet, raconter des histoires, répondre à toutes vos questions — dites simplement "Micka" pour m'appeler !`;
+            showBox(); addMsg('bot',msg); speak(msg,true);
+            setTimeout(start,5000);
+        },2500);
+    } else { setTimeout(start,2000); }
 }
 
 init();
+return { toggle, panel, toggleWake, toggleVoice, clearChat, showCmds, cmd:process };
 
-// Interface publique
-return { toggle, panel, toggleWake, toggleVoice, clearChat, cmd: process };
-
-})(); // fin de l'IIFE
-
-window.mickaCommand = txt => M.cmd(txt);
+})();
+window.mickaCommand=txt=>M.cmd(txt);
 </script>
 </body>
 </html>
