@@ -3423,122 +3423,98 @@ function mickaSetState(state) {
 // ================================================================
 // RECONNAISSANCE VOCALE CONTINUE (style Alexa)
 // ================================================================
-function mickaInitRecognition() {
+// ================================================================
+// MOTEUR DE RECONNAISSANCE — Boucle robuste (pas de continuous)
+// Sessions courtes relancées automatiquement. Pause pendant TTS.
+// ================================================================
+let _rLoop   = false;
+let _rBusy   = false;
+let _rPaused = false;
+
+function mickaStartLoop() { _rLoop = true; _mickaLoopStep(); }
+function mickaStopLoop()  { _rLoop = false; _rBusy = false; try{ mickaState.recognition && mickaState.recognition.abort(); }catch(e){} }
+
+function _mickaLoopStep() {
+    if (!_rLoop) return;
+    if (_rPaused || _rBusy) { setTimeout(_mickaLoopStep, 350); return; }
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { console.warn('Pas de Speech Recognition'); return; }
-
+    if (!SR) return;
     const r = new SR();
-    r.lang = MICKA.LANG;
-    r.interimResults = true;
-    r.continuous = true;          // ← CRUCIAL : écoute en continu
-    r.maxAlternatives = 3;
-    mickaState.recognition = r;
-
-    r.onstart  = () => console.log('[Micka] Micro actif');
-    r.onerror  = (e) => {
-        if (e.error === 'no-speech') { mickaRestartRecognition(); return; }
-        if (e.error === 'not-allowed') { mickaBubble('⛔ Autorisez l\'accès au microphone dans votre navigateur.', ''); return; }
-        setTimeout(mickaRestartRecognition, 1500);
+    r.lang = MICKA.LANG; r.interimResults = true; r.continuous = false; r.maxAlternatives = 2;
+    mickaState.recognition = r; _rBusy = true;
+    r.onstart = () => {};
+    r.onerror = (e) => {
+        _rBusy = false;
+        if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+            _rLoop = false;
+            mickaBubble('⛔ Accès micro refusé. Autorisez dans votre navigateur.', '');
+            return;
+        }
+        setTimeout(_mickaLoopStep, e.error === 'aborted' ? 200 : 700);
     };
-    r.onend    = () => { if (mickaState.wakeEnabled) setTimeout(mickaRestartRecognition, 500); };
-
+    r.onend = () => { _rBusy = false; if (_rLoop) setTimeout(_mickaLoopStep, 180); };
     r.onresult = (e) => {
         let interim = '', final = '';
         for (let i = e.resultIndex; i < e.results.length; i++) {
-            const txt = e.results[i][0].transcript;
-            if (e.results[i].isFinal) final += txt;
-            else interim += txt;
+            const txt = e.results[i][0].transcript || '';
+            if (e.results[i].isFinal) final += txt; else interim += txt;
         }
-
-        const display = (final || interim).trim();
-        if (!display) return;
-
-        // ── Détecter le wake word "Micka" ──
-        if (mickaState.wakeEnabled && mickaState.mode === 'standby') {
-            const norm = display.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-            const triggered = MICKA.WAKE_WORDS.some(w => norm.includes(w));
-            if (triggered) {
-                mickaOnWake();
-                return;
-            }
+        const raw = (final || interim).trim();
+        if (!raw || raw.length < 2) return;
+        const norm = raw.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+        // En veille : guetter le wake word
+        if (mickaState.mode === 'standby' || mickaState.mode === 'speaking') {
+            if (MICKA.WAKE_WORDS.some(w => norm.includes(w))) mickaOnWake();
+            return;
         }
-
-        // ── Déjà éveillée : traitement de la commande ──
+        // Éveillée : traiter la commande
         if (mickaState.mode === 'awake' || mickaState.mode === 'listening') {
-            // Affichage temps réel
-            if (display.length > 2) {
+            if (raw.length > 2) {
                 mickaSetState('listening');
-                mBubbleUsr.style.display = 'block';
-                mBubbleUsr.innerText = display;
+                mBubble.style.display = 'block';
+                requestAnimationFrame(() => mBubble.classList.add('show'));
+                mBubbleUsr.style.display = 'block'; mBubbleUsr.innerText = raw;
             }
-            // Traiter la phrase finale
             if (final && final.trim().length > 2) {
                 clearTimeout(mickaState.wakeExpiry);
                 mickaProcess(final.trim());
             }
         }
     };
-
-    r.start();
-    return r;
+    try { r.start(); } catch(err) { _rBusy = false; setTimeout(_mickaLoopStep, 900); }
 }
 
-function mickaRestartRecognition() {
-    if (!mickaState.wakeEnabled && mickaState.mode === 'standby') return;
-    try {
-        if (mickaState.recognition) mickaState.recognition.start();
-    } catch(e) {
-        setTimeout(mickaRestartRecognition, 1000);
-    }
-}
+function mickaInitRecognition() { mickaStartLoop(); }
 
 // ================================================================
-// WAKE WORD DÉTECTÉ → "Oui ?"
+// WAKE WORD DÉTECTÉ
 // ================================================================
 function mickaOnWake() {
+    if (['awake','listening','thinking'].includes(mickaState.mode)) return;
     mickaSetState('awake');
     mBubble.style.display = 'block';
     requestAnimationFrame(() => mBubble.classList.add('show'));
-
-    // Flash visuel
     mWakeFlash.classList.add('flash');
-    setTimeout(() => mWakeFlash.classList.remove('flash'), 400);
-
-    // Réponses aléatoires au wake
-    const wakeReplies = [
-        'Oui, je vous écoute !',
-        'Je suis là ! Que puis-je faire pour vous ?',
-        'À votre service ! Parlez-moi.',
-        'Bonjour ! Comment puis-je vous aider ?',
-        'Je vous écoute, allez-y !',
-    ];
-    const reply = wakeReplies[Math.floor(Math.random() * wakeReplies.length)];
+    setTimeout(() => mWakeFlash.classList.remove('flash'), 500);
+    const replies = ['Oui, je vous écoute !','Je suis là, parlez !','À votre service !','Je vous écoute !','Dites-moi tout !'];
+    const reply = replies[Math.floor(Math.random()*replies.length)];
     mickaBubble(reply, '');
     mickaSpeak(reply, false);
-
-    // Fenêtre d'écoute de 8 secondes
     clearTimeout(mickaState.wakeExpiry);
     mickaState.wakeExpiry = setTimeout(() => {
-        if (mickaState.mode === 'awake') {
-            mickaSetState('standby');
-            mBubble.classList.remove('show');
-        }
-    }, 8000);
+        if (mickaState.mode === 'awake') { mickaSetState('standby'); clearTimeout(mBubble._hideTimer); mBubble._hideTimer = setTimeout(() => mBubble.classList.remove('show'), 500); }
+    }, 9000);
 }
 
 // ================================================================
-// TOGGLE MANUEL (clic sur l'orbe)
+// TOGGLE MANUEL
 // ================================================================
 function mickaToggle() {
-    if (mickaState.speaking) { window.speechSynthesis?.cancel(); mickaState.speaking = false; mickaSetState('standby'); return; }
-    if (mickaState.mode === 'standby') {
-        mickaOnWake(); // Activer directement
-    } else {
-        mickaSetState('standby');
-        mBubble.classList.remove('show');
-        clearTimeout(mickaState.wakeExpiry);
-    }
+    if (mickaState.speaking) { window.speechSynthesis?.cancel(); mickaState.speaking=false; _rPaused=false; mickaSetState('standby'); return; }
+    if (mickaState.mode === 'standby') { mickaOnWake(); }
+    else { clearTimeout(mickaState.wakeExpiry); mickaSetState('standby'); clearTimeout(mBubble._hideTimer); mBubble._hideTimer = setTimeout(()=>mBubble.classList.remove('show'),600); }
 }
+
 
 // ================================================================
 // TRAITEMENT COMMANDE — Claude API + Fallback local
@@ -3604,6 +3580,8 @@ async function mickaProcess(transcript) {
     const reply = parsed.response || actionMsg || 'Commande effectuée !';
 
     mickaBubble(reply, transcript);
+
+    // Après la réponse vocale → retour en standby (wake word prêt)
     mickaSpeak(reply, true);
 }
 
@@ -3833,6 +3811,10 @@ function mickaShowToast(action, p) {
 function mickaSpeak(text, returnToStandby=true) {
     if (!text || !mickaState.ttsEnabled) { if(returnToStandby) mickaSetState('standby'); return; }
     window.speechSynthesis?.cancel();
+
+    // Mettre le micro en pause pour éviter que Micka s'entende elle-même
+    _rPaused = true;
+
     const utt = new SpeechSynthesisUtterance(text);
     utt.lang  = MICKA.LANG;
     utt.rate  = 0.97;
@@ -3841,9 +3823,13 @@ function mickaSpeak(text, returnToStandby=true) {
     const frVoice = voices.find(v=>v.lang.startsWith('fr')&&!v.name.toLowerCase().includes('espeak'))
                  || voices.find(v=>v.lang.startsWith('fr'));
     if (frVoice) utt.voice = frVoice;
-    utt.onstart = () => { mickaState.speaking=true; mickaSetState('speaking'); };
-    utt.onend = utt.onerror = () => {
+
+    utt.onstart = () => { mickaState.speaking = true; mickaSetState('speaking'); };
+
+    const onFinish = () => {
         mickaState.speaking = false;
+        // Reprendre l'écoute 600ms après la fin de la parole
+        setTimeout(() => { _rPaused = false; }, 600);
         if (returnToStandby) {
             setTimeout(() => {
                 mickaSetState('standby');
@@ -3852,6 +3838,9 @@ function mickaSpeak(text, returnToStandby=true) {
             }, 300);
         }
     };
+    utt.onend   = onFinish;
+    utt.onerror = onFinish;
+
     window.speechSynthesis?.speak(utt);
 }
 
