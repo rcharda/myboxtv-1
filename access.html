@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Box Smart — Accès IPTV</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#070707;color:#fff;font-family:'Exo 2',sans-serif;min-height:100vh;padding:20px;}
+.container{max-width:700px;margin:0 auto;}
+header{text-align:center;padding:30px 0 20px;}
+header img{width:70px;border-radius:14px;box-shadow:0 0 24px rgba(229,9,20,.5);margin-bottom:12px;}
+header h1{font-family:'Orbitron',sans-serif;font-size:20px;letter-spacing:3px;color:#fff;}
+header p{color:#444;font-size:11px;letter-spacing:2px;margin-top:4px;}
+
+/* LOGIN */
+.login-card{background:#111;border:1px solid rgba(229,9,20,.2);border-radius:16px;padding:24px;margin-bottom:20px;}
+.login-card h2{font-size:12px;font-family:'Orbitron',sans-serif;letter-spacing:2px;color:#e50914;margin-bottom:14px;}
+.input-row{display:flex;gap:8px;}
+.inp{flex:1;padding:12px 14px;background:#1a1a1a;border:1px solid #333;border-radius:9px;color:#fff;font-size:14px;outline:none;font-family:'Orbitron',sans-serif;letter-spacing:2px;}
+.inp:focus{border-color:rgba(229,9,20,.5);}
+.btn-go{padding:12px 20px;background:#e50914;border:none;border-radius:9px;color:#fff;font-weight:700;cursor:pointer;font-family:'Exo 2',sans-serif;white-space:nowrap;}
+.btn-go:active{opacity:.85;}
+#msg{font-size:11px;color:#ff5555;margin-top:6px;min-height:14px;}
+
+/* RÉSULTAT */
+#result{display:none;}
+.url-card{background:#0e0f14;border:1px solid rgba(46,204,113,.25);border-radius:14px;padding:16px;margin-bottom:14px;}
+.url-card h3{font-size:10px;font-family:'Orbitron',sans-serif;letter-spacing:2px;color:#2ecc71;margin-bottom:8px;}
+.url-box{display:flex;align-items:center;gap:8px;background:#060708;border:1px solid #1e2030;border-radius:9px;padding:10px 12px;cursor:pointer;}
+.url-text{flex:1;font-family:monospace;font-size:12px;color:#0af;word-break:break-all;}
+.copy-btn{background:#1a1a1a;border:1px solid #333;border-radius:7px;color:#aaa;padding:6px 10px;cursor:pointer;font-size:11px;white-space:nowrap;flex-shrink:0;}
+.copy-btn.ok{background:rgba(46,204,113,.15);border-color:rgba(46,204,113,.4);color:#2ecc71;}
+.copy-btn:active{opacity:.8;}
+
+/* APPS GRID */
+.apps-title{font-size:11px;font-family:'Orbitron',sans-serif;letter-spacing:2px;color:#555;margin:20px 0 10px;text-transform:uppercase;}
+.apps-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:20px;}
+.app-card{background:#0e0f14;border:1px solid #1e2030;border-radius:12px;padding:14px 10px;text-align:center;cursor:pointer;transition:border-color .15s;}
+.app-card:hover,.app-card:active{border-color:rgba(229,9,20,.4);}
+.app-icon{font-size:28px;margin-bottom:6px;}
+.app-name{font-size:11px;font-weight:700;color:#ccc;}
+.app-desc{font-size:9px;color:#444;margin-top:2px;}
+
+/* INSTRUCTIONS */
+.steps{background:#0e0f14;border:1px solid #1e2030;border-radius:14px;padding:16px;margin-bottom:16px;}
+.steps h3{font-size:10px;font-family:'Orbitron',sans-serif;letter-spacing:2px;color:#ffd700;margin-bottom:12px;}
+.step{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;font-size:12px;color:#888;}
+.step-num{width:22px;height:22px;border-radius:50%;background:rgba(229,9,20,.2);border:1px solid rgba(229,9,20,.4);color:#e50914;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;}
+
+/* CATÉGORIES */
+.cats-title{font-size:11px;font-family:'Orbitron',sans-serif;letter-spacing:2px;color:#555;margin:14px 0 8px;text-transform:uppercase;}
+.cat-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
+.cat-chip{padding:5px 12px;background:#1a1a1a;border:1px solid #333;border-radius:20px;font-size:10px;cursor:pointer;color:#888;transition:all .15s;}
+.cat-chip:hover{border-color:#555;color:#fff;}
+.cat-chip.sel{background:rgba(229,9,20,.15);border-color:rgba(229,9,20,.4);color:#e50914;}
+
+/* QR CODE */
+.qr-section{text-align:center;margin-bottom:20px;}
+.qr-section h3{font-size:10px;font-family:'Orbitron',sans-serif;letter-spacing:2px;color:#555;margin-bottom:10px;text-transform:uppercase;}
+#qr-img{width:150px;height:150px;border-radius:12px;background:#fff;padding:6px;}
+
+/* Separator */
+.sep{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent);margin:16px 0;}
+
+/* Footer */
+footer{text-align:center;color:#222;font-size:10px;padding:20px 0;letter-spacing:1px;}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/b/bf/My_Box_Smart.png" alt="">
+    <h1>MY BOX SMART</h1>
+    <p>ACCÈS IPTV UNIVERSEL</p>
+    <div style="display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap;">
+      <a href="https://myboxsmart.pages.dev" target="_blank"
+        style="padding:9px 18px;background:#e50914;border-radius:20px;color:#fff;text-decoration:none;font-size:12px;font-weight:700;font-family:'Exo 2',sans-serif;display:inline-flex;align-items:center;gap:6px;">
+        <i class="fas fa-tv"></i> REGARDER LA TV
+      </a>
+      <a href="https://myboxsmart.pages.dev" target="_blank"
+        style="padding:9px 18px;background:rgba(46,204,113,.15);border:1px solid rgba(46,204,113,.3);border-radius:20px;color:#2ecc71;text-decoration:none;font-size:12px;font-weight:700;font-family:'Exo 2',sans-serif;display:inline-flex;align-items:center;gap:6px;">
+        <i class="fas fa-crown" style="color:gold;"></i> S'ABONNER
+      </a>
+    </div>
+  </header>
+
+  <!-- LOGIN -->
+  <div class="login-card">
+    <h2>🔑 ENTREZ VOTRE ID D'ABONNEMENT</h2>
+    <div class="input-row">
+      <input type="text" id="user-key" class="inp" placeholder="TV-XXXXXX"
+        autocomplete="off" spellcheck="false" style="text-transform:uppercase;"
+        onkeyup="this.value=this.value.toUpperCase();if(event.key==='Enter')generate()">
+      <button class="btn-go" onclick="generate()">
+        <i class="fas fa-play" style="margin-right:5px;"></i>GÉNÉRER
+      </button>
+    </div>
+    <div id="msg"></div>
+    <p style="font-size:9px;color:#2a2a2a;margin-top:8px;">
+      Votre ID commence par <span style="color:#555;">TV-</span> ou <span style="color:#555;">BOX-</span>
+    </p>
+  </div>
+
+  <!-- RÉSULTAT -->
+  <div id="result">
+
+    <!-- URL M3U principale -->
+    <div class="url-card">
+      <h3>📋 VOTRE LIEN M3U (toutes les chaînes)</h3>
+      <div class="url-box" onclick="copyUrl('m3u-url')">
+        <span class="url-text" id="m3u-url">—</span>
+        <button class="copy-btn" id="copy-m3u" onclick="event.stopPropagation();copyUrl('m3u-url')">COPIER</button>
+      </div>
+    </div>
+
+    <!-- Filtre catégorie -->
+    <div class="cats-title">🗂️ FILTRER PAR CATÉGORIE</div>
+    <div class="cat-chips" id="cat-chips"></div>
+    <div class="url-card" id="cat-url-card" style="display:none;">
+      <h3>📋 LIEN CATÉGORIE FILTRÉE</h3>
+      <div class="url-box" onclick="copyUrl('cat-url')">
+        <span class="url-text" id="cat-url">—</span>
+        <button class="copy-btn" id="copy-cat" onclick="event.stopPropagation();copyUrl('cat-url')">COPIER</button>
+      </div>
+    </div>
+
+    <div class="sep"></div>
+
+    <!-- QR Code -->
+    <div class="qr-section">
+      <h3>📱 SCANNER SUR SMARTPHONE</h3>
+      <img id="qr-img" src="" alt="QR Code">
+      <p style="font-size:10px;color:#333;margin-top:8px;">Scannez pour accéder depuis votre téléphone</p>
+    </div>
+
+    <div class="sep"></div>
+
+    <!-- Instructions par app -->
+    <div class="apps-title">📺 OUVRIR DANS UNE APPLICATION IPTV</div>
+    <div class="apps-grid">
+      <div class="app-card" onclick="showInstructions('tivimate')">
+        <div class="app-icon">📱</div>
+        <div class="app-name">TiviMate</div>
+        <div class="app-desc">Android TV / Fire TV</div>
+      </div>
+      <div class="app-card" onclick="showInstructions('smarters')">
+        <div class="app-icon">📺</div>
+        <div class="app-name">IPTV Smarters</div>
+        <div class="app-desc">Android / iOS / PC</div>
+      </div>
+      <div class="app-card" onclick="showInstructions('gse')">
+        <div class="app-icon">🍎</div>
+        <div class="app-name">GSE Smart IPTV</div>
+        <div class="app-desc">iPhone / iPad</div>
+      </div>
+      <div class="app-card" onclick="showInstructions('vlc')">
+        <div class="app-icon">🔺</div>
+        <div class="app-name">VLC</div>
+        <div class="app-desc">Tous appareils</div>
+      </div>
+      <div class="app-card" onclick="showInstructions('kodi')">
+        <div class="app-icon">🎬</div>
+        <div class="app-name">Kodi</div>
+        <div class="app-desc">PC / Android TV</div>
+      </div>
+      <div class="app-card" onclick="showInstructions('samsung')">
+        <div class="app-icon">📺</div>
+        <div class="app-name">Samsung Smart TV</div>
+        <div class="app-desc">Tizen Browser</div>
+      </div>
+      <div class="app-card" onclick="showInstructions('lg')">
+        <div class="app-icon">📺</div>
+        <div class="app-name">LG Smart TV</div>
+        <div class="app-desc">webOS Browser</div>
+      </div>
+      <div class="app-card" onclick="showInstructions('ottplayer')">
+        <div class="app-icon">🎯</div>
+        <div class="app-name">OTT Navigator</div>
+        <div class="app-desc">Android TV</div>
+      </div>
+      <div class="app-card" onclick="showInstructions('e2player')">
+        <div class="app-icon">⚡</div>
+        <div class="app-name">Perfect Player</div>
+        <div class="app-desc">Android / Tablette</div>
+      </div>
+    </div>
+
+    <!-- Instructions dynamiques -->
+    <div id="instructions-box" style="display:none;background:#0e0f14;border:1px solid rgba(255,215,0,.2);border-radius:14px;padding:16px;margin-bottom:16px;">
+      <div id="instructions-content"></div>
+    </div>
+
+    <div class="sep"></div>
+
+    <!-- Lien direct web -->
+    <div class="url-card">
+      <h3>🌐 LIEN WEB (ouvrir dans navigateur TV)</h3>
+      <div class="url-box" onclick="copyUrl('web-url')">
+        <span class="url-text" id="web-url">https://myboxsmart.pages.dev</span>
+        <button class="copy-btn" id="copy-web" onclick="event.stopPropagation();copyUrl('web-url')">COPIER</button>
+      </div>
+    </div>
+
+  </div><!-- /result -->
+
+    <!-- PAS ENCORE ABONNÉ -->
+  <div style="background:linear-gradient(135deg,rgba(229,9,20,.08),rgba(229,9,20,.03));border:1px solid rgba(229,9,20,.2);border-radius:16px;padding:20px;margin-bottom:20px;text-align:center;">
+    <div style="font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:2px;color:#e50914;margin-bottom:8px;">PAS ENCORE ABONNÉ ?</div>
+    <p style="font-size:12px;color:#555;margin-bottom:14px;line-height:1.6;">Accédez à +14 000 chaînes HD/4K · Sports · Films · Séries · Locales</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:14px;">
+      <div style="background:#111;border:1px solid #222;border-radius:10px;padding:12px;text-align:center;">
+        <div style="font-size:18px;font-weight:900;color:#e50914;font-family:'Orbitron',sans-serif;">300</div>
+        <div style="font-size:9px;color:#555;margin-top:3px;">FCFA / Mois</div>
+      </div>
+      <div style="background:#111;border:1px solid #0af;border-radius:10px;padding:12px;text-align:center;position:relative;">
+        <div style="position:absolute;top:-6px;left:50%;transform:translateX(-50%);background:#0af;color:#000;font-size:8px;font-weight:900;padding:2px 8px;border-radius:10px;">POPULAIRE</div>
+        <div style="font-size:18px;font-weight:900;color:#0af;font-family:'Orbitron',sans-serif;">900</div>
+        <div style="font-size:9px;color:#555;margin-top:3px;">FCFA / 3 Mois</div>
+      </div>
+      <div style="background:#111;border:1px solid #ffd700;border-radius:10px;padding:12px;text-align:center;">
+        <div style="font-size:18px;font-weight:900;color:#ffd700;font-family:'Orbitron',sans-serif;">3000</div>
+        <div style="font-size:9px;color:#555;margin-top:3px;">FCFA / 1 An</div>
+      </div>
+    </div>
+    <a href="https://myboxsmart.pages.dev" target="_blank"
+      style="display:inline-block;padding:13px 28px;background:linear-gradient(135deg,#e50914,#900);border-radius:12px;color:#fff;text-decoration:none;font-size:13px;font-weight:700;font-family:'Exo 2',sans-serif;box-shadow:0 4px 18px rgba(229,9,20,.35);">
+      <i class="fas fa-crown" style="color:gold;margin-right:8px;"></i>S'ABONNER MAINTENANT
+    </a>
+    <p style="font-size:10px;color:#333;margin-top:10px;">Paiement sécurisé · FedaPay · Mobile Money · KkiaPay</p>
+  </div>
+
+  <!-- SUPPORT -->
+  <div style="background:#0e0f14;border:1px solid #1e2030;border-radius:14px;padding:16px;margin-bottom:20px;text-align:center;">
+    <div style="font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:2px;color:#555;margin-bottom:10px;">SUPPORT CLIENT</div>
+    <a href="https://wa.me/22963828767?text=Bonjour%2C%20j'ai%20besoin%20d'aide%20My%20Box%20Smart" target="_blank"
+      style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:rgba(37,211,102,.12);border:1px solid rgba(37,211,102,.3);border-radius:10px;color:#25d366;text-decoration:none;font-size:13px;font-weight:700;font-family:'Exo 2',sans-serif;">
+      <i class="fab fa-whatsapp" style="font-size:18px;"></i> WhatsApp : 63 82 87 67
+    </a>
+    <p style="font-size:10px;color:#222;margin-top:8px;">Disponible 7j/7 · Réponse rapide</p>
+  </div>
+
+  <footer>MY BOX SMART © 2025 — Support WhatsApp : 63 82 87 67</footer>
+
+</div><!-- /container -->
+
+<script>
+const BASE = 'https://myboxsmart.pages.dev';
+const SB_URL = 'https://yvcdadenofftnbljutwk.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2Y2RhZGVub2ZmdG5ibGp1dHdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NzQ0ODIsImV4cCI6MjA4ODQ1MDQ4Mn0.xqJzLpQszFmph599FBIvdE7NF88_i-JkABG-aSrAndE';
+
+const INSTRUCTIONS = {
+    tivimate: {
+        title:'📱 TiviMate (Android TV / Fire TV)',
+        steps:[
+            'Installez TiviMate depuis le Play Store / Amazon Store',
+            'Ouvrez TiviMate → <b>Ajouter une liste</b>',
+            'Choisissez <b>M3U Playlist</b>',
+            'Collez votre lien M3U ci-dessus',
+            'Appuyez <b>Ajouter</b> — les chaînes se chargent automatiquement',
+        ]
+    },
+    smarters: {
+        title:'📺 IPTV Smarters Pro (Android / iOS / PC)',
+        steps:[
+            'Installez IPTV Smarters Pro (Play Store / App Store)',
+            'Ouvrez → <b>Ajouter un utilisateur</b>',
+            'Choisissez <b>"Charger votre liste via M3U URL"</b>',
+            'Entrez votre lien M3U dans le champ URL',
+            'Appuyez <b>Ajouter l\'utilisateur</b>',
+        ]
+    },
+    gse: {
+        title:'🍎 GSE Smart IPTV (iPhone / iPad)',
+        steps:[
+            'Installez GSE Smart IPTV sur l\'App Store',
+            'Ouvrez → <b>Remote Playlists</b> → icône <b>+</b>',
+            'Choisissez <b>Add M3U URL</b>',
+            'Nommez la liste "My Box Smart" et collez votre lien M3U',
+            'Appuyez <b>Add</b> — les chaînes apparaissent',
+        ]
+    },
+    vlc: {
+        title:'🔺 VLC (Windows / Mac / Android / iOS)',
+        steps:[
+            'Ouvrez VLC → Menu <b>Média</b> → <b>Ouvrir un flux réseau</b>',
+            'Sur mobile : appuyez <b>+</b> → <b>Flux réseau</b>',
+            'Collez votre lien M3U dans le champ URL',
+            'Appuyez <b>Lire</b>',
+            'Conseil : ajoutez à vos favoris pour y revenir facilement',
+        ]
+    },
+    kodi: {
+        title:'🎬 Kodi (PC / Android TV / Raspberry Pi)',
+        steps:[
+            'Installez l\'extension <b>PVR IPTV Simple Client</b> dans Kodi',
+            'Allez dans <b>Extensions → Mon extension → Configurer</b>',
+            'Onglet <b>Général</b> → sélectionnez <b>Distant</b>',
+            'Collez votre lien M3U dans <b>URL M3U</b>',
+            'Sauvegardez et redémarrez Kodi',
+        ]
+    },
+    samsung: {
+        title:'📺 Samsung Smart TV (Navigateur)',
+        steps:[
+            'Appuyez sur le bouton <b>Home</b> de votre télécommande',
+            'Ouvrez l\'application <b>Navigateur Internet</b>',
+            'Tapez dans la barre d\'adresse : <b>myboxsmart.pages.dev</b>',
+            'Connectez-vous avec votre ID',
+            'Utilisez les flèches de la télécommande pour naviguer',
+        ]
+    },
+    lg: {
+        title:'📺 LG Smart TV (webOS Browser)',
+        steps:[
+            'Appuyez sur le bouton <b>Home</b>',
+            'Lancez le navigateur <b>LG Browser</b>',
+            'Tapez : <b>myboxsmart.pages.dev</b>',
+            'Connectez-vous avec votre ID',
+            'La Magic Remote permet de naviguer avec la souris',
+        ]
+    },
+    ottplayer: {
+        title:'🎯 OTT Navigator (Android TV)',
+        steps:[
+            'Installez OTT Navigator depuis le Play Store',
+            'Ouvrez → <b>Ajouter une source</b>',
+            'Choisissez <b>Lien M3U</b>',
+            'Collez votre lien M3U',
+            'Appuyez <b>Sauvegarder</b>',
+        ]
+    }
+};
+
+const CATEGORIES = [
+    'Ivoirien','Français','Africain','Sport','Info','Divertissement',
+    'Enfants','Religion','Musique','Films','Séries','International'
+];
+
+let _userKey = '';
+let _selCat  = '';
+
+async function generate(){
+    const key = document.getElementById('user-key').value.trim().toUpperCase();
+    if(!key){ document.getElementById('msg').innerText='⚠️ Entrez votre ID'; return; }
+    document.getElementById('msg').innerText='Vérification...';
+
+    try{
+        const r = await fetch(`${SB_URL}/rest/v1/utilisateurs?cle=eq.${encodeURIComponent(key)}&select=cle,duree,date_activation`,
+            { headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY} });
+        const data = await r.json();
+
+        if(!data||!data.length){ document.getElementById('msg').innerText='❌ ID invalide.'; return; }
+
+        const u = data[0];
+        const total = parseInt(u.duree)||0;
+        let daysLeft = total;
+        if(u.date_activation&&u.duree!=='VIE'){
+            const act = new Date(u.date_activation); const today = new Date();
+            act.setHours(0,0,0,0); today.setHours(0,0,0,0);
+            daysLeft = Math.max(0, total - Math.floor((today-act)/86400000));
+        }
+        if(u.duree!=='VIE'&&daysLeft<=0){ document.getElementById('msg').innerText='⛔ Abonnement expiré.'; return; }
+
+        _userKey = key;
+        document.getElementById('msg').innerText = '✅ '+(u.duree==='VIE'?'Abonnement à vie':daysLeft+' jours restants');
+        document.getElementById('msg').style.color = daysLeft<=7?'#ffd700':'#2ecc71';
+
+        showResult();
+    }catch(e){ document.getElementById('msg').innerText='❌ Erreur réseau'; }
+}
+
+function showResult(){
+    const m3uUrl = `${BASE}/playlist?key=${encodeURIComponent(_userKey)}`;
+    document.getElementById('m3u-url').innerText = m3uUrl;
+    document.getElementById('web-url').innerText = `${BASE}?id=${encodeURIComponent(_userKey)}`;
+
+    // QR Code
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(m3uUrl)}&bgcolor=ffffff&color=000000`;
+    document.getElementById('qr-img').src = qrUrl;
+
+    // Catégories
+    const chips = document.getElementById('cat-chips');
+    chips.innerHTML = '';
+    CATEGORIES.forEach(cat => {
+        const div = document.createElement('div');
+        div.className = 'cat-chip';
+        div.innerText = cat;
+        div.onclick = () => selectCat(cat, div);
+        chips.appendChild(div);
+    });
+
+    document.getElementById('result').style.display = 'block';
+    document.getElementById('result').scrollIntoView({ behavior:'smooth' });
+}
+
+function selectCat(cat, el){
+    document.querySelectorAll('.cat-chip').forEach(c=>c.classList.remove('sel'));
+    if(_selCat===cat){ _selCat=''; document.getElementById('cat-url-card').style.display='none'; return; }
+    el.classList.add('sel');
+    _selCat = cat;
+    const catUrl = `${BASE}/playlist?key=${encodeURIComponent(_userKey)}&cat=${encodeURIComponent(cat)}`;
+    document.getElementById('cat-url').innerText = catUrl;
+    document.getElementById('cat-url-card').style.display = 'block';
+}
+
+function showInstructions(app){
+    const inst = INSTRUCTIONS[app];
+    if(!inst) return;
+    const box = document.getElementById('instructions-box');
+    let html = `<div style="font-size:12px;font-family:'Orbitron',sans-serif;letter-spacing:1px;color:#ffd700;margin-bottom:12px;">${inst.title}</div>`;
+    inst.steps.forEach((step,i)=>{
+        html += `<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:9px;font-size:12px;color:#888;">
+            <div style="width:22px;height:22px;border-radius:50%;background:rgba(229,9,20,.2);border:1px solid rgba(229,9,20,.4);color:#e50914;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;">${i+1}</div>
+            <div>${step}</div>
+        </div>`;
+    });
+    // Ajouter le lien M3U dans les instructions
+    const m3uUrl = `${BASE}/playlist?key=${encodeURIComponent(_userKey)}`;
+    html += `<div style="margin-top:12px;background:#060708;border:1px solid rgba(0,170,255,.2);border-radius:9px;padding:10px;font-size:11px;color:#0af;font-family:monospace;word-break:break-all;">${m3uUrl}</div>`;
+    document.getElementById('instructions-content').innerHTML = html;
+    box.style.display = 'block';
+    box.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+let _copyTimers = {};
+function copyUrl(elId){
+    const el  = document.getElementById(elId);
+    const url = el.innerText;
+    const btnId = elId.replace('url','copy').replace('-url','') + (elId.includes('cat')?'-cat':elId.includes('m3u')?'-m3u':'-web');
+    navigator.clipboard.writeText(url).then(()=>{
+        // Trouver le bon bouton
+        document.querySelectorAll('.copy-btn').forEach(b=>{
+            const box = b.closest('.url-box');
+            if(box&&box.querySelector('.url-text')===el){
+                b.innerText='✅ COPIÉ'; b.classList.add('ok');
+                clearTimeout(_copyTimers[elId]);
+                _copyTimers[elId] = setTimeout(()=>{ b.innerText='COPIER'; b.classList.remove('ok'); }, 2000);
+            }
+        });
+    }).catch(()=>{
+        // Fallback
+        const ta = document.createElement('textarea');
+        ta.value=url; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    });
+}
+
+// Auto-login si ID dans l'URL
+(function checkUrlParam(){
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id') || params.get('key');
+    if(id){ document.getElementById('user-key').value=id.toUpperCase(); generate(); }
+})();
+</script>
+</body>
+</html>

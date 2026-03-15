@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#050607">
+<title>My Box Smart — Télécommande</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<script src="https://cdn.fedapay.com/checkout.js?v=1.1.7"></script>
+<script src="https://cdn.kkiapay.me/k.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600;700;900&display=swap');
+
+/* ═══════════════════════════════════════════════
+   VARIABLES & RESET
+═══════════════════════════════════════════════ */
+:root {
+  --red:#e50914; --green:#2ecc71; --blue:#0af;
+  --yellow:#ffd700; --purple:#a855f7; --orange:#ff8c00;
+  --bg:#050607;
+  --rf: linear-gradient(165deg,#1c1f28 0%,#13151d 55%,#0c0e14 100%);
+  --rs: #080a0e;
+  --btn:#1c1f28; --btnh:#252a38;
+  --text:#dde2ee; --muted:#3a4255;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;}
+html{background:var(--bg);}
+body{min-height:100vh;background:var(--bg);font-family:'Exo 2',sans-serif;color:var(--text);
+  display:flex;flex-direction:column;align-items:center;padding:18px 0 70px;}
+
+/* ═══ LOGIN ═══ */
+#login-screen{position:fixed;inset:0;z-index:9999;background:radial-gradient(ellipse at 50% 30%,#18000a,#000);
+  display:flex;align-items:center;justify-content:center;padding:24px;}
+.lbox{background:rgba(12,13,18,.99);border:1px solid rgba(229,9,20,.25);border-radius:22px;
+  padding:32px 22px;width:100%;max-width:310px;text-align:center;box-shadow:0 0 60px rgba(229,9,20,.1);}
+.lbox img{width:60px;border-radius:12px;margin-bottom:12px;box-shadow:0 0 20px rgba(229,9,20,.45);}
+.lbox-title{font-family:'Orbitron',sans-serif;font-size:14px;font-weight:900;letter-spacing:3px;margin-bottom:3px;}
+.lbox-sub{font-size:8px;color:#1e2030;letter-spacing:2px;margin-bottom:20px;}
+.l-input{width:100%;padding:12px 14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+  border-radius:10px;color:#fff;font-size:16px;letter-spacing:4px;outline:none;
+  font-family:'Orbitron',sans-serif;text-align:center;margin-bottom:10px;transition:border-color .2s;}
+.l-input:focus{border-color:rgba(229,9,20,.55);}
+.l-btn{width:100%;padding:12px;background:var(--red);border:none;border-radius:10px;color:#fff;
+  font-size:13px;font-weight:700;cursor:pointer;letter-spacing:1px;font-family:'Exo 2',sans-serif;
+  box-shadow:0 4px 18px rgba(229,9,20,.35);}
+.l-btn:active{transform:scale(.97);}
+#login-msg{font-size:11px;color:#ff5555;margin-top:7px;min-height:14px;}
+
+/* ═══ SELECT ÉCRAN ═══ */
+#screen-select{position:fixed;inset:0;z-index:9998;background:radial-gradient(ellipse at 50% 30%,#18000a,#000);
+  display:none;align-items:center;justify-content:center;flex-direction:column;padding:20px;}
+#screen-select.show{display:flex;}
+.sc-box{background:rgba(12,13,18,.99);border:1px solid rgba(229,9,20,.22);border-radius:18px;
+  padding:22px 18px;width:100%;max-width:300px;}
+.sc-title{font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--red);
+  margin-bottom:5px;text-align:center;}
+.sc-sub{font-size:10px;color:#222;text-align:center;margin-bottom:14px;}
+.sc-item{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:10px;margin-bottom:6px;
+  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);cursor:pointer;transition:all .15s;}
+.sc-item:active{border-color:rgba(229,9,20,.3);}
+.sc-name{font-size:13px;font-weight:600;flex:1;}
+.sc-status{font-size:9px;padding:2px 7px;border-radius:10px;background:rgba(46,204,113,.12);color:var(--green);}
+
+/* ═══ FEEDBACK TOAST ═══ */
+#rc-toast{position:fixed;top:12px;left:50%;transform:translateX(-50%) translateY(-60px);
+  background:rgba(6,7,9,.97);border:1px solid rgba(255,255,255,.1);
+  border-radius:18px;padding:6px 16px;font-size:11px;color:#fff;
+  z-index:9100;opacity:0;transition:all .2s;pointer-events:none;white-space:nowrap;
+  font-family:'Orbitron',sans-serif;letter-spacing:.5px;box-shadow:0 4px 20px rgba(0,0,0,.9);}
+#rc-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ═══ APP ═══ */
+#app{display:none;width:100%;align-items:center;flex-direction:column;}
+#app.show{display:flex;}
+
+/* ═══════════════════════════════════════════════
+   CORPS 3D DE LA TÉLÉCOMMANDE
+═══════════════════════════════════════════════ */
+.remote{
+  width:280px;
+  background:var(--rf);
+  border-radius:42px 42px 56px 56px;
+  padding:22px 18px 40px;
+  position:relative;
+  border:1.5px solid #1c2030;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.05) inset,
+    0 -2px 0 rgba(0,0,0,.7) inset,
+    4px 0 0 var(--rs),
+    -4px 0 0 var(--rs),
+    0 8px 0 var(--rs),
+    0 16px 0 rgba(0,0,0,.4),
+    0 30px 70px rgba(0,0,0,.9),
+    0 60px 120px rgba(0,0,0,.5);
+}
+.remote::before{content:'';position:absolute;top:0;left:5%;right:5%;height:55%;
+  border-radius:42px 42px 0 0;
+  background:linear-gradient(180deg,rgba(255,255,255,.04) 0%,transparent 100%);
+  pointer-events:none;z-index:0;}
+.remote::after{content:'';position:absolute;top:14px;left:50%;transform:translateX(-50%);
+  width:32px;height:4px;border-radius:4px;background:#080a10;z-index:1;}
+.remote>*{position:relative;z-index:1;}
+
+/* ═══ ÉLÉMENTS COMMUNS ═══ */
+.sep{height:1px;margin:10px 0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent);}
+.sec{font-size:7px;font-weight:700;letter-spacing:2px;color:var(--muted);text-align:center;
+  margin-bottom:8px;text-transform:uppercase;}
+.row{display:flex;justify-content:space-around;align-items:center;margin-bottom:10px;}
+.rowsb{display:flex;justify-content:space-between;align-items:center;padding:0 4px;margin-bottom:10px;}
+
+/* ═══ BOUTON ROND 3D ═══ */
+.rb{border:none;cursor:pointer;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  transition:all .08s;color:#fff;flex-shrink:0;
+  background:linear-gradient(160deg,var(--btnh),var(--btn));
+  box-shadow:0 1px 0 rgba(255,255,255,.07) inset,0 -1px 0 rgba(0,0,0,.6) inset,
+    0 4px 10px rgba(0,0,0,.7),0 1px 0 rgba(255,255,255,.02);}
+.rb:active{transform:translateY(2px) scale(.92);box-shadow:0 1px 3px rgba(0,0,0,.7);}
+.rb-xs{width:30px;height:30px;font-size:12px;}
+.rb-sm{width:36px;height:36px;font-size:14px;}
+.rb-md{width:44px;height:44px;font-size:18px;}
+.rb-lg{width:52px;height:52px;font-size:21px;}
+.rb-red   {background:radial-gradient(circle at 38% 34%,#b0060e,#700008);box-shadow:0 1px 0 rgba(255,100,100,.1) inset,0 4px 10px rgba(0,0,0,.7),0 0 14px rgba(229,9,20,.25);}
+.rb-green {background:radial-gradient(circle at 38% 34%,#1e9a52,#0f6032);box-shadow:0 1px 0 rgba(100,255,150,.1) inset,0 4px 10px rgba(0,0,0,.7),0 0 12px rgba(46,204,113,.2);}
+.rb-blue  {background:radial-gradient(circle at 38% 34%,#0077aa,#004a70);box-shadow:0 1px 0 rgba(100,200,255,.1) inset,0 4px 10px rgba(0,0,0,.7),0 0 12px rgba(0,170,255,.2);}
+.rb-yellow{background:radial-gradient(circle at 38% 34%,#b09000,#705800);box-shadow:0 1px 0 rgba(255,230,100,.1) inset,0 4px 10px rgba(0,0,0,.7),0 0 12px rgba(255,215,0,.2);}
+.rb-orange{background:radial-gradient(circle at 38% 34%,#b05800,#703200);}
+.rb-purple{background:radial-gradient(circle at 38% 34%,#6820b0,#401070);box-shadow:0 1px 0 rgba(200,150,255,.1) inset,0 4px 10px rgba(0,0,0,.7),0 0 12px rgba(168,85,247,.2);}
+
+/* bouton + label */
+.bwl{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;}
+.bwl .rb{pointer-events:none;}
+.bwl span{font-size:7px;font-weight:700;letter-spacing:.5px;color:var(--muted);text-transform:uppercase;}
+.bwl:active .rb{transform:translateY(2px) scale(.92);box-shadow:0 1px 3px rgba(0,0,0,.7);}
+
+/* ═══ POWER ═══ */
+.pw-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding:0 2px;}
+.btn-pw{width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;
+  background:radial-gradient(circle at 38% 34%,#c00,#700008);
+  font-size:24px;color:#fff;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 0 3px rgba(229,9,20,.18),0 0 20px rgba(229,9,20,.4),0 5px 16px rgba(0,0,0,.9),
+    0 1px 0 rgba(255,150,150,.12) inset;position:relative;}
+.btn-pw::after{content:'';position:absolute;inset:-7px;border-radius:50%;
+  border:1px solid rgba(229,9,20,.14);animation:pw-ring 3s infinite;pointer-events:none;}
+@keyframes pw-ring{0%,100%{transform:scale(1);opacity:.5}50%{transform:scale(1.25);opacity:0}}
+.btn-pw:active{transform:scale(.9);}
+.pw-brand{text-align:center;}
+.pw-brand-main{font-family:'Orbitron',sans-serif;font-size:8px;font-weight:700;color:#1a1e28;letter-spacing:1.5px;}
+.pw-brand-sub{font-size:6px;color:#141620;letter-spacing:2.5px;margin-top:2px;}
+.pw-right{display:flex;gap:7px;}
+
+/* ═══ ÉCRAN LCD ═══ */
+.lcd{background:#050608;border-radius:12px;padding:9px 11px 8px;margin-bottom:14px;
+  border:1px solid rgba(255,255,255,.04);
+  box-shadow:0 3px 16px rgba(0,0,0,.8) inset,0 1px 0 rgba(255,255,255,.03);}
+.lcd-top{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.lcd-logo{width:26px;height:26px;object-fit:contain;background:#fff;border-radius:4px;padding:2px;flex-shrink:0;}
+.lcd-info{flex:1;min-width:0;}
+.lcd-ch{font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.lcd-cat{font-size:9px;color:var(--muted);margin-top:1px;}
+.lcd-right{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0;}
+.lcd-conn{display:flex;align-items:center;gap:3px;}
+#rc-led{width:5px;height:5px;border-radius:50%;background:var(--green);animation:led 2s infinite;}
+@keyframes led{0%,100%{opacity:1}50%{opacity:.3}}
+#rc-conn-txt{font-family:'Orbitron',sans-serif;font-size:7px;}
+/* Abonnement temps réel */
+.lcd-sub{font-size:8px;color:var(--green);font-family:'Orbitron',sans-serif;font-weight:700;white-space:nowrap;}
+.lcd-sub.urgent{color:var(--yellow);}
+.lcd-sub.expired{color:var(--red);}
+.lcd-vol{display:flex;align-items:center;gap:5px;}
+.lcd-vt{flex:1;height:2px;background:#0e0f14;border-radius:2px;}
+#rc-vol-fill{height:100%;background:linear-gradient(90deg,#e50914,#ff5533);border-radius:2px;transition:width .2s;width:80%;}
+#rc-vol-label{font-family:'Orbitron',sans-serif;font-size:8px;color:var(--muted);min-width:24px;text-align:right;}
+.lcd-footer{font-size:7px;color:#101420;text-align:right;margin-top:3px;font-family:'Orbitron',sans-serif;}
+
+/* ═══ CH / VOL / MUTE ═══ */
+.chvol{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;margin-bottom:12px;}
+.cvg{display:flex;flex-direction:column;align-items:center;gap:4px;}
+.cvg>span{font-size:7px;font-weight:700;letter-spacing:1px;color:var(--muted);text-transform:uppercase;}
+.cvg-btns{display:flex;gap:7px;}
+
+/* ═══ DPAD ═══ */
+.dpad{position:relative;width:160px;height:160px;margin:0 auto 12px;
+  border-radius:50%;background:radial-gradient(circle at 50% 42%,#1c1f2c,#0c0e14);
+  border:1px solid rgba(255,255,255,.04);
+  box-shadow:0 7px 22px rgba(0,0,0,.9) inset,0 2px 0 rgba(255,255,255,.03);}
+.da{position:absolute;cursor:pointer;
+  background:linear-gradient(160deg,#242838,#161928);
+  color:#6a7590;display:flex;align-items:center;justify-content:center;
+  transition:all .08s;font-size:18px;}
+.da:active{filter:brightness(.55);transform:scale(.88);}
+.da-up   {top:5px;  left:50%;transform:translateX(-50%);width:46px;height:54px;border-radius:12px 12px 5px 5px;}
+.da-down {bottom:5px;left:50%;transform:translateX(-50%);width:46px;height:54px;border-radius:5px 5px 12px 12px;}
+.da-left {left:5px; top:50%; transform:translateY(-50%);width:54px;height:46px;border-radius:12px 5px 5px 12px;}
+.da-right{right:5px;top:50%; transform:translateY(-50%);width:54px;height:46px;border-radius:5px 12px 12px 5px;}
+.da-ok{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:54px;height:54px;border-radius:50%;cursor:pointer;
+  background:radial-gradient(circle at 38% 34%,#2a3052,#161928);
+  border:2px solid rgba(229,9,20,.4);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Orbitron',sans-serif;font-size:14px;font-weight:900;color:#e50914;
+  box-shadow:0 0 0 5px rgba(229,9,20,.08),0 4px 14px rgba(0,0,0,.8);
+  transition:all .08s;}
+.da-ok:active{transform:translate(-50%,-50%) scale(.9);background:radial-gradient(circle,#e50914,#800);color:#fff;}
+
+/* ═══ BOUTONS COULEUR ═══ */
+.color-row{display:flex;justify-content:space-around;margin-bottom:10px;}
+.cdot{width:30px;height:30px;border-radius:50%;border:none;cursor:pointer;
+  font-size:12px;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 3px 8px rgba(0,0,0,.7);transition:all .08s;}
+.cdot:active{transform:scale(.86);}
+
+/* ═══ PAVÉ NUMÉRIQUE ═══ */
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;}
+.num-display{grid-column:1/-1;background:#040506;border:1px solid rgba(255,255,255,.05);
+  border-radius:10px;padding:8px;text-align:center;height:42px;
+  font-family:'Orbitron',sans-serif;font-size:20px;font-weight:700;
+  color:#e50914;letter-spacing:5px;display:flex;align-items:center;justify-content:center;}
+#nf-inline{grid-column:1/-1;text-align:center;font-size:9px;color:#ff5555;min-height:12px;
+  font-family:'Orbitron',sans-serif;letter-spacing:.5px;}
+.nb{aspect-ratio:1;border-radius:50%;border:none;cursor:pointer;
+  background:linear-gradient(160deg,var(--btnh),var(--btn));
+  color:var(--text);font-size:18px;font-weight:700;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 3px 7px rgba(0,0,0,.65);
+  transition:all .08s;font-family:'Exo 2',sans-serif;}
+.nb small{font-size:6px;color:#252a38;letter-spacing:1px;font-weight:400;}
+.nb:active{transform:scale(.9) translateY(1px);box-shadow:0 1px 2px rgba(0,0,0,.65);}
+.nb-del{color:#e50914;font-size:14px;}
+.nb-go{color:#2ecc71;font-size:14px;}
+.nb-prev{color:#ffd700;font-size:14px;}
+
+/* ═══ RECHERCHE ═══ */
+.s-row{display:flex;gap:7px;margin-bottom:10px;}
+.s-inp{flex:1;padding:9px 11px;background:#0d0e14;border:1px solid rgba(255,255,255,.06);
+  border-radius:10px;color:var(--text);font-size:13px;outline:none;font-family:'Exo 2',sans-serif;}
+.s-inp:focus{border-color:rgba(229,9,20,.4);}
+.s-btn{width:38px;height:38px;border-radius:10px;background:var(--red);border:none;color:#fff;
+  font-size:13px;cursor:pointer;flex-shrink:0;}
+.s-btn:active{transform:scale(.94);}
+
+/* ═══ VOL SLIDER ═══ */
+.vsl-row{display:flex;align-items:center;gap:8px;padding:0 4px;margin-bottom:4px;}
+.vsl-row input{flex:1;accent-color:var(--red);cursor:pointer;}
+.vsl-row i{font-size:10px;color:var(--muted);}
+
+/* ═══ VEILLE ═══ */
+.slg{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:10px;}
+.sl{padding:10px 4px;text-align:center;border-radius:9px;
+  background:linear-gradient(160deg,#1c1f28,#13151c);
+  border:1px solid rgba(255,255,255,.05);
+  font-size:11px;font-weight:700;color:var(--muted);
+  cursor:pointer;box-shadow:0 2px 5px rgba(0,0,0,.5);transition:all .1s;}
+.sl:active{transform:scale(.94);}
+.sl.active{background:rgba(229,9,20,.15);border-color:rgba(229,9,20,.4);color:var(--red);}
+
+/* ═══ ABONNEMENT ═══ */
+.sub-card{background:linear-gradient(135deg,rgba(46,204,113,.08),rgba(46,204,113,.04));
+  border:1px solid rgba(46,204,113,.2);border-radius:13px;padding:11px 13px;}
+.sub-card.urgent{background:linear-gradient(135deg,rgba(255,215,0,.08),rgba(255,215,0,.04));
+  border-color:rgba(255,215,0,.3);}
+.sub-card.expired{background:linear-gradient(135deg,rgba(229,9,20,.1),rgba(229,9,20,.05));
+  border-color:rgba(229,9,20,.3);}
+.sub-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.sub-lbl{font-family:'Orbitron',sans-serif;font-size:7px;font-weight:700;letter-spacing:1px;color:var(--muted);}
+.sub-days{font-family:'Orbitron',sans-serif;font-size:14px;font-weight:900;color:var(--green);margin-top:2px;}
+.sub-days.urgent{color:var(--yellow);}
+.sub-days.expired{color:var(--red);}
+.sub-key{font-size:9px;color:var(--muted);margin-top:1px;font-family:monospace;}
+.sub-dot{width:9px;height:9px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 8px rgba(46,204,113,.7);flex-shrink:0;animation:led 2s infinite;}
+.sub-dot.urgent{background:var(--yellow);box-shadow:0 0 8px rgba(255,215,0,.7);}
+.sub-dot.expired{background:var(--red);box-shadow:0 0 8px rgba(229,9,20,.7);}
+.btn-renew{width:100%;padding:10px;border:none;border-radius:9px;cursor:pointer;
+  background:linear-gradient(135deg,#2ecc71,#1a8a4a);
+  color:#fff;font-size:11px;font-weight:700;letter-spacing:.5px;
+  font-family:'Exo 2',sans-serif;box-shadow:0 3px 12px rgba(46,204,113,.3);}
+.btn-renew:active{transform:scale(.97);}
+
+/* ═══ MODAL RENOUVELLEMENT ═══ */
+#renew-modal{display:none;position:fixed;inset:0;z-index:8500;
+  background:rgba(0,0,0,.92);overflow-y:auto;padding:20px 0 40px;
+  align-items:flex-start;justify-content:center;}
+#renew-modal.show{display:flex;}
+.rbox{background:rgba(12,13,18,.99);border:1px solid rgba(229,9,20,.25);
+  border-radius:20px;padding:24px 18px;width:100%;max-width:310px;margin-top:20px;}
+.rbox-title{font-family:'Orbitron',sans-serif;font-size:12px;font-weight:900;letter-spacing:2px;
+  color:#fff;text-align:center;margin-bottom:3px;}
+.rbox-sub{font-size:9px;color:#222;text-align:center;letter-spacing:1px;margin-bottom:16px;}
+.tgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px;}
+.tc{background:linear-gradient(160deg,#1a1d26,#12141c);border:1px solid rgba(255,255,255,.06);
+  border-radius:11px;padding:11px 7px 9px;text-align:center;cursor:pointer;
+  transition:all .15s;position:relative;overflow:hidden;}
+.tc.sel{border-color:rgba(229,9,20,.5);background:rgba(229,9,20,.08);}
+.tc:active{transform:scale(.97);}
+.tc-badge{position:absolute;top:0;right:0;font-size:6px;font-weight:700;padding:2px 5px;
+  border-radius:0 9px 0 7px;background:#0af;color:#fff;letter-spacing:.5px;}
+.tc-ecran{font-size:8px;color:var(--muted);font-weight:700;letter-spacing:1px;margin-bottom:3px;}
+.tc-duree{font-size:11px;font-weight:700;color:#ccc;margin-bottom:4px;}
+.tc-prix{font-family:'Orbitron',sans-serif;font-size:15px;font-weight:900;color:var(--red);}
+.tc-fcfa{font-size:7px;color:var(--muted);margin-top:1px;}
+#rsummary{background:#0e0f14;border:1px solid rgba(255,255,255,.06);border-radius:10px;
+  padding:11px 13px;margin-bottom:10px;display:none;}
+.rs-row{display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px;}
+.rs-lbl{color:var(--muted);}
+.rs-val{font-weight:700;color:#ccc;}
+.rs-total{font-family:'Orbitron',sans-serif;font-size:14px;font-weight:900;color:var(--red);
+  text-align:center;margin-top:7px;padding-top:7px;border-top:1px solid rgba(255,255,255,.05);}
+.parr-row{margin-bottom:10px;}
+.parr-row label{font-size:8px;font-weight:700;letter-spacing:1px;color:var(--muted);display:block;margin-bottom:4px;}
+.parr-row input{width:100%;padding:8px 11px;background:#0e0f14;border:1px solid rgba(255,255,255,.06);
+  border-radius:8px;color:#fff;font-size:13px;outline:none;font-family:'Orbitron',sans-serif;
+  letter-spacing:2px;text-align:center;}
+.parr-row input:focus{border-color:rgba(46,204,113,.4);}
+#parr-status{font-size:9px;text-align:center;margin-top:3px;min-height:12px;}
+.btn-feda{width:100%;padding:12px;background:linear-gradient(135deg,#0066ff,#004ecc);border:none;
+  border-radius:10px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:7px;
+  font-family:'Exo 2',sans-serif;box-shadow:0 4px 14px rgba(0,100,255,.3);}
+.btn-kkia{width:100%;padding:12px;background:linear-gradient(135deg,#ff6b00,#cc4e00);border:none;
+  border-radius:10px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:7px;
+  font-family:'Exo 2',sans-serif;box-shadow:0 4px 14px rgba(255,107,0,.3);}
+.btn-feda:active,.btn-kkia:active{transform:scale(.97);}
+.btn-back-renew{width:100%;padding:9px;background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.06);border-radius:9px;color:#444;font-size:11px;
+  cursor:pointer;font-family:'Exo 2',sans-serif;}
+.btn-back-renew:active{transform:scale(.97);}
+#rsuccess{display:none;text-align:center;}
+.rs-new-id{font-family:'Orbitron',sans-serif;font-size:15px;font-weight:900;color:var(--green);
+  background:#0e0f14;border:1px solid rgba(46,204,113,.2);border-radius:9px;padding:9px;
+  margin-bottom:12px;letter-spacing:2px;word-break:break-all;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="lbox">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/b/bf/My_Box_Smart.png" alt="">
+    <div class="lbox-title">MY BOX SMART</div>
+    <div class="lbox-sub">TÉLÉCOMMANDE UNIVERSELLE</div>
+    <input type="text" id="login-id" class="l-input" placeholder="VOTRE ID"
+      autocomplete="off" spellcheck="false" style="text-transform:uppercase;"
+      onkeyup="this.value=this.value.toUpperCase();if(event.key==='Enter')doLogin()">
+    <button class="l-btn" onclick="doLogin()">
+      <i class="fas fa-tv" style="margin-right:6px;"></i>CONNECTER
+    </button>
+    <div id="login-msg"></div>
+  </div>
+</div>
+
+<!-- SELECT ÉCRAN -->
+<div id="screen-select">
+  <div class="sc-box">
+    <div class="sc-title">📺 CHOISIR L'ÉCRAN</div>
+    <div class="sc-sub">Sélectionnez le téléviseur à contrôler</div>
+    <div id="screen-list"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="rc-toast"></div>
+
+<!-- MODAL RENOUVELLEMENT -->
+<div id="renew-modal">
+  <div class="rbox">
+    <div id="rform">
+      <div class="rbox-title">RENOUVELER</div>
+      <div class="rbox-sub">CHOISISSEZ UNE OFFRE</div>
+      <div class="tgrid" id="rc-tgrid">
+        <div style="grid-column:1/-1;text-align:center;padding:18px;color:var(--muted);font-size:11px;">
+          <i class="fas fa-spinner fa-spin" style="font-size:16px;margin-bottom:6px;display:block;"></i>Chargement...
+        </div>
+      </div>
+      <div id="rsummary">
+        <div class="rs-row"><span class="rs-lbl">Offre</span><span class="rs-val" id="rs-offre">—</span></div>
+        <div class="rs-row"><span class="rs-lbl">Durée</span><span class="rs-val" id="rs-duree">—</span></div>
+        <div class="rs-total" id="rs-total">0 FCFA</div>
+      </div>
+      <div class="parr-row">
+        <label>CODE PARRAINAGE (optionnel)</label>
+        <input type="text" id="rc-parrain" placeholder="PAR-XXXXXX" maxlength="10"
+          style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()">
+        <div id="parr-status"></div>
+      </div>
+      <button class="btn-feda" id="rc-btn-feda" onclick="rcPayFeda()" style="display:none;">
+        <i class="fas fa-credit-card" style="margin-right:6px;"></i>PAYER FEDAPAY
+      </button>
+      <button class="btn-kkia" id="rc-btn-kkia" onclick="rcPayKkia()" style="display:none;">
+        <i class="fas fa-mobile-alt" style="margin-right:6px;"></i>MOBILE MONEY / KKIAPAY
+      </button>
+      <button class="btn-back-renew" onclick="closeRenewModal()">
+        <i class="fas fa-arrow-left" style="margin-right:5px;"></i>Retour
+      </button>
+    </div>
+    <div id="rsuccess">
+      <div style="font-size:40px;margin-bottom:10px;">🎉</div>
+      <div style="font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;color:var(--green);margin-bottom:6px;">ACTIVÉ !</div>
+      <div style="font-size:10px;color:#444;margin-bottom:12px;">Votre nouvel ID :</div>
+      <div class="rs-new-id" id="rs-new-id" onclick="copyNewId()">—</div>
+      <div style="font-size:9px;color:var(--muted);margin-bottom:14px;">Appuyez pour copier</div>
+      <button class="btn-renew" onclick="rcLoginWithNewId()">
+        <i class="fas fa-tv" style="margin-right:6px;"></i>ACCÉDER À MES CHAÎNES
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- APP = TÉLÉCOMMANDE -->
+<div id="app">
+<div class="remote">
+
+  <!-- ⏻ POWER + MARQUE + MENU/ACCUEIL -->
+  <div class="pw-row">
+    <button class="btn-pw" onclick="send('standby')" title="Marche/Arrêt">⏻</button>
+    <div class="pw-brand">
+      <div class="pw-brand-main">MY BOX SMART</div>
+      <div class="pw-brand-sub">TÉLÉCOMMANDE</div>
+    </div>
+    <div class="pw-right">
+      <div class="bwl" onclick="send('settings_open')" title="Paramètres">
+        <div class="rb rb-sm" style="color:#3a4255;">⚙️</div><span>CFG</span>
+      </div>
+      <div class="bwl" onclick="doDisconnect()" title="Déconnexion">
+        <div class="rb rb-sm" style="color:#2a3040;"><i class="fas fa-sign-out-alt"></i></div><span>EXIT</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- LCD INFO -->
+  <div class="lcd">
+    <div class="lcd-top">
+      <img id="rc-logo" class="lcd-logo" src="https://via.placeholder.com/26?text=TV" alt="">
+      <div class="lcd-info">
+        <div id="rc-ch-name" class="lcd-ch">— MY BOX SMART —</div>
+        <div id="rc-ch-cat" class="lcd-cat">Télécommande universelle</div>
+      </div>
+      <div class="lcd-right">
+        <div class="lcd-conn"><div id="rc-led"></div><span id="rc-conn-txt" style="font-family:'Orbitron',sans-serif;font-size:7px;color:var(--muted);">—</span></div>
+        <!-- Abonnement temps réel -->
+        <div id="lcd-sub-days" class="lcd-sub">—</div>
+      </div>
+    </div>
+    <div class="lcd-vol">
+      <i class="fas fa-volume-up" style="font-size:8px;color:var(--muted);"></i>
+      <div class="lcd-vt"><div id="rc-vol-fill"></div></div>
+      <span id="rc-vol-label">80%</span>
+    </div>
+    <div class="lcd-footer" id="rc-screen-name">—</div>
+  </div>
+
+  <div class="sep"></div>
+
+  <!-- CH+/- VOL+/- MUTE -->
+  <div class="chvol">
+    <div class="cvg">
+      <span>CHAÎNE</span>
+      <div class="cvg-btns">
+        <div class="bwl" onclick="send('ch_prev')"><div class="rb rb-md rb-red"><i class="fas fa-step-backward"></i></div><span>CH−</span></div>
+        <div class="bwl" onclick="send('ch_next')"><div class="rb rb-md rb-green"><i class="fas fa-step-forward"></i></div><span>CH+</span></div>
+      </div>
+    </div>
+    <div class="bwl" onclick="send('mute')"><div class="rb rb-lg rb-orange" style="font-size:23px;">🔇</div><span>MUET</span></div>
+    <div class="cvg">
+      <span>VOLUME</span>
+      <div class="cvg-btns">
+        <div class="bwl" onclick="send('vol-')"><div class="rb rb-md rb-blue" style="font-size:20px;">🔉</div><span>VOL−</span></div>
+        <div class="bwl" onclick="send('vol+')"><div class="rb rb-md rb-blue" style="font-size:20px;">🔊</div><span>VOL+</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- D-PAD NAVIGATION -->
+  <div class="dpad">
+    <div class="da da-up"    onclick="send('nav_up')"   ><i class="fas fa-chevron-up"></i></div>
+    <div class="da da-left"  onclick="send('nav_left')" ><i class="fas fa-chevron-left"></i></div>
+    <div class="da-ok"       onclick="send('nav_ok')"   >OK</div>
+    <div class="da da-right" onclick="send('nav_right')"><i class="fas fa-chevron-right"></i></div>
+    <div class="da da-down"  onclick="send('nav_down')" ><i class="fas fa-chevron-down"></i></div>
+  </div>
+
+  <!-- OUI / NON (confirmation) -->
+  <div style="display:flex;gap:8px;padding:0 4px;margin-bottom:10px;">
+    <button onclick="send('confirm_yes')" style="flex:1;padding:9px;border:none;border-radius:9px;
+      background:linear-gradient(135deg,#2ecc71,#1a8a4a);color:#fff;font-size:12px;font-weight:800;
+      cursor:pointer;font-family:'Exo 2',sans-serif;box-shadow:0 3px 10px rgba(46,204,113,.3);">
+      ✅ OUI
+    </button>
+    <button onclick="send('confirm_no')" style="flex:1;padding:9px;border:none;border-radius:9px;
+      background:linear-gradient(135deg,#c0392b,#8a0010);color:#fff;font-size:12px;font-weight:800;
+      cursor:pointer;font-family:'Exo 2',sans-serif;box-shadow:0 3px 10px rgba(229,9,20,.3);">
+      ❌ NON
+    </button>
+  </div>
+
+  <!-- RETOUR / MENU / INFO / HOME / EXIT -->
+  <div class="rowsb" style="padding:0 0px;">
+    <div class="bwl" onclick="send('nav_back')"   ><div class="rb rb-sm" style="color:#3a4255;"><i class="fas fa-arrow-left"></i></div><span>RETOUR</span></div>
+    <div class="bwl" onclick="send('menu_open')"  ><div class="rb rb-sm" style="color:#3a4255;"><i class="fas fa-bars"></i></div><span>MENU</span></div>
+    <div class="bwl" onclick="send('info')"       ><div class="rb rb-sm" style="color:#3a4255;"><i class="fas fa-info-circle"></i></div><span>INFO</span></div>
+    <div class="bwl" onclick="send('autozap')"    ><div class="rb rb-sm rb-yellow" style="font-size:16px;">⚡</div><span>ZAPPING</span></div>
+    <div class="bwl" onclick="send('pip')"        ><div class="rb rb-sm rb-purple"><i class="fas fa-clone"></i></div><span>PiP</span></div>
+  </div>
+
+  <!-- DERNIÈRE CHAÎNE + SOUS-TITRES + AUDIO + FORMAT + GUIDE -->
+  <div class="rowsb" style="padding:0 0px;margin-bottom:10px;">
+    <div class="bwl" onclick="send('last_channel')" title="Dernière chaîne"><div class="rb rb-xs" style="color:#3a4255;font-family:'Orbitron',sans-serif;font-size:7px;font-weight:900;">LAST</div><span>DERNIER</span></div>
+    <div class="bwl" onclick="send('subtitle')"     title="Sous-titres"><div class="rb rb-xs" style="color:#3a4255;font-size:11px;">CC</div><span>ST</span></div>
+    <div class="bwl" onclick="send('audio_track')"  title="Piste audio"><div class="rb rb-xs" style="color:#3a4255;"><i class="fas fa-headphones"></i></div><span>AUDIO</span></div>
+    <div class="bwl" onclick="send('aspect_ratio')" title="Format image"><div class="rb rb-xs" style="color:#3a4255;font-size:9px;font-weight:900;">16:9</div><span>FORMAT</span></div>
+    <div class="bwl" onclick="send('epg')"          title="Guide TV"><div class="rb rb-xs" style="color:#3a4255;"><i class="fas fa-calendar-alt"></i></div><span>GUIDE</span></div>
+  </div>
+
+  <!-- FAVORIS + HD + FULL + MASQUER + RESET -->
+  <div class="rowsb" style="padding:0 2px;margin-bottom:10px;">
+    <div class="bwl" onclick="send('fav_current')"       ><div class="rb rb-sm rb-yellow" style="font-size:18px;">⭐</div><span>FAVORI</span></div>
+    <div class="bwl" onclick="send('fav_toggle_filter')" ><div class="rb rb-sm" style="color:#3a4255;"><i class="fas fa-filter"></i></div><span>MES FAV</span></div>
+    <div class="bwl" onclick="send('hd_filter')"         ><div class="rb rb-sm rb-blue" style="font-family:'Orbitron',sans-serif;font-size:9px;font-weight:900;">HD</div><span>HD</span></div>
+    <div class="bwl" onclick="send('fullscreen')"        ><div class="rb rb-sm" style="color:#3a4255;"><i class="fas fa-expand"></i></div><span>FULL</span></div>
+    <div class="bwl" onclick="send('reset_filters')"     ><div class="rb rb-sm" style="color:#3a4255;"><i class="fas fa-undo"></i></div><span>RESET</span></div>
+  </div>
+
+  <!-- BOUTONS COULEUR (Samsung/LG style) -->
+  <div class="color-row">
+    <div class="bwl" onclick="send('view_toggle')"><button class="cdot" style="background:radial-gradient(circle at 38% 34%,#b0060e,#700008);pointer-events:none;">🔲</button><span>VUE</span></div>
+    <div class="bwl" onclick="send('sort')"       ><button class="cdot" style="background:radial-gradient(circle at 38% 34%,#1e9a52,#0f6032);pointer-events:none;">🔀</button><span>TRI</span></div>
+    <div class="bwl" onclick="send('reload')"     ><button class="cdot" style="background:radial-gradient(circle at 38% 34%,#0077aa,#004a70);pointer-events:none;">🔄</button><span>MAJ</span></div>
+    <div class="bwl" onclick="send('hide_current')"><button class="cdot" style="background:radial-gradient(circle at 38% 34%,#b09000,#705800);pointer-events:none;">🙈</button><span>CACHER</span></div>
+  </div>
+
+  <div class="sep"></div>
+
+  <!-- PAVÉ NUMÉRIQUE -->
+  <div class="sec">NUMÉRO DE CHAÎNE</div>
+  <div class="numpad">
+    <div class="num-display" id="ch-display">—</div>
+    <div id="nf-inline"></div>
+    <div class="nb" onclick="numPress(1)">1<small>ABC</small></div>
+    <div class="nb" onclick="numPress(2)">2<small>DEF</small></div>
+    <div class="nb" onclick="numPress(3)">3<small>GHI</small></div>
+    <div class="nb" onclick="numPress(4)">4<small>JKL</small></div>
+    <div class="nb" onclick="numPress(5)">5<small>MNO</small></div>
+    <div class="nb" onclick="numPress(6)">6<small>PQR</small></div>
+    <div class="nb" onclick="numPress(7)">7<small>STU</small></div>
+    <div class="nb" onclick="numPress(8)">8<small>VWX</small></div>
+    <div class="nb" onclick="numPress(9)">9<small>YZ</small></div>
+    <div class="nb nb-prev" onclick="send('last_channel')"><i class="fas fa-history"></i></div>
+    <div class="nb" onclick="numPress(0)">0</div>
+    <div class="nb nb-del" onclick="numDel()"><i class="fas fa-backspace"></i></div>
+  </div>
+
+  <!-- RECHERCHE -->
+  <div class="sec">RECHERCHE CHAÎNE</div>
+  <div class="s-row">
+    <input type="text" id="rc-search" class="s-inp" placeholder="Nom de la chaîne..."
+      onkeyup="if(event.key==='Enter')sendSearch()">
+    <button class="s-btn" onclick="sendSearch()"><i class="fas fa-search"></i></button>
+  </div>
+
+  <div class="sep"></div>
+
+  <!-- VOLUME SLIDER -->
+  <div class="sec">VOLUME</div>
+  <div class="vsl-row">
+    <i class="fas fa-volume-off"></i>
+    <input type="range" id="vol-slider" min="0" max="100" value="80" oninput="sendVol(this.value)">
+    <i class="fas fa-volume-up"></i>
+  </div>
+
+  <div class="sep"></div>
+
+  <!-- MINUTERIE VEILLE -->
+  <div class="sec">⏱️ MINUTERIE DE VEILLE</div>
+  <div class="slg">
+    <div class="sl" id="sl-15"  onclick="sendSleep(15)">15 min</div>
+    <div class="sl" id="sl-30"  onclick="sendSleep(30)">30 min</div>
+    <div class="sl" id="sl-60"  onclick="sendSleep(60)">1h</div>
+    <div class="sl" id="sl-90"  onclick="sendSleep(90)">1h30</div>
+    <div class="sl" id="sl-120" onclick="sendSleep(120)">2h</div>
+    <div class="sl" id="sl-off" onclick="sendSleep(0)" style="color:#ff6b6b;">OFF</div>
+  </div>
+
+  <!-- SYSTÈME -->
+  <div class="sep"></div>
+  <div class="row" style="margin-bottom:10px;">
+    <div class="bwl" onclick="send('reload')"        ><div class="rb rb-sm" style="color:#3a4255;"><i class="fas fa-sync-alt"></i></div><span>RELOAD</span></div>
+    <div class="bwl" onclick="send('hide_current')"  ><div class="rb rb-sm rb-red"><i class="fas fa-eye-slash"></i></div><span>MASQUER</span></div>
+    <div class="bwl" onclick="send('scroll_top')"    ><div class="rb rb-sm" style="color:#3a4255;"><i class="fas fa-arrow-up"></i></div><span>HAUT</span></div>
+    <div class="bwl" onclick="send('settings_close')"><div class="rb rb-sm" style="color:#3a4255;"><i class="fas fa-times"></i></div><span>FERMER</span></div>
+  </div>
+
+  <!-- ABONNEMENT TEMPS RÉEL -->
+  <div class="sep"></div>
+  <div id="sub-card-remote" class="sub-card">
+    <div class="sub-top">
+      <div>
+        <div class="sub-lbl">MON ABONNEMENT</div>
+        <div id="sub-days-remote" class="sub-days">— jours restants</div>
+        <div id="sub-key-remote" class="sub-key">ID : —</div>
+      </div>
+      <div id="sub-dot-remote" class="sub-dot"></div>
+    </div>
+    <button class="btn-renew" onclick="openRenewModal()">
+      <i class="fas fa-sync-alt" style="margin-right:6px;"></i>PROLONGER L'ABONNEMENT
+    </button>
+  </div>
+
+</div><!-- /remote -->
+</div><!-- /app -->
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  SUPABASE
+// ═══════════════════════════════════════════════════════════
+const SB_URL='https://yvcdadenofftnbljutwk.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2Y2RhZGVub2ZmdG5ibGp1dHdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NzQ0ODIsImV4cCI6MjA4ODQ1MDQ4Mn0.xqJzLpQszFmph599FBIvdE7NF88_i-JkABG-aSrAndE';
+const SB_H={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'};
+async function sbGet(t,p){const r=await fetch(`${SB_URL}/rest/v1/${t}?${p||''}`,{headers:SB_H});if(!r.ok)throw new Error(await r.text());return r.json();}
+async function sbInsert(t,b){const r=await fetch(`${SB_URL}/rest/v1/${t}`,{method:'POST',headers:{...SB_H,'Prefer':'return=minimal'},body:JSON.stringify(b)});if(!r.ok)throw new Error('HTTP '+r.status);return true;}
+async function sbPatch(t,p,b){const r=await fetch(`${SB_URL}/rest/v1/${t}?${p}`,{method:'PATCH',headers:{...SB_H,'Prefer':'return=minimal'},body:JSON.stringify(b)});if(!r.ok)throw new Error('HTTP '+r.status);return true;}
+
+// ═══════════════════════════════════════════════════════════
+//  ÉTAT
+// ═══════════════════════════════════════════════════════════
+let _userKey='',_deviceId='',_deviceName='';
+let _numBuf='',_numTimer=null;
+let _pollTimer=null,_totalCh=0,_subTimer=null;
+let _isExpired=false;
+let _rcSelTarif=null,_rcPendingKey=null,_rcTarifsCache=null;
+
+// ═══════════════════════════════════════════════════════════
+//  CALCUL JOURS RESTANTS (identique MyBoxSmart)
+// ═══════════════════════════════════════════════════════════
+function calcDaysLeft(user){
+  if(!user)return 0;
+  if(user.duree==='VIE')return 9999;
+  const total=parseInt(user.duree);
+  if(isNaN(total)||total<=0)return 0;
+  if(!user.date_activation)return total;
+  const act=new Date(user.date_activation);
+  const today=new Date();
+  act.setHours(0,0,0,0);today.setHours(0,0,0,0);
+  return Math.max(0,total-Math.floor((today-act)/86400000));
+}
+
+// ═══════════════════════════════════════════════════════════
+//  LOGIN
+// ═══════════════════════════════════════════════════════════
+async function doLogin(){
+  const key=document.getElementById('login-id').value.trim().toUpperCase();
+  if(!key)return;
+  const btn=document.querySelector('.l-btn');
+  btn.innerHTML='<i class="fas fa-spinner fa-spin"></i>';btn.disabled=true;
+  try{
+    const d=await sbGet('utilisateurs','cle=eq.'+encodeURIComponent(key)+'&select=cle,duree,date_activation,appareils');
+    if(!d||!d.length){document.getElementById('login-msg').innerText='❌ ID invalide.';btn.innerHTML='<i class="fas fa-tv"></i> CONNECTER';btn.disabled=false;return;}
+    const u=d[0];
+    _userKey=key;
+    const jours=calcDaysLeft(u);
+    _isExpired=(jours<=0&&u.duree!=='VIE');
+    const devs=(u.appareils||'').split(',').map(x=>x.trim()).filter(Boolean);
+    if(devs.length===1)selectDevice(devs[0],'Appareil 1');
+    else if(devs.length>1)showScreenSelect(devs);
+    else{
+      // Pas d'appareil enregistré = connecter quand même, juste avertir
+      document.getElementById('login-id').value='';
+      document.getElementById('login-msg').innerText='⚠️ Lancez d\'abord My Box Smart sur votre TV.';
+      btn.innerHTML='<i class="fas fa-tv"></i> CONNECTER';btn.disabled=false;return;
+    }
+  }catch(e){document.getElementById('login-msg').innerText='❌ '+e.message;}
+  btn.innerHTML='<i class="fas fa-tv"></i> CONNECTER';btn.disabled=false;
+}
+
+function showScreenSelect(devs){
+  const list=document.getElementById('screen-list');list.innerHTML='';
+  const icons=['fa-tv','fa-desktop','fa-laptop','fa-tablet-alt','fa-mobile-alt'];
+  devs.forEach((dev,i)=>{
+    const div=document.createElement('div');div.className='sc-item';
+    div.innerHTML='<i class="fas '+icons[i%icons.length]+'" style="color:var(--muted);width:20px;text-align:center;"></i>'
+      +'<div class="sc-name">Écran '+(i+1)+'<div style="font-size:9px;color:var(--muted);margin-top:1px;font-family:monospace;">'+dev+'</div></div>'
+      +'<span class="sc-status">EN LIGNE</span>';
+    div.onclick=()=>selectDevice(dev,'Écran '+(i+1));
+    list.appendChild(div);
+  });
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('screen-select').classList.add('show');
+}
+
+function selectDevice(dId,dName){
+  _deviceId=dId;_deviceName=dName;
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('screen-select').classList.remove('show');
+  document.getElementById('app').classList.add('show');
+  document.getElementById('rc-screen-name').innerText=dName+' · '+_userKey;
+  localStorage.setItem('rc_user',_userKey);
+  localStorage.setItem('rc_device',_deviceId);
+  localStorage.setItem('rc_dname',_deviceName);
+  startPoll();
+  loadSubInfo();
+  flash('📺 Connecté à '+dName);
+}
+
+function doDisconnect(){
+  if(!confirm('Se déconnecter ?'))return;
+  clearInterval(_pollTimer);clearInterval(_subTimer);
+  _userKey='';_deviceId='';
+  document.getElementById('app').classList.remove('show');
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('login-id').value='';
+}
+
+// ═══════════════════════════════════════════════════════════
+//  ABONNEMENT TEMPS RÉEL
+// ═══════════════════════════════════════════════════════════
+async function loadSubInfo(){
+  if(!_userKey)return;
+  try{
+    const d=await sbGet('utilisateurs','cle=eq.'+encodeURIComponent(_userKey)+'&select=duree,date_activation');
+    if(!d||!d.length)return;
+    updateSubDisplay(d[0]);
+    // Rafraîchir chaque minute
+    clearInterval(_subTimer);
+    _subTimer=setInterval(()=>loadSubInfo(),60000);
+  }catch(e){}
+}
+
+function updateSubDisplay(user){
+  const jours=calcDaysLeft(user);
+  const isVie=user.duree==='VIE';
+  const expired=!isVie&&jours<=0;
+  const urgent=!isVie&&!expired&&jours<=7;
+
+  // LCD mini
+  const lcdEl=document.getElementById('lcd-sub-days');
+  lcdEl.className='lcd-sub'+(expired?' expired':urgent?' urgent':'');
+  lcdEl.innerText=isVie?'♾️ VIE':expired?'⛔ EXPIRÉ':jours+'j';
+
+  // Carte abonnement
+  const card=document.getElementById('sub-card-remote');
+  card.className='sub-card'+(expired?' expired':urgent?' urgent':'');
+  const dot=document.getElementById('sub-dot-remote');
+  dot.className='sub-dot'+(expired?' expired':urgent?' urgent':'');
+  const daysEl=document.getElementById('sub-days-remote');
+  daysEl.className='sub-days'+(expired?' expired':urgent?' urgent':'');
+  if(isVie) daysEl.innerText='♾️ Abonnement à vie';
+  else if(expired) daysEl.innerText='⛔ Abonnement expiré';
+  else if(jours===1) daysEl.innerText='⚠️ Expire demain !';
+  else if(urgent) daysEl.innerText='⚠️ '+jours+' jours restants';
+  else daysEl.innerText='✅ '+jours+' jours restants';
+  document.getElementById('sub-key-remote').innerText='ID : '+_userKey;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  ENVOI COMMANDE
+// ═══════════════════════════════════════════════════════════
+const _deb={},_COOL=550;
+async function send(cmd,payload=''){
+  if(!_deviceId){flash('⚠️ Non connecté');return;}
+  if(_isExpired&&!['standby'].includes(cmd)){flash('⛔ Abonnement expiré');return;}
+  const k=cmd+':'+payload;const now=Date.now();
+  if(_deb[k]&&now-_deb[k]<_COOL)return;
+  _deb[k]=now;
+  flashCmd(cmd,payload);
+  try{
+    await sbInsert('remote_commands',{device_id:_deviceId,user_key:_userKey,command:cmd,
+      payload:String(payload),created_at:new Date().toISOString(),executed:false});
+    updateConn(true);
+  }catch(e){updateConn(false);}
+}
+
+// ═══════════════════════════════════════════════════════════
+//  VOLUME
+// ═══════════════════════════════════════════════════════════
+function sendVol(v){
+  send('vol_set',v);
+  document.getElementById('rc-vol-fill').style.width=v+'%';
+  document.getElementById('rc-vol-label').innerText=v+'%';
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RECHERCHE
+// ═══════════════════════════════════════════════════════════
+function sendSearch(){
+  const q=document.getElementById('rc-search').value.trim();
+  if(!q)return;
+  send('search',q);
+  flash('🔍 '+q);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  VEILLE
+// ═══════════════════════════════════════════════════════════
+function sendSleep(m){
+  ['15','30','60','90','120','off'].forEach(v=>{
+    const e=document.getElementById('sl-'+v);if(e)e.classList.remove('active');
+  });
+  if(m>0){
+    const e=document.getElementById('sl-'+m);if(e)e.classList.add('active');
+    send('sleep',String(m));flash('⏱️ Veille '+m+' min');
+  }else{
+    document.getElementById('sl-off').classList.add('active');
+    send('sleep','0');flash('⏱️ Minuterie désactivée');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PAVÉ NUMÉRIQUE (6 chiffres max)
+// ═══════════════════════════════════════════════════════════
+function numPress(n){
+  if(_numBuf.length>=6)return;
+  _numBuf+=String(n);
+  document.getElementById('ch-display').innerText=_numBuf;
+  document.getElementById('nf-inline').innerText='';
+  clearTimeout(_numTimer);
+  _numTimer=setTimeout(()=>numGo(),2200);
+}
+function numDel(){
+  _numBuf=_numBuf.slice(0,-1);
+  document.getElementById('ch-display').innerText=_numBuf||'—';
+  document.getElementById('nf-inline').innerText='';
+  clearTimeout(_numTimer);
+}
+function numGo(){
+  clearTimeout(_numTimer);
+  if(!_numBuf)return;
+  const idx=parseInt(_numBuf)-1;
+  if(_totalCh>0&&idx>=_totalCh){
+    document.getElementById('nf-inline').innerText='⚠️ Chaîne '+_numBuf+' introuvable (max '+_totalCh+')';
+    _numBuf='';document.getElementById('ch-display').innerText='—';
+    return;
+  }
+  send('play_num',String(idx));
+  flash('📺 Chaîne '+_numBuf);
+  _numBuf='';document.getElementById('ch-display').innerText='—';
+}
+
+// ═══════════════════════════════════════════════════════════
+//  POLL STATUS (état TV → télécommande)
+// ═══════════════════════════════════════════════════════════
+function startPoll(){
+  clearInterval(_pollTimer);
+  _pollTimer=setInterval(pollStatus,2500);
+  pollStatus();
+}
+async function pollStatus(){
+  if(!_deviceId)return;
+  try{
+    const rows=await sbGet('remote_commands',
+      'device_id=eq.'+encodeURIComponent(_deviceId)+'&command=eq.status_update&order=created_at.desc&limit=1&select=payload');
+    if(rows&&rows.length){
+      try{const s=JSON.parse(rows[0].payload);applyStatus(s);}catch(e){}
+    }
+    updateConn(true);
+  }catch(e){updateConn(false);}
+}
+function applyStatus(s){
+  if(s.chName)document.getElementById('rc-ch-name').innerText=s.chName;
+  if(s.chCat) document.getElementById('rc-ch-cat').innerText=s.chCat;
+  if(s.chLogo)document.getElementById('rc-logo').src=s.chLogo||'https://via.placeholder.com/26?text=TV';
+  if(s.vol!==undefined){
+    document.getElementById('rc-vol-fill').style.width=s.vol+'%';
+    document.getElementById('rc-vol-label').innerText=s.vol+'%';
+    document.getElementById('vol-slider').value=s.vol;
+  }
+  if(s.total)_totalCh=parseInt(s.total);
+}
+function updateConn(ok){
+  const l=document.getElementById('rc-led'),t=document.getElementById('rc-conn-txt');
+  l.style.background=ok?'var(--green)':'var(--red)';
+  t.innerText=ok?'CONNECTÉ':'HORS LIGNE';t.style.color=ok?'var(--green)':'var(--red)';
+}
+
+// ═══════════════════════════════════════════════════════════
+//  FLASH TOAST
+// ═══════════════════════════════════════════════════════════
+const LBL={
+  ch_next:'⏭ CH+',ch_prev:'⏮ CH−','vol+':'🔊 VOL+','vol-':'🔉 VOL−',
+  vol_set:'🔊 Volume',mute:'🔇 Muet',fullscreen:'⛶ Plein écran',pip:'📺 PiP',
+  menu_open:'📋 Menu',nav_up:'▲',nav_down:'▼',nav_left:'◀',nav_right:'▶',
+  nav_ok:'✅ OK',nav_back:'↩ Retour',fav_current:'⭐ Favori',autozap:'⚡ Auto-Zap',
+  standby:'💤 Veille',reload:'🔄 Recharger',settings_open:'⚙️ Paramètres',
+  settings_close:'✅ Fermé',hide_current:'🙈 Masqué',view_toggle:'🔲 Vue',
+  sort:'🔀 Tri',reset_filters:'🔄 Reset',scroll_top:'⬆️ Haut',
+  confirm_yes:'✅ OUI',confirm_no:'❌ NON',last_channel:'📺 Dernière chaîne',
+  subtitle:'💬 Sous-titres',audio_track:'🎵 Piste audio',aspect_ratio:'🖥️ Format',
+  epg:'📅 Guide TV',
+};
+function flashCmd(cmd,p){flash(LBL[cmd]||(LBL[cmd])||('▶ '+cmd+(p?' : '+p:'')));}
+let _ft;
+function flash(msg){
+  const el=document.getElementById('rc-toast');
+  el.innerText=msg;el.classList.add('show');
+  clearTimeout(_ft);
+  _ft=setTimeout(()=>el.classList.remove('show'),1800);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PAIEMENT — RENOUVELLEMENT
+// ═══════════════════════════════════════════════════════════
+async function openRenewModal(){
+  document.getElementById('renew-modal').classList.add('show');
+  document.getElementById('rform').style.display='block';
+  document.getElementById('rsuccess').style.display='none';
+  document.getElementById('rsummary').style.display='none';
+  document.getElementById('rc-btn-feda').style.display='none';
+  document.getElementById('rc-btn-kkia').style.display='none';
+  document.getElementById('parr-status').innerText='';
+  document.getElementById('rc-parrain').value='';
+  _rcSelTarif=null;_rcPendingKey=null;
+  await loadRcTarifs();
+}
+function closeRenewModal(){document.getElementById('renew-modal').classList.remove('show');}
+
+async function loadRcTarifs(){
+  const grid=document.getElementById('rc-tgrid');
+  try{
+    if(!_rcTarifsCache){
+      try{const d=await sbGet('tarifs','actif=eq.true&order=ordre.asc');_rcTarifsCache=d&&d.length?d:null;}catch(e){_rcTarifsCache=null;}
+    }
+    const tarifs=_rcTarifsCache||[
+      {id:1,label_ecran:'1 Écran',label_duree:'1 Mois', prix:300, prix_promo:null,badge:null,    days:30, screens:1},
+      {id:2,label_ecran:'1 Écran',label_duree:'3 Mois', prix:900, prix_promo:null,badge:'POP',   days:90, screens:1},
+      {id:3,label_ecran:'1 Écran',label_duree:'1 An',   prix:3000,prix_promo:null,badge:null,    days:365,screens:1},
+      {id:4,label_ecran:'2 Écrans',label_duree:'1 Mois',prix:500, prix_promo:null,badge:null,    days:30, screens:2},
+      {id:5,label_ecran:'4 Écrans',label_duree:'1 Mois',prix:900, prix_promo:null,badge:null,    days:30, screens:4},
+    ];
+    grid.innerHTML='';
+    tarifs.forEach(t=>{
+      const prix=t.prix_promo&&t.prix_promo<t.prix?t.prix_promo:t.prix;
+      const div=document.createElement('div');div.className='tc';div.id='rc-tc-'+t.id;
+      div.innerHTML=(t.badge?'<div class="tc-badge">'+t.badge+'</div>':'')+
+        '<div class="tc-ecran">'+t.label_ecran+'</div>'+
+        '<div class="tc-duree">'+t.label_duree+'</div>'+
+        '<div class="tc-prix">'+prix+'</div>'+
+        '<div class="tc-fcfa">FCFA</div>';
+      div.onclick=()=>selectRcTarif(t);
+      grid.appendChild(div);
+    });
+  }catch(e){grid.innerHTML='<div style="grid-column:1/-1;color:var(--red);text-align:center;font-size:11px;padding:14px;">❌ Erreur</div>';}
+}
+
+function selectRcTarif(t){
+  document.querySelectorAll('.tc').forEach(c=>c.classList.remove('sel'));
+  const el=document.getElementById('rc-tc-'+t.id);if(el)el.classList.add('sel');
+  _rcSelTarif=t;
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let rand='';
+  for(let i=0;i<6;i++)rand+=chars.charAt(Math.floor(Math.random()*chars.length));
+  _rcPendingKey='TV-'+rand;
+  const prix=t.prix_promo&&t.prix_promo<t.prix?t.prix_promo:t.prix;
+  document.getElementById('rs-offre').innerText=t.label_ecran;
+  document.getElementById('rs-duree').innerText=t.label_duree;
+  document.getElementById('rs-total').innerText=prix+' FCFA';
+  document.getElementById('rsummary').style.display='block';
+  document.getElementById('rc-btn-feda').style.display='block';
+  document.getElementById('rc-btn-kkia').style.display='block';
+}
+
+function rcPayFeda(){
+  if(!_rcSelTarif||!_rcPendingKey){flash('⚠️ Choisissez une offre');return;}
+  const prix=_rcSelTarif.prix_promo&&_rcSelTarif.prix_promo<_rcSelTarif.prix?_rcSelTarif.prix_promo:_rcSelTarif.prix;
+  try{
+    FedaPay.init({
+      public_key:'pk_live_1i7UkFPVn-pUhhO1OnoKQncy',environment:'live',
+      transaction:{amount:prix,description:'Abonnement MyBoxSmart '+_rcSelTarif.label_ecran+' '+_rcSelTarif.label_duree+' - '+_rcPendingKey,
+        custom_metadata:{user_id:_rcPendingKey,days:String(_rcSelTarif.days||30),screens:String(_rcSelTarif.screens||1)}},
+      onComplete:resp=>{
+        if(resp.reason===FedaPay.DIALOG_DISMISSED){flash('⚠️ Annulé');return;}
+        if(resp.transaction&&(resp.transaction.status==='approved'||resp.transaction.status==='approved_and_captured'))
+          rcProcessPayment(_rcPendingKey,_rcSelTarif);
+        else flash('❌ Paiement non validé');
+      }
+    }).open();
+  }catch(e){flash('❌ FedaPay: '+e.message);}
+}
+
+function rcPayKkia(){
+  if(!_rcSelTarif||!_rcPendingKey){flash('⚠️ Choisissez une offre');return;}
+  const prix=_rcSelTarif.prix_promo&&_rcSelTarif.prix_promo<_rcSelTarif.prix?_rcSelTarif.prix_promo:_rcSelTarif.prix;
+  try{
+    openKkiapayWidget({amount:prix,key:'adaa98fcfed792479755dbc84a0dfdaf91482b8e',sandbox:false,
+      position:'center',data:_rcPendingKey,name:'Client My Box Smart',theme:'#2ecc71'});
+    addSuccessListener(()=>rcProcessPayment(_rcPendingKey,_rcSelTarif));
+    addFailedListener(()=>flash('❌ Paiement KkiaPay échoué'));
+  }catch(e){flash('❌ KkiaPay: '+e.message);}
+}
+
+async function rcProcessPayment(newKey,tarif){
+  try{
+    const codeP=document.getElementById('rc-parrain').value.trim().toUpperCase();
+    const days=parseInt(tarif.days||30);
+    const screens=parseInt(tarif.screens||1);
+    const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let codeParr='PAR-';
+    for(let i=0;i<6;i++)codeParr+=chars.charAt(Math.floor(Math.random()*chars.length));
+    let bonusFilleul=0,parrainValide=false;
+    if(codeP){
+      try{const pr=await sbGet('utilisateurs','code_parrainage=eq.'+encodeURIComponent(codeP)+'&select=cle,duree&limit=1');
+        if(pr&&pr.length&&pr[0].cle!==newKey)parrainValide=true;}catch(e){}
+    }
+    await sbInsert('utilisateurs',{cle:newKey,duree:parrainValide?days+7:days,
+      appareils:'',date_activation:new Date().toISOString().split('T')[0],
+      max_ecrans:screens,message:'',code_parrainage:codeParr,
+      parraine_par:parrainValide?codeP:null,bonus_parrain_creditee:false});
+    if(parrainValide){
+      bonusFilleul=7;
+      try{const pr=await sbGet('utilisateurs','code_parrainage=eq.'+encodeURIComponent(codeP)+'&select=cle,duree&limit=1');
+        if(pr&&pr.length&&pr[0].duree!=='VIE')
+          await sbPatch('utilisateurs','cle=eq.'+encodeURIComponent(pr[0].cle),{duree:parseInt(pr[0].duree||0)+15});
+      }catch(e){}
+    }
+    document.getElementById('rs-new-id').innerText=newKey;
+    document.getElementById('rform').style.display='none';
+    document.getElementById('rsuccess').style.display='block';
+  }catch(e){flash('❌ Erreur: '+e.message);}
+}
+
+function copyNewId(){
+  const id=document.getElementById('rs-new-id').innerText;
+  navigator.clipboard.writeText(id).then(()=>flash('✅ ID copié !')).catch(()=>{});
+}
+function rcLoginWithNewId(){
+  const newKey=document.getElementById('rs-new-id').innerText;
+  document.getElementById('renew-modal').classList.remove('show');
+  document.getElementById('login-id').value=newKey;
+  document.getElementById('login-screen').style.display='flex';
+  _userKey='';_isExpired=false;
+  doLogin();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  AUTO-LOGIN
+// ═══════════════════════════════════════════════════════════
+(function autoLogin(){
+  const k=localStorage.getItem('rc_user');
+  const d=localStorage.getItem('rc_device');
+  const n=localStorage.getItem('rc_dname');
+  if(!k||!d)return;
+  _userKey=k;_deviceId=d;_deviceName=n||'Appareil';
+  sbGet('utilisateurs','cle=eq.'+encodeURIComponent(k)+'&select=duree,date_activation').then(data=>{
+    if(data&&data.length){
+      const jours=calcDaysLeft(data[0]);
+      _isExpired=(jours<=0&&data[0].duree!=='VIE');
+      updateSubDisplay(data[0]);
+    }
+  }).catch(()=>{});
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').classList.add('show');
+  document.getElementById('rc-screen-name').innerText=_deviceName+' · '+k;
+  startPoll();loadSubInfo();
+})();
+</script>
+</body>
+</html>

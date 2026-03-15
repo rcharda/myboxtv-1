@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - My Box TV (Supabase)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #121212; color: #eee; margin: 0; }
+
+        #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 999; display: flex; align-items: center; justify-content: center; }
+        .login-box { background: #1e1e1e; padding: 40px; border-radius: 10px; border: 1px solid #333; text-align: center; }
+        input, select { padding: 10px; border-radius: 5px; border: 1px solid #444; background: #222; color: white; margin: 5px 0; }
+        button { padding: 10px 20px; background: #e50914; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: background .2s; }
+        button:hover { background: #ff0f1f; }
+
+        #dashboard { display: none; padding: 20px; max-width: 1300px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        h1 { color: #e50914; margin: 0; display:flex; align-items:center; gap:15px; }
+
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .tab-btn { background: #333; padding: 10px 20px; border-radius: 5px; cursor: pointer; border: none; color: #eee; font-weight: bold; }
+        .tab-btn.active { background: #e50914; color: white; }
+        .section { display: none; }
+        .section.active { display: block; }
+
+        table { width: 100%; border-collapse: collapse; background: #1e1e1e; border-radius: 8px; overflow: hidden; }
+        th, td { padding: 13px 15px; text-align: left; border-bottom: 1px solid #2a2a2a; font-size: 13px; }
+        th { background: #252525; color: #aaa; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
+        tr:hover { background: #242424; }
+
+        .action-btn { padding: 6px 10px; font-size: 12px; margin-right: 4px; border-radius: 4px; cursor: pointer; border: none; color: white; }
+        .btn-pdf  { background: #28a745; }
+        .btn-edit { background: #007bff; }
+        .btn-del  { background: #ff4444; }
+        .btn-rst  { background: #555; }
+
+        .add-form { background: #1e1e1e; border: 1px solid #2e2e2e; padding: 18px 20px; border-radius: 10px; margin-bottom: 20px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .add-form h3 { margin: 0; color: #aaa; font-size: 13px; }
+
+        .maint-status { padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-left: 10px; }
+        .maint-on  { background: red;   color: white; }
+        .maint-off { background: green; color: white; }
+
+        .badge-vie    { background: rgba(0,170,255,.2); color: #0af;    padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight:700; }
+        .badge-active { background: rgba(46,204,113,.2); color: #2ecc71; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight:700; }
+        .badge-exp    { background: rgba(229,9,20,.2);   color: #e50914; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight:700; }
+
+        #stats-bar { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+        .stat-card { background: #1e1e1e; border: 1px solid #2e2e2e; border-radius: 10px; padding: 16px 22px; flex: 1; min-width: 130px; }
+        .stat-val  { font-size: 28px; font-weight: 900; color: #e50914; }
+        .stat-lbl  { font-size: 11px; color: #666; margin-top: 2px; }
+
+        /* chaines tab */
+        #chaines-section .add-form { gap: 8px; }
+        #chaines-section select { min-width: 120px; }
+
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(60px); background: #1e1e1e; border: 1px solid #333; color: #eee; padding: 12px 24px; border-radius: 30px; z-index: 9999; font-size: 13px; transition: transform .3s ease; pointer-events:none; }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+
+        @media(max-width:600px){
+            .add-form input[style*="width:400px"] { width: 100% !important; }
+            th:nth-child(3), td:nth-child(3) { display:none; }
+        }
+
+        /* TARIFS */
+        #tarif-modal-overlay.open { display:flex !important; }
+
+        /* ── UPDATER ── */
+        #update-section .upd-card {
+            background: #1e1e1e; border: 1px solid #2a2a2a;
+            border-radius: 12px; padding: 20px; margin-bottom: 18px;
+        }
+        #update-section .upd-card-title {
+            font-size: 11px; letter-spacing: 2px; color: #e50914;
+            font-weight: 700; margin-bottom: 14px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        #code-input {
+            width: 100%; height: 300px;
+            background: #0a0a0a; border: 1px solid #333;
+            border-radius: 8px; color: #b0e0b0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px; padding: 12px; resize: vertical; line-height: 1.5;
+        }
+        #code-input:focus { outline: none; border-color: rgba(46,204,113,.4); }
+        .upd-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+        @media(max-width:600px){ .upd-form-row { grid-template-columns: 1fr; } }
+        .upd-form-row label { display:block; font-size:10px; color:#666; letter-spacing:1px; margin-bottom:5px; }
+        .upd-form-row input { width:100%; padding:10px 12px; background:#222; border:1px solid #333; border-radius:6px; color:#fff; font-size:13px; }
+        .upd-form-row input:focus { outline:none; border-color:rgba(46,204,113,.4); }
+        #btn-publish-upd {
+            width:100%; padding:14px; background:linear-gradient(135deg,#2ecc71,#1a8a4a);
+            color:#fff; border:none; border-radius:8px; font-size:14px; font-weight:700;
+            cursor:pointer; margin-top:12px; display:flex; align-items:center; justify-content:center; gap:8px;
+            box-shadow: 0 4px 16px rgba(46,204,113,.3);
+        }
+        #btn-publish-upd:hover { background: linear-gradient(135deg,#35d977,#22a057); }
+        #btn-publish-upd:disabled { opacity:.5; cursor:not-allowed; }
+        #publish-msg-upd {
+            margin-top:12px; padding:11px 14px; border-radius:8px;
+            font-size:13px; display:none; text-align:center;
+        }
+        #publish-msg-upd.success { background:rgba(46,204,113,.1); border:1px solid rgba(46,204,113,.3); color:#2ecc71; }
+        #publish-msg-upd.error   { background:rgba(229,9,20,.1);  border:1px solid rgba(229,9,20,.3);  color:#e50914; }
+        #publish-msg-upd.info    { background:rgba(0,170,255,.1);  border:1px solid rgba(0,170,255,.3);  color:#0af; }
+        .upd-history-row {
+            display:flex; align-items:center; justify-content:space-between;
+            padding:10px 14px; background:#252525; border-radius:8px; margin-bottom:6px; font-size:13px;
+        }
+        .upd-v-badge {
+            background:rgba(229,9,20,.2); color:#e50914; border:1px solid rgba(229,9,20,.3);
+            border-radius:20px; font-size:10px; font-weight:700; padding:2px 10px; font-family:monospace;
+        }
+        .upd-v-note { color:#888; font-size:11px; flex:1; margin:0 12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .upd-v-size { color:#555; font-size:10px; }
+        .upd-v-date { color:#555; font-size:11px; }
+        #code-info-upd { display:flex; justify-content:space-between; font-size:11px; color:#555; margin-top:6px; }
+        .upd-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:18px; }
+        .upd-stat  { background:#252525; border:1px solid #2a2a2a; border-radius:8px; padding:12px; text-align:center; }
+        .upd-stat-val { font-size:22px; font-weight:900; color:#e50914; font-family:monospace; }
+        .upd-stat-lbl { font-size:10px; color:#666; margin-top:3px; letter-spacing:1px; }
+        .tarif-card { background:#1e1e1e; border:1px solid #2a2a2a; border-radius:10px; padding:18px; position:relative; overflow:hidden; transition:border-color .2s; }
+        .tarif-card:hover { border-color:#444; }
+        .tarif-card.inactive { opacity:.45; }
+        .tarif-card .card-badge { position:absolute; top:12px; right:12px; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:700; }
+        .tarif-card .card-price { font-size:30px; font-weight:900; color:#fff; }
+        .tarif-card .card-price-old { font-size:14px; color:#555; text-decoration:line-through; }
+        .tarif-card .card-label { font-size:13px; color:#aaa; margin-top:4px; }
+        .tarif-card .card-actions { display:flex; gap:6px; margin-top:14px; }
+        .tf-toggle-btn { padding:4px 12px; font-size:12px; border-radius:4px; cursor:pointer; border:none; background:#333; color:#eee; transition:background .2s; }
+        .tf-toggle-btn:hover { background:#444; }
+    </style>
+</head>
+<body>
+
+<!-- ========== LOGIN ========== -->
+<div id="login-overlay">
+    <div class="login-box">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/4/45/COMPANY%281%29.png" width="100" style="margin-bottom:20px; border-radius:10px;">
+        <h2 style="color:#e50914; margin-top:0;">ADMIN ACCESS</h2>
+        <br>
+        <input type="password" id="admin-pass" placeholder="Mot de passe" style="width:220px; display:block; margin:0 auto 12px;">
+        <button id="btn-login" style="width:100%; max-width:242px; padding:13px;">ENTRER</button>
+        <div id="login-error" style="color:red; margin-top:10px; font-size:13px;"></div>
+    </div>
+</div>
+
+<!-- ========== DASHBOARD ========== -->
+<div id="dashboard">
+    <div class="header">
+        <h1>
+            <img src="https://upload.wikimedia.org/wikipedia/commons/4/45/COMPANY%281%29.png" width="55" style="border-radius:8px;">
+            MY BOX TV <span style="font-size:14px; color:#aaa;">MANAGER</span>
+        </h1>
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <button id="maint-btn" onclick="toggleMaintenance()" style="background:#444; font-size:12px;">
+                <i class="fas fa-tools"></i> MAINTENANCE
+            </button>
+            <span id="maint-display" class="maint-status">...</span>
+            <button onclick="downloadBackup()" style="background:#007bff; font-size:12px;">
+                <i class="fas fa-download"></i> BACKUP CSV
+            </button>
+            <button onclick="loadData()" style="background:#444; font-size:12px;">
+                <i class="fas fa-sync-alt"></i> ACTUALISER
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div id="stats-bar">
+        <div class="stat-card"><div class="stat-val" id="st-total">—</div><div class="stat-lbl">Abonnés total</div></div>
+        <div class="stat-card"><div class="stat-val" id="st-active">—</div><div class="stat-lbl">Actifs</div></div>
+        <div class="stat-card"><div class="stat-val" id="st-vie">—</div><div class="stat-lbl">À vie</div></div>
+        <div class="stat-card"><div class="stat-val" id="st-sources">—</div><div class="stat-lbl">Sources M3U</div></div>
+        <div class="stat-card"><div class="stat-val" id="st-chaines">—</div><div class="stat-lbl">Chaînes directes</div></div>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="showTab('users-section')"><i class="fas fa-users"></i> UTILISATEURS</button>
+        <button class="tab-btn" onclick="showTab('sources-section')"><i class="fas fa-link"></i> SOURCES M3U</button>
+        <button class="tab-btn" onclick="showTab('chaines-section')"><i class="fas fa-tv"></i> CHAÎNES DIRECTES</button>
+        <button class="tab-btn" onclick="showTab('message-section')"><i class="fas fa-bullhorn"></i> MESSAGE</button>
+        <button class="tab-btn" onclick="showTab('tarifs-section')"><i class="fas fa-tags"></i> ABONNEMENTS</button>
+        <button class="tab-btn" onclick="showTab('update-section')"><i class="fas fa-rocket"></i> MISES À JOUR</button>
+    </div>
+
+    <!-- ---- UTILISATEURS ---- -->
+    <div id="users-section" class="section active">
+        <div class="add-form">
+            <h3>Nouveau Client :</h3>
+            <input type="text" id="new-key" placeholder="ID (vide = auto)" style="width:180px;">
+            <select id="new-days">
+                <option value="30">30 Jours</option>
+                <option value="60">60 Jours</option>
+                <option value="90">3 Mois</option>
+                <option value="365">1 An</option>
+                <option value="VIE">À VIE</option>
+            </select>
+            <select id="new-screens">
+                <option value="1">1 Écran</option>
+                <option value="2">2 Écrans</option>
+                <option value="4">4 Écrans</option>
+                <option value="10">10 Écrans</option>
+                <option value="50">50 Écrans</option>
+            </select>
+            <input type="text" id="new-msg" placeholder="Message perso (opt.)" style="width:200px;">
+            <button onclick="addUser()"><i class="fas fa-plus"></i> CRÉER & PDF</button>
+        </div>
+        <table>
+            <thead>
+            <tr>
+                <th colspan="7" style="padding:8px 12px;background:#0a0a0a;border-bottom:1px solid #222;">
+                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                        <input type="text" id="sa-search" placeholder="🔍 Rechercher un ID client..." oninput="saFilter()"
+                            style="flex:1;min-width:160px;padding:7px 10px;background:#1a1a1a;border:1px solid #333;border-radius:7px;color:#fff;font-size:12px;outline:none;">
+                        <button onclick="saFilterStatus('all')"     id="sf-all"     style="padding:6px 10px;border-radius:7px;font-size:10px;font-weight:700;cursor:pointer;background:rgba(255,255,255,.1);border:1px solid #444;color:#aaa;font-family:'Exo 2',sans-serif;">TOUS</button>
+                        <button onclick="saFilterStatus('active')"  id="sf-active"  style="padding:6px 10px;border-radius:7px;font-size:10px;font-weight:700;cursor:pointer;background:rgba(46,204,113,.15);border:1px solid rgba(46,204,113,.3);color:#2ecc71;font-family:'Exo 2',sans-serif;">✅ ACTIFS</button>
+                        <button onclick="saFilterStatus('urgent')"  id="sf-urgent"  style="padding:6px 10px;border-radius:7px;font-size:10px;font-weight:700;cursor:pointer;background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.3);color:#ffd700;font-family:'Exo 2',sans-serif;">⚠️ URGENTS</button>
+                        <button onclick="saFilterStatus('expired')" id="sf-expired" style="padding:6px 10px;border-radius:7px;font-size:10px;font-weight:700;cursor:pointer;background:rgba(229,9,20,.15);border:1px solid rgba(229,9,20,.3);color:#ff6b6b;font-family:'Exo 2',sans-serif;">⛔ EXPIRÉS</button>
+                    </div>
+                </th>
+            </tr>
+            <tr><th>CLÉ</th><th>EXPIRATION</th><th>ÉCRANS</th><th>APPAREILS</th><th>DATE ACTIVATION</th><th>MESSAGE</th><th>ACTIONS</th></tr>
+        </thead>
+            <tbody id="users-body"></tbody>
+        </table>
+    </div>
+
+    <!-- ---- SOURCES M3U ---- -->
+    <div id="sources-section" class="section">
+        <div class="add-form">
+            <h3>Ajouter Source :</h3>
+            <input type="text" id="new-source-name" placeholder="Nom" style="width:200px;">
+            <input type="text" id="new-source-link" placeholder="https://..." style="width:420px;">
+            <button onclick="addSource()"><i class="fas fa-plus"></i> AJOUTER</button>
+        </div>
+        <table>
+            <thead><tr><th>#</th><th>NOM</th><th>LIEN</th><th>ACTIONS</th></tr></thead>
+            <tbody id="sources-body"></tbody>
+        </table>
+    </div>
+
+    <!-- ---- CHAÎNES DIRECTES ---- -->
+    <div id="chaines-section" class="section">
+        <div class="add-form">
+            <h3>Ajouter Chaîne :</h3>
+            <input type="text" id="new-ch-nom" placeholder="Nom" style="width:160px;">
+            <input type="text" id="new-ch-url" placeholder="https://... (flux)" style="width:340px;">
+            <input type="text" id="new-ch-groupe" placeholder="Groupe/Catégorie" style="width:160px;">
+            <select id="new-ch-statut">
+                <option value="OK">OK</option>
+                <option value="HS">HS</option>
+            </select>
+            <button onclick="addChaine()"><i class="fas fa-plus"></i> AJOUTER</button>
+        </div>
+        <table>
+            <thead><tr><th>NOM</th><th>URL</th><th>GROUPE</th><th>STATUT</th><th>ACTIONS</th></tr></thead>
+            <tbody id="chaines-body"></tbody>
+        </table>
+    </div>
+
+    <!-- ---- ABONNEMENTS / TARIFS ---- -->
+    <div id="tarifs-section" class="section">
+
+        <!-- Modal overlay -->
+        <div id="tarif-modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:500; align-items:center; justify-content:center;">
+            <div style="background:#1e1e1e; border:1px solid #333; border-radius:12px; padding:28px 30px; width:500px; max-width:95vw; position:relative;">
+                <h3 id="tarif-modal-title" style="margin:0 0 20px; color:#e50914; font-size:16px;"><i class="fas fa-tags"></i> NOUVEAU TARIF</h3>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div>
+                        <label style="font-size:11px; color:#888; display:block; margin-bottom:4px;">Label Écran</label>
+                        <input id="tf-label-ecran" type="text" placeholder="Ex: 1 Écran" style="width:100%;">
+                    </div>
+                    <div>
+                        <label style="font-size:11px; color:#888; display:block; margin-bottom:4px;">Label Durée</label>
+                        <input id="tf-label-duree" type="text" placeholder="Ex: 1 Mois" style="width:100%;">
+                    </div>
+                    <div>
+                        <label style="font-size:11px; color:#888; display:block; margin-bottom:4px;">Nb Écrans</label>
+                        <input id="tf-screens" type="number" min="1" placeholder="1" style="width:100%;">
+                    </div>
+                    <div>
+                        <label style="font-size:11px; color:#888; display:block; margin-bottom:4px;">Durée (jours)</label>
+                        <input id="tf-days" type="number" min="1" placeholder="30" style="width:100%;">
+                    </div>
+                    <div>
+                        <label style="font-size:11px; color:#888; display:block; margin-bottom:4px;">Prix normal (FCFA)</label>
+                        <input id="tf-prix" type="number" min="0" placeholder="300" style="width:100%;">
+                    </div>
+                    <div>
+                        <label style="font-size:11px; color:#888; display:block; margin-bottom:4px;">Prix promo (opt.)</label>
+                        <input id="tf-prix-promo" type="number" min="0" placeholder="Vide si aucun" style="width:100%;">
+                    </div>
+                    <div>
+                        <label style="font-size:11px; color:#888; display:block; margin-bottom:4px;">Badge texte (opt.)</label>
+                        <input id="tf-badge" type="text" placeholder="Ex: - 75%" style="width:100%;">
+                    </div>
+                    <div>
+                        <label style="font-size:11px; color:#888; display:block; margin-bottom:4px;">Couleur badge</label>
+                        <div style="display:flex; gap:6px; align-items:center;">
+                            <input id="tf-badge-color" type="color" value="#e50914" style="width:46px; height:38px; padding:2px; border-radius:5px; cursor:pointer; border:1px solid #444; background:#222;">
+                            <input id="tf-badge-color-text" type="text" value="#e50914" placeholder="#e50914" style="flex:1;" oninput="document.getElementById('tf-badge-color').value=this.value">
+                        </div>
+                    </div>
+                    <div>
+                        <label style="font-size:11px; color:#888; display:block; margin-bottom:4px;">Ordre d'affichage</label>
+                        <input id="tf-ordre" type="number" min="0" placeholder="10" style="width:100%;">
+                    </div>
+                    <div style="display:flex; align-items:flex-end;">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; padding-bottom:8px;">
+                            <input id="tf-actif" type="checkbox" checked style="width:16px; height:16px; accent-color:#e50914; cursor:pointer;">
+                            <span style="font-size:13px; color:#ccc;">Tarif actif</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:10px; margin-top:22px; justify-content:flex-end;">
+                    <button onclick="closeTarifModal()" style="background:#333; padding:10px 22px;">Annuler</button>
+                    <button id="tarif-save-btn" onclick="saveTarif()" style="padding:10px 26px;"><i class="fas fa-save"></i> SAUVEGARDER</button>
+                </div>
+
+                <input type="hidden" id="tf-edit-id" value="">
+            </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+            <div style="color:#666; font-size:13px;"><i class="fas fa-info-circle"></i> Gérez les offres visibles sur la page d'accueil.</div>
+            <button onclick="openTarifModal()" style="font-size:13px;"><i class="fas fa-plus"></i> NOUVEAU TARIF</button>
+        </div>
+
+        <!-- Cards grid -->
+        <div id="tarifs-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px; margin-bottom:20px;"></div>
+
+        <!-- Table view -->
+        <table>
+            <thead><tr><th>ID</th><th>OFFRE</th><th>ÉCRANS</th><th>JOURS</th><th>PRIX</th><th>PROMO</th><th>BADGE</th><th>ORDRE</th><th>ACTIF</th><th>ACTIONS</th></tr></thead>
+            <tbody id="tarifs-body"></tbody>
+        </table>
+    </div>
+
+    <!-- ---- MESSAGE ---- -->
+    <div id="message-section" class="section">
+        <div style="background:#1e1e1e; border:1px solid #2e2e2e; padding:24px; border-radius:10px; max-width:600px;">
+            <h3 style="margin-top:0; color:#aaa;"><i class="fas fa-bullhorn"></i> Message d'accueil global</h3>
+            <p style="font-size:12px; color:#555;">Affiché à tous les utilisateurs au démarrage. Laisser vide pour désactiver.</p>
+            <input type="text" id="global-msg-input" style="width:100%; padding:14px; box-sizing:border-box;" placeholder="Ex: Maintenance prévue ce soir à 22h...">
+            <button onclick="saveMessage()" style="width:100%; margin-top:12px; padding:13px;">
+                <i class="fas fa-save"></i> METTRE À JOUR
+            </button>
+        </div>
+    </div>
+
+    <!-- ---- MISES À JOUR APP ---- -->
+    <div id="update-section" class="section">
+
+        <!-- Stats -->
+        <div class="upd-stats">
+            <div class="upd-stat"><div class="upd-stat-val" id="upd-stat-version">—</div><div class="upd-stat-lbl">VERSION ACTUELLE</div></div>
+            <div class="upd-stat"><div class="upd-stat-val" id="upd-stat-total">—</div><div class="upd-stat-lbl">VERSIONS PUBLIÉES</div></div>
+            <div class="upd-stat"><div class="upd-stat-val" id="upd-stat-size">—</div><div class="upd-stat-lbl">TAILLE ACTUELLE</div></div>
+        </div>
+
+        <!-- Publier -->
+        <div class="upd-card">
+            <div class="upd-card-title"><i class="fas fa-upload"></i> PUBLIER UNE NOUVELLE VERSION</div>
+
+            <div class="upd-form-row">
+                <div>
+                    <label>NUMÉRO DE VERSION</label>
+                    <input type="text" id="new-version" placeholder="ex: 2.0, 1.5.1, 20240315">
+                </div>
+                <div>
+                    <label>NOTE DE MISE À JOUR (optionnel)</label>
+                    <input type="text" id="release-note" placeholder="ex: Correction bug PiP + autoplay son">
+                </div>
+            </div>
+
+            <div style="font-size:10px;color:#666;letter-spacing:1px;margin-bottom:6px;">CODE HTML COMPLET DE L'APPLICATION</div>
+            <textarea id="code-input" placeholder="Collez ici le code HTML complet de index.html..." oninput="onCodeChange()"></textarea>
+            <div id="code-info-upd">
+                <span id="code-lines">0 lignes</span>
+                <span id="code-size">0 Ko</span>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-top:12px;">
+                <button onclick="loadCurrentCode()" style="flex:1;padding:10px;background:#333;color:#aaa;border:none;border-radius:6px;cursor:pointer;font-size:12px;">
+                    <i class="fas fa-download"></i> Charger version actuelle
+                </button>
+                <button onclick="clearCode()" style="padding:10px 16px;background:#333;color:#aaa;border:none;border-radius:6px;cursor:pointer;font-size:12px;">
+                    <i class="fas fa-times"></i> Vider
+                </button>
+            </div>
+
+            <button id="btn-publish-upd" onclick="publishUpdate()">
+                <i class="fas fa-rocket"></i> PUBLIER LA MISE À JOUR
+            </button>
+            <div id="publish-msg-upd"></div>
+        </div>
+
+        <!-- Historique -->
+        <div class="upd-card">
+            <div class="upd-card-title"><i class="fas fa-history"></i> HISTORIQUE DES VERSIONS</div>
+            <div id="history-list">
+                <div style="text-align:center;color:#444;padding:16px;font-size:12px;">Chargement...</div>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /#dashboard -->
+
+<!-- Toast -->
+
+<div id="toast" class="toast"></div>
+
+<script>
+// =====================================================
+// SUPABASE CONFIG
+// =====================================================
+const SUPABASE_URL = "https://yvcdadenofftnbljutwk.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2Y2RhZGVub2ZmdG5ibGp1dHdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NzQ0ODIsImV4cCI6MjA4ODQ1MDQ4Mn0.xqJzLpQszFmph599FBIvdE7NF88_i-JkABG-aSrAndE";
+const ADMIN_PASSWORD = "ADMIN1234";
+
+const SB_HEADERS = {
+    'apikey': SUPABASE_KEY,
+    'Authorization': 'Bearer ' + SUPABASE_KEY,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation'
+};
+
+// =====================================================
+// HELPERS SUPABASE
+// =====================================================
+async function sbGet(table, params) {
+    const q = params ? '?' + params : '';
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}${q}`, { headers: SB_HEADERS });
+    if (!res.ok) throw new Error(await res.text());
+    return await res.json();
+}
+async function sbInsert(table, body) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+        method: 'POST', headers: SB_HEADERS, body: JSON.stringify(body)
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return await res.json();
+}
+async function sbPatch(table, filter, body) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filter}`, {
+        method: 'PATCH', headers: SB_HEADERS, body: JSON.stringify(body)
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return res;
+}
+async function sbDelete(table, filter) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filter}`, {
+        method: 'DELETE', headers: SB_HEADERS
+    });
+    if (!res.ok) throw new Error(await res.text());
+}
+
+// =====================================================
+// TOAST
+// =====================================================
+let _toastT;
+function toast(msg, color='#eee') {
+    const el = document.getElementById('toast');
+    el.innerText = msg; el.style.color = color; el.classList.add('show');
+    clearTimeout(_toastT);
+    _toastT = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+// =====================================================
+// LOGIN
+// =====================================================
+function adminLogin() {
+    const pass  = document.getElementById('admin-pass').value;
+    const errEl = document.getElementById('login-error');
+    if (pass === ADMIN_PASSWORD) {
+        errEl.innerText = '';
+        document.getElementById('login-overlay').style.display = 'none';
+        document.getElementById('dashboard').style.display     = 'block';
+        loadData();
+    } else {
+        errEl.innerText = '❌ Mot de passe incorrect';
+        document.getElementById('admin-pass').style.borderColor = 'red';
+        setTimeout(() => {
+            errEl.innerText = '';
+            document.getElementById('admin-pass').style.borderColor = '';
+        }, 2500);
+    }
+}
+
+// Attacher les événements via addEventListener (plus fiable que onclick inline)
+document.addEventListener('DOMContentLoaded', function() {
+    var btn = document.getElementById('btn-login');
+    if (btn) btn.addEventListener('click', adminLogin);
+
+    var inp = document.getElementById('admin-pass');
+    if (inp) inp.addEventListener('keyup', function(e) {
+        if (e.key === 'Enter') adminLogin();
+    });
+});
+
+// =====================================================
+// LOAD DATA
+// =====================================================
+var globalUsers = [], globalSources = [], globalChaines = [];
+
+async function loadData() {
+    try {
+        var results = await Promise.all([
+            sbGet('utilisateurs', 'select=*&order=date_activation.desc'),
+            sbGet('sources', 'select=*&order=id.asc'),
+            sbGet('chaines', 'select=*&order=nom.asc'),
+            sbGet('config', 'id=eq.1&select=maintenance,message_accueil')
+        ]);
+        globalUsers   = results[0] || [];
+        globalSources = results[1] || [];
+        globalChaines = results[2] || [];
+        var cfg = results[3];
+
+        // STATS
+        var total  = globalUsers.length;
+        function _calcLeft(u) {
+            if (!u) return 0;
+            if (u.duree === 'VIE') return 9999;
+            var total = parseInt(u.duree) || 0;
+            if (!u.date_activation) return total;
+            var act = new Date(u.date_activation); var today = new Date();
+            act.setHours(0,0,0,0); today.setHours(0,0,0,0);
+            return Math.max(0, total - Math.floor((today - act) / 86400000));
+        }
+        var vie    = globalUsers.filter(function(u){ return u.duree === 'VIE'; }).length;
+        var active = globalUsers.filter(function(u){ return _calcLeft(u) > 0; }).length;
+        var urgent = globalUsers.filter(function(u){ var d=_calcLeft(u); return d > 0 && d <= 7 && u.duree !== 'VIE'; }).length;
+        var expired= globalUsers.filter(function(u){ return _calcLeft(u) <= 0 && u.duree !== 'VIE'; }).length;
+        document.getElementById('st-total').innerText   = total;
+        document.getElementById('st-active').innerText  = active;
+        document.getElementById('st-vie').innerText     = vie;
+        document.getElementById('st-sources').innerText = globalSources.length;
+        document.getElementById('st-chaines').innerText = globalChaines.length;
+
+        // MAINTENANCE
+        if (cfg && cfg[0]) {
+            var on = cfg[0].maintenance === true;
+            var el = document.getElementById('maint-display');
+            el.innerText = on ? 'ACTIF ⛔' : 'INACTIF ✅';
+            el.className = 'maint-status ' + (on ? 'maint-on' : 'maint-off');
+            var msgInput = document.getElementById('global-msg-input');
+            if (msgInput) msgInput.value = cfg[0].message_accueil || '';
+        }
+
+        // USERS TABLE
+        var tbody = document.getElementById('users-body');
+        tbody.innerHTML = '';
+        globalUsers.forEach(function(u) {
+            var devCount = u.appareils ? u.appareils.split(',').filter(function(d){ return d.trim(); }).length : 0;
+            var isVie    = u.duree === 'VIE';
+            var daysLeft = isVie ? 9999 : (function(){
+                var total = parseInt(u.duree) || 0;
+                if (!u.date_activation) return total;
+                var act   = new Date(u.date_activation);
+                var today = new Date();
+                act.setHours(0,0,0,0); today.setHours(0,0,0,0);
+                return Math.max(0, total - Math.floor((today - act) / 86400000));
+            })();
+            var days     = isVie ? '∞' : daysLeft;
+            var badgeCls = isVie ? 'badge-vie' : daysLeft > 7 ? 'badge-active' : daysLeft > 0 ? 'badge-urgent' : 'badge-exp';
+            var badgeTxt = isVie ? 'À VIE' : daysLeft > 0 ? daysLeft + 'j' : 'EXPIRÉ';
+            var cle      = esc(u.cle);
+            var msg      = esc(u.message || '');
+            var scr      = u.max_ecrans || 1;
+            var statusKey = isVie ? 'active' : daysLeft <= 0 ? 'expired' : daysLeft <= 7 ? 'urgent' : 'active';
+            var tr = document.createElement('tr');
+            tr.dataset.status = statusKey;
+            tr.innerHTML =
+                '<td style="font-weight:700;color:white;font-family:monospace;letter-spacing:1px;">' + cle + '</td>' +
+                '<td><span class="' + badgeCls + '">' + badgeTxt + '</span></td>' +
+                '<td>' + scr + '</td>' +
+                '<td style="color:#666;font-size:12px;">' + devCount + ' / ' + scr + ' connecté(s)</td>' +
+                '<td style="font-size:11px;' + (daysLeft<=0&&!isVie?' color:#ff6b6b;font-weight:700;':daysLeft<=7&&!isVie?' color:#ffd700;font-weight:700;':' color:#555;') + '">' +
+                (isVie ? '♾️ À vie' : daysLeft <= 0 ? '⛔ Expiré' : daysLeft === 1 ? '⚠️ Demain' : '✅ ' + daysLeft + 'j') +
+                '<br><small style="color:#333;font-size:9px;">' + (u.date_activation||'') + '</small></td>' +
+                '<td style="color:#aaa;font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + msg + '">' + (msg || '—') + '</td>' +
+                '<td style="white-space:nowrap;">' +
+                    '<button class="action-btn btn-pdf"  onclick="generatePDF(\'' + cle + '\',\'' + u.duree + '\',\'' + scr + '\')" title="PDF"><i class="fas fa-file-pdf"></i></button> ' +
+                    '<button class="action-btn btn-edit" onclick="editUser(\'' + cle + '\',\'' + u.duree + '\',\'' + scr + '\',\'' + msg + '\')" title="Modifier"><i class="fas fa-edit"></i></button> ' +
+                    '<button class="action-btn btn-rst"  onclick="resetDevices(\'' + cle + '\')" title="Reset appareils"><i class="fas fa-unlock"></i></button> ' +
+                    '<button class="action-btn btn-del"  onclick="deleteUser(\'' + cle + '\')" title="Supprimer"><i class="fas fa-trash"></i></button>' +
+                '</td>';
+            tbody.appendChild(tr);
+        });
+
+        // SOURCES TABLE
+        var sBo = document.getElementById('sources-body');
+        sBo.innerHTML = '';
+        globalSources.forEach(function(s) {
+            var tr = document.createElement('tr');
+            tr.innerHTML =
+                '<td style="color:#555;font-size:12px;">' + s.id + '</td>' +
+                '<td style="font-weight:600;">' + esc(s.nom) + '</td>' +
+                '<td style="color:#666;font-size:11px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + esc(s.lien) + '">' + esc(s.lien) + '</td>' +
+                '<td><button class="action-btn btn-del" onclick="deleteSource(' + s.id + ')"><i class="fas fa-trash"></i></button></td>';
+            sBo.appendChild(tr);
+        });
+
+        // CHAÎNES TABLE
+        var cBo = document.getElementById('chaines-body');
+        cBo.innerHTML = '';
+        globalChaines.forEach(function(c) {
+            var statColor = c.statut === 'OK' ? '#2ecc71' : '#ff4444';
+            var tr = document.createElement('tr');
+            tr.innerHTML =
+                '<td style="font-weight:600;">' + esc(c.nom) + '</td>' +
+                '<td style="color:#666;font-size:11px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + esc(c.url_flux) + '">' + esc(c.url_flux) + '</td>' +
+                '<td><span style="background:rgba(255,255,255,.07);padding:2px 8px;border-radius:10px;font-size:11px;">' + esc(c.groupe||'—') + '</span></td>' +
+                '<td><span style="color:' + statColor + ';font-weight:700;font-size:12px;">' + esc(c.statut||'—') + '</span></td>' +
+                '<td>' +
+                    '<button class="action-btn btn-edit" onclick="editChaine(\'' + c.id + '\',\'' + esc(c.nom) + '\',\'' + esc(c.url_flux) + '\',\'' + esc(c.groupe||'') + '\',\'' + (c.statut||'OK') + '\')"><i class="fas fa-edit"></i></button> ' +
+                    '<button class="action-btn btn-del"  onclick="deleteChaine(\'' + c.id + '\')"><i class="fas fa-trash"></i></button>' +
+                '</td>';
+            cBo.appendChild(tr);
+        });
+
+        loadTarifs();
+
+    } catch(e) {
+        toast('❌ Erreur chargement : ' + e.message, '#ff6b6b');
+        console.error(e);
+    }
+}
+
+// XSS safety
+function esc(s) { var s2=String(s||''); s2=s2.replace(/"/g,'&quot;'); s2=s2.replace(/\x3C/g,'&lt;'); s2=s2.replace(/\x3E/g,'&gt;'); return s2; }
+
+// =====================================================
+// UTILISATEURS
+// =====================================================
+async function addUser() {
+    let key = document.getElementById('new-key').value.trim().toUpperCase();
+    if (!key) {
+        const c = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        let r = "";
+        for (let i = 0; i < 6; i++) r += c.charAt(Math.floor(Math.random() * c.length));
+        key = "BOX-" + r;
+    }
+    const days    = document.getElementById('new-days').value;
+    const screens = parseInt(document.getElementById('new-screens').value);
+    const msg     = document.getElementById('new-msg').value.trim();
+
+    if (!confirm('Créer l\'abonnement "' + key + '" (' + days + ' j / ' + screens + ' écran(s)) ?')) return;
+
+    try {
+        await sbInsert('utilisateurs', {
+            cle:              key,
+            duree:            days,
+            appareils:        '',
+            date_activation:  new Date().toISOString().split('T')[0],
+            max_ecrans:       screens,
+            message:          msg
+        });
+        toast('✅ Abonné ' + key + ' créé !', '#2ecc71');
+        generatePDF(key, days, screens);
+        document.getElementById('new-key').value  = '';
+        document.getElementById('new-msg').value  = '';
+        loadData();
+    } catch(e) {
+        toast('❌ ' + e.message, '#ff6b6b');
+    }
+}
+
+async function deleteUser(k) {
+    if (!confirm('Supprimer l\'abonné "' + k + '" définitivement ?')) return;
+    try {
+        await sbDelete('utilisateurs', 'cle=eq.' + encodeURIComponent(k));
+        toast('🗑 Abonné supprimé', '#ff6b6b');
+        loadData();
+    } catch(e) { toast('❌ ' + e.message, '#ff6b6b'); }
+}
+
+async function editUser(k, oldD, oldS, oldMsg) {
+    const d   = prompt('Durée (jours ou VIE) :', oldD);   if (d === null) return;
+    const s   = prompt('Nb écrans :', oldS);               if (s === null) return;
+    const msg = prompt('Message perso (opt.) :', oldMsg);  if (msg === null) return;
+    try {
+        await sbPatch('utilisateurs', 'cle=eq.' + encodeURIComponent(k), {
+            duree: parseInt(d) || d, max_ecrans: parseInt(s), message: msg
+        });
+        toast('✅ Abonné modifié', '#2ecc71');
+        loadData();
+    } catch(e) { toast('❌ ' + e.message, '#ff6b6b'); }
+}
+
+async function resetDevices(k) {
+    if (!confirm('Réinitialiser les appareils de "' + k + '" ?')) return;
+    try {
+        await sbPatch('utilisateurs', 'cle=eq.' + encodeURIComponent(k), { appareils: '' });
+        toast('🔓 Appareils réinitialisés', '#2ecc71');
+        loadData();
+    } catch(e) { toast('❌ ' + e.message, '#ff6b6b'); }
+}
+
+// =====================================================
+// SOURCES M3U
+// =====================================================
+async function addSource() {
+    const n = document.getElementById('new-source-name').value.trim();
+    const l = document.getElementById('new-source-link').value.trim();
+    if (!l) { toast('⚠️ Entrez un lien', '#ffd700'); return; }
+    try {
+        await sbInsert('sources', { nom: n || 'Source', lien: l });
+        toast('✅ Source ajoutée', '#2ecc71');
+        document.getElementById('new-source-name').value = '';
+        document.getElementById('new-source-link').value = '';
+        loadData();
+    } catch(e) { toast('❌ ' + e.message, '#ff6b6b'); }
+}
+
+async function deleteSource(id) {
+    if (!confirm('Supprimer cette source ?')) return;
+    try {
+        await sbDelete('sources', 'id=eq.' + id);
+        toast('🗑 Source supprimée', '#ff6b6b');
+        loadData();
+    } catch(e) { toast('❌ ' + e.message, '#ff6b6b'); }
+}
+
+// =====================================================
+// CHAÎNES DIRECTES
+// =====================================================
+async function addChaine() {
+    const nom    = document.getElementById('new-ch-nom').value.trim();
+    const url    = document.getElementById('new-ch-url').value.trim();
+    const groupe = document.getElementById('new-ch-groupe').value.trim();
+    const statut = document.getElementById('new-ch-statut').value;
+    if (!nom || !url) { toast('⚠️ Nom et URL obligatoires', '#ffd700'); return; }
+    try {
+        await sbInsert('chaines', { nom, url_flux: url, groupe: groupe || 'Général', statut });
+        toast('✅ Chaîne ajoutée', '#2ecc71');
+        document.getElementById('new-ch-nom').value    = '';
+        document.getElementById('new-ch-url').value    = '';
+        document.getElementById('new-ch-groupe').value = '';
+        loadData();
+    } catch(e) { toast('❌ ' + e.message, '#ff6b6b'); }
+}
+
+async function editChaine(id, oldNom, oldUrl, oldGroupe, oldStatut) {
+    const nom    = prompt('Nom :', oldNom);    if (nom === null) return;
+    const url    = prompt('URL flux :', oldUrl); if (url === null) return;
+    const groupe = prompt('Groupe :', oldGroupe); if (groupe === null) return;
+    const statut = prompt('Statut (OK / HS) :', oldStatut); if (statut === null) return;
+    try {
+        await sbPatch('chaines', 'id=eq.' + id, { nom, url_flux: url, groupe, statut: statut.toUpperCase() });
+        toast('✅ Chaîne modifiée', '#2ecc71');
+        loadData();
+    } catch(e) { toast('❌ ' + e.message, '#ff6b6b'); }
+}
+
+async function deleteChaine(id) {
+    if (!confirm('Supprimer cette chaîne ?')) return;
+    try {
+        await sbDelete('chaines', 'id=eq.' + id);
+        toast('🗑 Chaîne supprimée', '#ff6b6b');
+        loadData();
+    } catch(e) { toast('❌ ' + e.message, '#ff6b6b'); }
+}
+
+// =====================================================
+// MESSAGE D'ACCUEIL
+// =====================================================
+async function saveMessage() {
+    const msg = document.getElementById('global-msg-input').value.trim();
+    try {
+        await sbPatch('config', 'id=eq.1', { message_accueil: msg });
+        toast('✅ Message mis à jour', '#2ecc71');
+    } catch(e) { toast('❌ ' + e.message, '#ff6b6b'); }
+}
+
+// =====================================================
+// MAINTENANCE
+// =====================================================
+async function toggleMaintenance() {
+    const current = document.getElementById('maint-display').innerText.includes('ACTIF');
+    const newState = !current;
+    if (!confirm('Passer la maintenance à ' + (newState ? 'ON ⛔' : 'OFF ✅') + ' ?')) return;
+    try {
+        await sbPatch('config', 'id=eq.1', { maintenance: newState });
+        toast('Maintenance ' + (newState ? 'activée ⛔' : 'désactivée ✅'), newState ? '#ff6b6b' : '#2ecc71');
+        loadData();
+    } catch(e) { toast('❌ ' + e.message, '#ff6b6b'); }
+}
+
+// =====================================================
+// BACKUP CSV
+// =====================================================
+function downloadBackup() {
+    if (!globalUsers.length) { toast('⚠️ Aucune donnée', '#ffd700'); return; }
+    let csv = "CLE,DUREE,APPAREILS,DATE_ACTIVATION,MAX_ECRANS,MESSAGE\n";
+    globalUsers.forEach(u => {
+        csv += [u.cle, u.duree, u.appareils || '', u.date_activation || '', u.max_ecrans || 1, u.message || '']
+            .map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',') + '\n';
+    });
+    const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'backup_myboxtv_' + new Date().toISOString().slice(0,10) + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('💾 Backup téléchargé', '#2ecc71');
+}
+
+// =====================================================
+// TARIFS / ABONNEMENTS
+// =====================================================
+let globalTarifs = [];
+
+function openTarifModal(tarif) {
+    document.getElementById('tf-edit-id').value       = tarif ? tarif.id    : '';
+    document.getElementById('tf-label-ecran').value   = tarif ? tarif.label_ecran  : '';
+    document.getElementById('tf-label-duree').value   = tarif ? tarif.label_duree  : '';
+    document.getElementById('tf-screens').value       = tarif ? tarif.screens      : '';
+    document.getElementById('tf-days').value          = tarif ? tarif.days         : '';
+    document.getElementById('tf-prix').value          = tarif ? tarif.prix         : '';
+    document.getElementById('tf-prix-promo').value    = tarif && tarif.prix_promo  ? tarif.prix_promo : '';
+    document.getElementById('tf-badge').value         = tarif ? (tarif.badge || '') : '';
+    const color = (tarif && tarif.badge_color) ? tarif.badge_color : '#e50914';
+    document.getElementById('tf-badge-color').value   = color;
+    document.getElementById('tf-badge-color-text').value = color;
+    document.getElementById('tf-ordre').value         = tarif ? tarif.ordre        : '10';
+    document.getElementById('tf-actif').checked       = tarif ? tarif.actif        : true;
+    document.getElementById('tarif-modal-title').innerHTML = tarif
+        ? '<i class="fas fa-edit"></i> MODIFIER LE TARIF'
+        : '<i class="fas fa-plus"></i> NOUVEAU TARIF';
+    document.getElementById('tarif-modal-overlay').classList.add('open');
+    // sync color picker → text
+    document.getElementById('tf-badge-color').addEventListener('input', function(){
+        document.getElementById('tf-badge-color-text').value = this.value;
+    });
+}
+
+function closeTarifModal() {
+    document.getElementById('tarif-modal-overlay').classList.remove('open');
+}
+
+async function saveTarif() {
+    const id         = document.getElementById('tf-edit-id').value;
+    const label_ecran = document.getElementById('tf-label-ecran').value.trim();
+    const label_duree = document.getElementById('tf-label-duree').value.trim();
+    const screens    = parseInt(document.getElementById('tf-screens').value);
+    const days       = parseInt(document.getElementById('tf-days').value);
+    const prix       = parseInt(document.getElementById('tf-prix').value);
+    const promoRaw   = document.getElementById('tf-prix-promo').value.trim();
+    const prix_promo = promoRaw ? parseInt(promoRaw) : null;
+    const badge      = document.getElementById('tf-badge').value.trim() || null;
+    const badge_color= document.getElementById('tf-badge-color-text').value.trim() || '#e50914';
+    const ordre      = parseInt(document.getElementById('tf-ordre').value) || 10;
+    const actif      = document.getElementById('tf-actif').checked;
+
+    if (!label_ecran || !label_duree || !screens || !days || !prix) {
+        toast('⚠️ Champs obligatoires manquants', '#ffd700'); return;
+    }
+    const payload = { screens, days, label_ecran, label_duree, prix, prix_promo, badge, badge_color, actif, ordre };
+
+    try {
+        if (id) {
+            await sbPatch('tarifs', 'id=eq.' + id, payload);
+            toast('✅ Tarif modifié', '#2ecc71');
+        } else {
+            await sbInsert('tarifs', payload);
+            toast('✅ Tarif ajouté', '#2ecc71');
+        }
+        closeTarifModal();
+        await loadTarifs();
+    } catch(e) { toast('❌ ' + e.message, '#ff6b6b'); }
+}
+
+async function deleteTarif(id) {
+    if (!confirm('Supprimer ce tarif définitivement ?')) return;
+    try {
+        await sbDelete('tarifs', 'id=eq.' + id);
+        toast('🗑 Tarif supprimé', '#ff6b6b');
+        await loadTarifs();
+    } catch(e) { toast('❌ ' + e.message, '#ff6b6b'); }
+}
+
+async function toggleTarifActif(tarif) {
+    try {
+        await sbPatch('tarifs', 'id=eq.' + tarif.id, { actif: !tarif.actif });
+        toast((!tarif.actif ? '✅ Tarif activé' : '⛔ Tarif désactivé'), '#2ecc71');
+        await loadTarifs();
+    } catch(e) { toast('❌ ' + e.message, '#ff6b6b'); }
+}
+
+async function loadTarifs() {
+    try {
+        globalTarifs = await sbGet('tarifs', 'select=*&order=ordre.asc');
+        renderTarifs();
+    } catch(e) { toast('⚠️ Tarifs : ' + e.message, '#ffd700'); }
+}
+
+function renderTarifs() {
+    // --- Cards ---
+    var grid = document.getElementById('tarifs-grid');
+    grid.innerHTML = '';
+    globalTarifs.forEach(function(t) {
+        var hasBadge  = t.badge && t.badge.trim();
+        var hasPromo  = t.prix_promo !== null && t.prix_promo !== undefined;
+        var priceShow = hasPromo ? t.prix_promo : t.prix;
+        var card = document.createElement('div');
+        card.className = 'tarif-card' + (t.actif ? '' : ' inactive');
+        var html = '';
+        if (hasBadge) html += '<span class="card-badge" style="background:' + esc(t.badge_color||'#e50914') + ';">' + esc(t.badge) + '</span>';
+        html += '<div style="font-size:12px;color:#666;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">' + esc(t.label_ecran) + ' — ' + esc(t.label_duree) + '</div>';
+        if (hasPromo) html += '<div class="card-price-old">' + Number(t.prix).toLocaleString('fr') + ' FCFA</div>';
+        html += '<div class="card-price">' + Number(priceShow).toLocaleString('fr') + ' <span style="font-size:14px;color:#888;">FCFA</span></div>';
+        html += '<div class="card-label">' + t.screens + ' écran(s) — ' + t.days + ' jours</div>';
+        html += '<div class="card-actions">';
+        html += '<button class="action-btn btn-edit" onclick="openTarifModal(globalTarifs.find(function(x){return x.id===' + t.id + '}))" title="Modifier"><i class="fas fa-edit"></i></button>';
+        html += '<button class="tf-toggle-btn" onclick="toggleTarifActif(globalTarifs.find(function(x){return x.id===' + t.id + '}))">' + (t.actif ? '<i class="fas fa-eye-slash"></i> Désactiver' : '<i class="fas fa-eye"></i> Activer') + '</button>';
+        html += '<button class="action-btn btn-del" onclick="deleteTarif(' + t.id + ')" title="Supprimer"><i class="fas fa-trash"></i></button>';
+        html += '</div>';
+        card.innerHTML = html;
+        grid.appendChild(card);
+    });
+
+    // --- Table ---
+    var tbody = document.getElementById('tarifs-body');
+    tbody.innerHTML = '';
+    globalTarifs.forEach(function(t) {
+        var hasPromo = t.prix_promo !== null && t.prix_promo !== undefined;
+        var tr = document.createElement('tr');
+        var badgeCell = t.badge
+            ? '<span style="background:' + esc(t.badge_color||'#e50914') + ';padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;">' + esc(t.badge) + '</span>'
+            : '<span style="color:#444">—</span>';
+        tr.innerHTML =
+            '<td style="color:#555;font-size:12px;">' + t.id + '</td>' +
+            '<td style="font-weight:700;">' + esc(t.label_ecran) + ' <span style="color:#666;font-weight:400;">/ ' + esc(t.label_duree) + '</span></td>' +
+            '<td>' + t.screens + '</td>' +
+            '<td>' + t.days + '</td>' +
+            '<td style="font-weight:700;color:#fff;">' + Number(t.prix).toLocaleString('fr') + ' FCFA</td>' +
+            '<td style="color:#e50914;">' + (hasPromo ? Number(t.prix_promo).toLocaleString('fr') + ' FCFA' : '<span style="color:#444">—</span>') + '</td>' +
+            '<td>' + badgeCell + '</td>' +
+            '<td style="color:#666;">' + t.ordre + '</td>' +
+            '<td><span style="color:' + (t.actif?'#2ecc71':'#ff4444') + ';font-weight:700;font-size:12px;">' + (t.actif?'✅ OUI':'⛔ NON') + '</span></td>' +
+            '<td style="white-space:nowrap;">' +
+                '<button class="action-btn btn-edit" onclick="openTarifModal(globalTarifs.find(function(x){return x.id===' + t.id + '}))" title="Modifier"><i class="fas fa-edit"></i></button>' +
+                '<button class="action-btn btn-del" onclick="deleteTarif(' + t.id + ')" title="Supprimer"><i class="fas fa-trash"></i></button>' +
+            '</td>';
+        tbody.appendChild(tr);
+    });
+}
+
+function showTab(id) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    event.currentTarget.classList.add('active');
+}
+
+// =====================================================
+// PDF GENERATOR (identique à l'original)
+// =====================================================
+function generatePDF(key, days, screens) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('fr-FR') + ' à ' + now.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+
+    doc.setFillColor(20, 20, 20); doc.rect(0, 0, 210, 42, 'F');
+    doc.setTextColor(255,255,255); doc.setFontSize(28); doc.setFont("helvetica","bold");
+    doc.text("MY BOX TV", 105, 20, null, null, "center");
+    doc.setFontSize(12); doc.setTextColor(229,9,20);
+    doc.text("CERTIFICAT D'ABONNEMENT", 105, 31, null, null, "center");
+    doc.setFontSize(9); doc.setTextColor(150,150,150);
+    doc.text("Émis le " + dateStr, 105, 39, null, null, "center");
+
+    doc.setTextColor(0,0,0); doc.setFontSize(14); doc.setFont("helvetica","normal");
+    doc.text("VOTRE ID DE CONNEXION :", 105, 60, null, null, "center");
+    doc.setFillColor(240,240,240); doc.setDrawColor(229,9,20); doc.setLineWidth(1.5); doc.rect(35, 65, 140, 27, 'FD');
+    doc.setFont("courier","bold"); doc.setFontSize(30); doc.setTextColor(229,9,20);
+    doc.text(key, 105, 83, null, null, "center");
+
+    doc.setFont("helvetica","normal"); doc.setTextColor(0,0,0); doc.setFontSize(12); doc.setLineWidth(0.1);
+    doc.text("VALIDITÉ : " + days + " Jours", 45, 106);
+    doc.text("ÉCRANS : " + screens, 125, 106);
+    doc.setDrawColor(200,200,200); doc.line(20, 115, 190, 115);
+
+    doc.setFontSize(14); doc.setFont("helvetica","bold"); doc.text("INSTRUCTIONS D'ACCÈS", 20, 128);
+    doc.setFontSize(11); doc.setFont("helvetica","normal");
+    doc.text("1. Connectez votre appareil à Internet.", 22, 140);
+    doc.text("2. Ouvrez l'application MY BOX TV.", 22, 150);
+    doc.text("3. Entrez votre ID ci-dessus dans le champ de connexion.", 22, 160);
+    doc.text("4. Profitez de +14.000 chaînes en HD/4K !", 22, 170);
+    doc.line(20, 180, 190, 180);
+
+    doc.setFontSize(9); doc.setTextColor(130,130,130); doc.setFont("helvetica","italic");
+    doc.text("Conservez précieusement cet ID. Ne le partagez pas. Valide sur " + screens + " appareil(s) simultané(s).", 105, 190, null, null, "center");
+
+    doc.setFillColor(245,245,245); doc.rect(0, 255, 210, 45, 'F');
+    doc.setTextColor(229,9,20); doc.setFontSize(12); doc.setFont("helvetica","bold");
+    doc.text("SUPPORT TECHNIQUE — WHATSAPP", 105, 268, null, null, "center");
+    doc.setTextColor(0,0,0); doc.setFont("helvetica","normal"); doc.setFontSize(14);
+    doc.text("63 82 87 67", 105, 280, null, null, "center");
+    doc.setFontSize(9); doc.setTextColor(150,150,150);
+    doc.text("www.myboxtv.com  —  Merci de votre confiance !", 105, 291, null, null, "center");
+}
+
+// =====================================================
+// UPDATER — MISES À JOUR APP
+// =====================================================
+function onCodeChange() {
+    const code  = document.getElementById('code-input').value;
+    const lines = code.split('\n').length;
+    const kb    = (new Blob([code]).size / 1024).toFixed(1);
+    document.getElementById('code-lines').innerText = lines.toLocaleString() + ' lignes';
+    document.getElementById('code-size').innerText  = kb + ' Ko';
+    document.getElementById('code-size').style.color = kb < 50 ? '#ffd700' : kb > 5000 ? '#e50914' : '#2ecc71';
+    // Auto-version
+    if (!document.getElementById('new-version').value.trim()) {
+        const n = new Date();
+        document.getElementById('new-version').value =
+            n.getFullYear() + '.' + String(n.getMonth()+1).padStart(2,'0') + '.' +
+            String(n.getDate()).padStart(2,'0') + '-' +
+            String(n.getHours()).padStart(2,'0') + String(n.getMinutes()).padStart(2,'0');
+    }
+}
+
+function clearCode() {
+    document.getElementById('code-input').value    = '';
+    document.getElementById('new-version').value   = '';
+    document.getElementById('release-note').value  = '';
+    onCodeChange();
+}
+
+async function loadCurrentCode() {
+    showUpdMsg('Chargement...', 'info');
+    try {
+        const data = await sbGet('app_updates', 'select=version,code,note&order=published_at.desc&limit=1');
+        if (data && data.length > 0) {
+            document.getElementById('code-input').value   = data[0].code;
+            document.getElementById('new-version').value  = '';
+            document.getElementById('release-note').value = '';
+            onCodeChange();
+            showUpdMsg('✓ Version ' + data[0].version + ' chargée.', 'success');
+        } else {
+            showUpdMsg('Aucune version en base.', 'error');
+        }
+    } catch(e) { showUpdMsg('Erreur : ' + e.message, 'error'); }
+}
+
+async function publishUpdate() {
+    const code    = document.getElementById('code-input').value.trim();
+    const version = document.getElementById('new-version').value.trim();
+    const note    = document.getElementById('release-note').value.trim() || 'Mise à jour';
+    if (!code)              { showUpdMsg('❌ Collez le code HTML.', 'error'); return; }
+    if (!version)           { showUpdMsg('❌ Entrez un numéro de version.', 'error'); return; }
+    if (code.length < 200)  { showUpdMsg('❌ Code trop court.', 'error'); return; }
+    if (!code.includes('</html>')) { showUpdMsg('⚠️ Pas de </html> détecté.', 'error'); return; }
+
+    const btn = document.getElementById('btn-publish-upd');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> PUBLICATION...';
+    btn.disabled  = true;
+    showUpdMsg('Publication en cours...', 'info');
+
+    try {
+        const kb = (new Blob([code]).size / 1024).toFixed(1);
+        await sbInsert('app_updates', {
+            version, code, note,
+            size_kb: parseFloat(kb),
+            published_at: new Date().toISOString()
+        });
+        showUpdMsg('🚀 Version ' + version + ' publiée ! Tous les clients se mettront à jour automatiquement.', 'success');
+        document.getElementById('new-version').value  = '';
+        document.getElementById('release-note').value = '';
+        loadHistory();
+    } catch(e) {
+        showUpdMsg('❌ Erreur : ' + e.message, 'error');
+    } finally {
+        btn.innerHTML = '<i class="fas fa-rocket"></i> PUBLIER LA MISE À JOUR';
+        btn.disabled  = false;
+    }
+}
+
+async function loadHistory() {
+    const container = document.getElementById('history-list');
+    if (!container) return;
+    container.innerHTML = '<div style="text-align:center;color:#444;padding:14px;font-size:12px;"><i class="fas fa-spinner fa-spin"></i> Chargement...</div>';
+    try {
+        const data = await sbGet('app_updates', 'select=id,version,note,size_kb,published_at&order=published_at.desc&limit=20');
+        if (!data || data.length === 0) {
+            container.innerHTML = '<div style="text-align:center;color:#444;padding:16px;font-size:12px;">Aucune version publiée.</div>';
+            return;
+        }
+        if (document.getElementById('upd-stat-version')) {
+            document.getElementById('upd-stat-version').innerText = data[0].version;
+            document.getElementById('upd-stat-total').innerText   = data.length;
+            document.getElementById('upd-stat-size').innerText    = (data[0].size_kb||0).toFixed(0) + 'Ko';
+        }
+        container.innerHTML = '';
+        data.forEach((row, i) => {
+            const date = row.published_at ? new Date(row.published_at).toLocaleString('fr-FR') : '—';
+            const kb   = row.size_kb ? row.size_kb.toFixed(0) + ' Ko' : '—';
+            const div  = document.createElement('div');
+            div.className = 'upd-history-row';
+            div.innerHTML =
+                '<span class="upd-v-badge">v' + row.version + '</span>' +
+                '<span class="upd-v-note">' + (row.note || '—') + '</span>' +
+                '<span class="upd-v-size">' + kb + '</span>' +
+                '<span class="upd-v-date">' + date + '</span>' +
+                (i > 0
+                    ? '<button class="action-btn btn-del" style="margin-left:8px;" onclick="deleteVersion(' + row.id + ',\'' + row.version + '\')"><i class="fas fa-trash"></i></button>'
+                    : '<span style="width:36px;"></span>');
+            container.appendChild(div);
+        });
+    } catch(e) {
+        container.innerHTML = '<div style="text-align:center;color:#e50914;padding:14px;font-size:12px;">Erreur : ' + e.message + '</div>';
+    }
+}
+
+async function deleteVersion(id, version) {
+    if (!confirm('Supprimer la version ' + version + ' ?')) return;
+    try {
+        await sbDelete('app_updates', 'id=eq.' + id);
+        toast('🗑 Version supprimée', '#ff6b6b');
+        loadHistory();
+    } catch(e) { toast('❌ ' + e.message, '#ff6b6b'); }
+}
+
+function showUpdMsg(msg, type) {
+    const el = document.getElementById('publish-msg-upd');
+    el.innerText = msg;
+    el.className = type;
+    el.style.display = 'block';
+    if (type === 'success') setTimeout(() => { el.style.display = 'none'; }, 6000);
+}
+
+// ── FILTRE CLIENTS ──────────────────────────────────────────
+var _saStatusFilter = 'all';
+function saFilter() {
+    var term = (document.getElementById('sa-search')||{value:''}).value.trim().toLowerCase();
+    var rows  = document.querySelectorAll('#users-body tr');
+    rows.forEach(function(tr) {
+        var cle  = (tr.querySelector('td:first-child')||{innerText:''}).innerText.toLowerCase();
+        var stat = tr.dataset.status || 'active';
+        var matchText   = !term || cle.includes(term);
+        var matchStatus = _saStatusFilter === 'all' || stat === _saStatusFilter;
+        tr.style.display = (matchText && matchStatus) ? '' : 'none';
+    });
+}
+function saFilterStatus(s) {
+    _saStatusFilter = s;
+    ['all','active','urgent','expired'].forEach(function(v){
+        var el = document.getElementById('sf-'+v);
+        if (el) el.style.opacity = (v===s) ? '1' : '0.5';
+    });
+    saFilter();
+}
+</script>
+</body>
+</html>
