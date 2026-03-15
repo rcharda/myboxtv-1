@@ -2479,11 +2479,27 @@ function handleLocalFile(input) {
 // ============================================================
 // AUTO-INIT
 // ============================================================
+// 1. Déjà connecté → lancer directement
 if (localStorage.getItem('mybox_auth') === 'OK') {
     document.getElementById('login-screen').style.display = 'none';
     updateAccountDisplay(localStorage.getItem('mybox_key'), localStorage.getItem('mybox_raw_status'));
     initApp();
     startRealTimeCheck();
+} else {
+    // 2. ID passé dans l'URL → connecter automatiquement
+    // Supporte tous les formats : ?id=CLE-KODAK  ?key=TV-XXXXXX  ?code=BOX-XXX
+    (function autoLoginFromURL() {
+        try {
+            var params = new URLSearchParams(window.location.search);
+            var urlId  = params.get('id') || params.get('key') || params.get('code') || params.get('cle') || '';
+            urlId = urlId.trim().toUpperCase();
+            if (urlId) {
+                document.getElementById('licenseKey').value = urlId;
+                // Petite pause pour que la page finisse de charger
+                setTimeout(function() { login(); }, 400);
+            }
+        } catch(e) {}
+    })();
 }
 </script>
 
