@@ -5,7 +5,7 @@
  *
  * Les vrais liens des chaînes ne sont JAMAIS dans le fichier M3U.
  * À la place, le client reçoit des liens proxy :
- *   https://myboxsmart.pages.dev/stream?key=TV-XXXXX&ch=42
+ *   https://myboxsmart.pages.dev/stream?key=CLE-XXXXX&ch=42
  *
  * Le lecteur IPTV appelle ce lien → vérification clé → redirection
  * vers le vrai flux. Le client ne voit jamais l'URL réelle.
@@ -14,12 +14,6 @@
 
 const SUPABASE_URL = "https://yvcdadenofftnbljutwk.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2Y2RhZGVub2ZmdG5ibGp1dHdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NzQ0ODIsImV4cCI6MjA4ODQ1MDQ4Mn0.xqJzLpQszFmph599FBIvdE7NF88_i-JkABG-aSrAndE";
-
-const TOP_CHANNELS = [
-    { name:"Ivoire Channel", logo:"https://upload.wikimedia.org/wikipedia/commons/f/fe/Flag_of_C%C3%B4te_d%27Ivoire.svg", category:"Ivoirien" },
-    { name:"A+ Ivoire",      logo:"https://upload.wikimedia.org/wikipedia/commons/f/fe/Flag_of_C%C3%B4te_d%27Ivoire.svg", category:"Ivoirien" },
-    { name:"Novelas TV",     logo:"https://upload.wikimedia.org/wikipedia/commons/2/29/Novelas_TV_Logo.png",               category:"Divertissement" },
-];
 
 function calcDaysLeft(user) {
     if (!user) return 0;
@@ -32,6 +26,13 @@ function calcDaysLeft(user) {
     act.setHours(0,0,0,0);
     today.setHours(0,0,0,0);
     return Math.max(0, total - Math.floor((today - act) / 86400000));
+}
+
+function errResponse(msg, status, CORS) {
+    return new Response(msg, {
+        status: status,
+        headers: Object.assign({}, CORS, { "Content-Type": "text/plain; charset=utf-8" })
+    });
 }
 
 export async function onRequest(context) {
@@ -60,14 +61,14 @@ export async function onRequest(context) {
         "Content-Type":  "application/json",
     };
 
-    // ── 1. Vérification abonnement (obligatoire) ─────────────
+    // ── 1. Clé obligatoire ───────────────────────────────────
     if (!userKey) {
-        return new Response(
-            "Clé manquante. Utilisez /playlist?key=VOTRE-ID",
-            { status: 400, headers: Object.assign({}, CORS, { "Content-Type": "text/plain; charset=utf-8" }) }
-        );
+        return errResponse("Clé manquante. Utilisez /playlist?key=VOTRE-CLE", 400, CORS);
     }
 
+    // ── 2. Vérification abonnement (BLOQUANTE) ───────────────
+    // Si Supabase est inaccessible → on bloque, on ne laisse pas passer
+    var authOk = false;
     try {
         var authRes = await fetch(
             SUPABASE_URL + "/rest/v1/utilisateurs?cle=eq." +
@@ -76,69 +77,72 @@ export async function onRequest(context) {
             { headers: sbHeaders }
         );
 
-        if (authRes.ok) {
-            var users = await authRes.json();
-            if (!users || users.length === 0) {
-                return new Response(
-                    "ID invalide. Abonnez-vous sur myboxsmart.pages.dev",
-                    { status: 403, headers: Object.assign({}, CORS, { "Content-Type": "text/plain; charset=utf-8" }) }
-                );
-            }
-            var daysLeft = calcDaysLeft(users[0]);
-            if (daysLeft <= 0 && users[0].duree !== "VIE") {
-                return new Response(
-                    "Abonnement expire. Renouvelez sur myboxsmart.pages.dev",
-                    { status: 403, headers: Object.assign({}, CORS, { "Content-Type": "text/plain; charset=utf-8" }) }
-                );
-            }
+        if (!authRes.ok) {
+            return errResponse("Erreur serveur. Réessayez dans quelques instants.", 503, CORS);
         }
+
+        var users = await authRes.json();
+
+        if (!users || users.length === 0) {
+            return errResponse("Clé invalide. Abonnez-vous sur myboxsmart.pages.dev", 403, CORS);
+        }
+
+        var daysLeft = calcDaysLeft(users[0]);
+        if (daysLeft <= 0 && users[0].duree !== "VIE") {
+            return errResponse("Abonnement expiré. Renouvelez sur myboxsmart.pages.dev", 403, CORS);
+        }
+
+        authOk = true;
+
     } catch(e) {
-        return new Response("Erreur serveur", { status: 503, headers: CORS });
+        // Supabase inaccessible → on bloque, jamais de passe-droit
+        return errResponse("Erreur serveur temporaire. Réessayez dans quelques instants.", 503, CORS);
     }
 
-    // ── 2. Construire la liste des chaînes (sans les vrais liens) ─
-    // Les TOP_CHANNELS n'ont pas d'URL ici — juste nom/logo/catégorie
-    // Les vrais liens sont dans Supabase, jamais exposés
+    if (!authOk) {
+        return errResponse("Accès refusé.", 403, CORS);
+    }
+
+    // ── 3. Récupérer les chaînes depuis Supabase (channels_data) ─
+    // Les vrais liens sont dans Supabase, jamais exposés ici
     var channels = [];
 
-    // Ajouter TOP_CHANNELS (index 0, 1, 2)
-    for (var t = 0; t < TOP_CHANNELS.length; t++) {
-        channels.push({
-            index:    t,
-            name:     TOP_CHANNELS[t].name,
-            logo:     TOP_CHANNELS[t].logo,
-            category: TOP_CHANNELS[t].category,
-        });
-    }
-
-    // Ajouter les chaînes de Supabase (index 3, 4, 5...)
     try {
         var chRes = await fetch(
             SUPABASE_URL + "/rest/v1/channels_data?select=data&order=published_at.desc&limit=1",
             { headers: sbHeaders }
         );
-        if (chRes.ok) {
-            var rows = await chRes.json();
-            if (rows && rows.length > 0 && Array.isArray(rows[0].data)) {
-                var data = rows[0].data;
-                for (var i = 0; i < data.length; i++) {
-                    var ch = data[i];
-                    if (!ch.url) continue;
-                    channels.push({
-                        index:    TOP_CHANNELS.length + i,  // index global
-                        name:     (ch.name     || "Chaine").trim(),
-                        logo:     ch.logo     || "",
-                        category: ch.category || "Autres",
-                        // PAS d'URL ici — jamais exposée
-                    });
-                }
+
+        if (!chRes.ok) {
+            return errResponse("Erreur chargement chaînes. Réessayez.", 503, CORS);
+        }
+
+        var rows = await chRes.json();
+
+        if (rows && rows.length > 0 && Array.isArray(rows[0].data)) {
+            var data = rows[0].data;
+            for (var i = 0; i < data.length; i++) {
+                var ch = data[i];
+                if (!ch.url) continue; // ignorer chaînes sans lien (vérification côté Supabase)
+                channels.push({
+                    index:    i,
+                    name:     (ch.name     || "Chaine").trim(),
+                    logo:     ch.logo      || "",
+                    category: ch.category  || "Autres",
+                    // ⚠️ PAS d'URL ici — jamais exposée dans la playlist
+                });
             }
         }
+
     } catch(e) {
-        // Supabase indisponible → TOP_CHANNELS seulement
+        return errResponse("Erreur serveur chaînes. Réessayez.", 503, CORS);
     }
 
-    // ── 3. Filtres ───────────────────────────────────────────
+    if (channels.length === 0) {
+        return errResponse("Aucune chaîne disponible pour le moment.", 404, CORS);
+    }
+
+    // ── 4. Filtres ───────────────────────────────────────────
     if (category) {
         channels = channels.filter(function(c) {
             return (c.category || "").toLowerCase().indexOf(category) !== -1;
@@ -150,7 +154,7 @@ export async function onRequest(context) {
         });
     }
 
-    // ── 4. Format JSON (sans vrais liens) ────────────────────
+    // ── 5. Format JSON (sans vrais liens) ────────────────────
     if (format === "json") {
         var safe = channels.map(function(c) {
             return { index: c.index, name: c.name, logo: c.logo, category: c.category };
@@ -164,7 +168,7 @@ export async function onRequest(context) {
         });
     }
 
-    // ── 5. Format M3U SÉCURISÉ ───────────────────────────────
+    // ── 6. Format M3U SÉCURISÉ ───────────────────────────────
     // Chaque URL dans le M3U pointe vers le PROXY (/stream)
     // Le vrai lien n'apparaît NULLE PART dans ce fichier
     var m3u  = "#EXTM3U x-tvg-url=\"\" tvg-shift=0\n";
@@ -178,7 +182,7 @@ export async function onRequest(context) {
         var cat  = (c.category || "Autres").replace(/"/g,"'").replace(/,/g," ").trim();
         var num  = j + 1;
 
-        // ⚠️ URL PROXY — jamais le vrai lien
+        // ⚠️ URL PROXY uniquement — jamais le vrai lien
         var proxyUrl = baseUrl + "/stream?key=" + encodeURIComponent(userKey) + "&ch=" + c.index;
 
         m3u += "#EXTINF:-1 tvg-id=\"" + num + "\" tvg-chno=\"" + num + "\" tvg-name=\"" + name + "\"";
@@ -192,7 +196,7 @@ export async function onRequest(context) {
         headers: Object.assign({}, CORS, {
             "Content-Type":        "application/x-mpegURL; charset=utf-8",
             "Content-Disposition": "attachment; filename=\"myboxsmart.m3u\"",
-            "Cache-Control":       "no-store, no-cache", // ne pas mettre en cache
+            "Cache-Control":       "no-store, no-cache",
             "X-Total-Channels":    String(channels.length),
         })
     });
