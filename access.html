@@ -108,9 +108,16 @@ footer{text-align:center;color:#222;font-size:10px;padding:20px 0;letter-spacing
   <!-- RÉSULTAT -->
   <div id="result">
 
-    <!-- URL M3U principale -->
+    <!-- TÉLÉCHARGER M3U SÉCURISÉ -->
     <div class="url-card">
-      <h3>📋 VOTRE LIEN M3U (toutes les chaînes)</h3>
+      <h3>📥 TÉLÉCHARGER VOTRE PLAYLIST M3U</h3>
+      <p style="font-size:11px;color:#555;margin-bottom:10px;">Les vrais liens des chaînes sont cachés — le fichier ne peut pas être réutilisé sans votre ID</p>
+      <button onclick="downloadSecure()" id="btn-dl" style="width:100%;padding:12px;background:linear-gradient(135deg,#2ecc71,#1a8a4a);border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Exo 2',sans-serif;box-shadow:0 3px 14px rgba(46,204,113,.3);">
+        <i class="fas fa-download" style="margin-right:7px;"></i>TÉLÉCHARGER myboxsmart.m3u
+      </button>
+      <div id="dl-status" style="font-size:10px;color:var(--muted);margin-top:6px;text-align:center;min-height:14px;"></div>
+      <div class="sep" style="margin:12px 0;"></div>
+      <h3 style="margin-bottom:6px;">🔗 OU COPIER LE LIEN</h3>
       <div class="url-box" onclick="copyUrl('m3u-url')">
         <span class="url-text" id="m3u-url">—</span>
         <button class="copy-btn" id="copy-m3u" onclick="event.stopPropagation();copyUrl('m3u-url')">COPIER</button>
@@ -343,6 +350,24 @@ const CATEGORIES = [
 let _userKey = '';
 let _selCat  = '';
 
+async function downloadSecure(){
+    const btn = document.getElementById('btn-dl');
+    const status = document.getElementById('dl-status');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:7px;"></i>Génération en cours...';
+    btn.disabled = true;
+    try{
+        const {m3u, count} = await generateSecureM3U();
+        downloadM3U(m3u, 'myboxsmart-'+_userKey+'.m3u');
+        status.innerText = '✅ '+count+' chaînes — liens sécurisés (proxy)';
+        status.style.color = '#2ecc71';
+    }catch(e){
+        status.innerText = '❌ Erreur : '+e.message;
+        status.style.color = '#ff5555';
+    }
+    btn.innerHTML = '<i class="fas fa-download" style="margin-right:7px;"></i>TÉLÉCHARGER myboxsmart.m3u';
+    btn.disabled = false;
+}
+
 async function generate(){
     const key = document.getElementById('user-key').value.trim().toUpperCase();
     if(!key){ document.getElementById('msg').innerText='⚠️ Entrez votre ID'; return; }
@@ -373,38 +398,72 @@ async function generate(){
     }catch(e){ document.getElementById('msg').innerText='❌ Erreur réseau'; }
 }
 
+// Chaînes top sans URLs
+const TOP_META = [
+    {i:0, name:'Ivoire Channel', logo:'https://upload.wikimedia.org/wikipedia/commons/f/fe/Flag_of_C%C3%B4te_d%27Ivoire.svg', cat:'Ivoirien'},
+    {i:1, name:'A+ Ivoire',      logo:'https://upload.wikimedia.org/wikipedia/commons/f/fe/Flag_of_C%C3%B4te_d%27Ivoire.svg', cat:'Ivoirien'},
+    {i:2, name:'Novelas TV',     logo:'https://upload.wikimedia.org/wikipedia/commons/2/29/Novelas_TV_Logo.png',               cat:'Divertissement'},
+];
+
+async function generateSecureM3U(catFilter){
+    let channels = [...TOP_META];
+    try{
+        const r = await fetch(SB_URL+'/rest/v1/channels_data?select=data&order=published_at.desc&limit=1',
+            {headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});
+        const rows = await r.json();
+        if(rows&&rows[0]&&Array.isArray(rows[0].data)){
+            rows[0].data.forEach((ch,i)=>{
+                if(!ch.url) return;
+                channels.push({i:TOP_META.length+i, name:ch.name||'Chaine', logo:ch.logo||'', cat:ch.category||'Autres'});
+            });
+        }
+    }catch(e){}
+    if(catFilter) channels = channels.filter(c=>(c.cat||'').toLowerCase().includes(catFilter.toLowerCase()));
+    let m3u = '#EXTM3U x-tvg-url="" tvg-shift=0\n# My Box Smart - '+channels.length+' chaines\n# '+new Date().toISOString().split('T')[0]+'\n\n';
+    channels.forEach((c,j)=>{
+        const name = (c.name||'Chaine').replace(/"/g,"'").replace(/,/g,' ');
+        const logo = c.logo||'';
+        const cat  = (c.cat||'Autres').replace(/"/g,"'").replace(/,/g,' ');
+        const proxy = BASE+'/stream?key='+encodeURIComponent(_userKey)+'&ch='+c.i;
+        m3u += '#EXTINF:-1 tvg-id="'+(j+1)+'" tvg-chno="'+(j+1)+'" tvg-name="'+name+'"';
+        if(logo) m3u += ' tvg-logo="'+logo+'"';
+        m3u += ' group-title="'+cat+'",'+name+'\n'+proxy+'\n\n';
+    });
+    return {m3u, count:channels.length};
+}
+
+function downloadM3U(m3uText, filename){
+    const blob = new Blob([m3uText], {type:'application/x-mpegURL'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href=url; a.download=filename||'myboxsmart.m3u';
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
 function showResult(){
-    const m3uUrl = `${BASE}/playlist?key=${encodeURIComponent(_userKey)}`;
-    document.getElementById('m3u-url').innerText = m3uUrl;
-    document.getElementById('web-url').innerText = `${BASE}?id=${encodeURIComponent(_userKey)}`;
-
-    // QR Code
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(m3uUrl)}&bgcolor=ffffff&color=000000`;
+    document.getElementById('m3u-url').innerText = BASE+'/playlist?key='+encodeURIComponent(_userKey);
+    document.getElementById('web-url').innerText = BASE+'?id='+encodeURIComponent(_userKey);
+    const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data='+encodeURIComponent(BASE+'/playlist?key='+encodeURIComponent(_userKey))+'&bgcolor=ffffff&color=000000';
     document.getElementById('qr-img').src = qrUrl;
-
-    // Catégories
     const chips = document.getElementById('cat-chips');
     chips.innerHTML = '';
     CATEGORIES.forEach(cat => {
         const div = document.createElement('div');
-        div.className = 'cat-chip';
-        div.innerText = cat;
-        div.onclick = () => selectCat(cat, div);
+        div.className='cat-chip'; div.innerText=cat;
+        div.onclick=()=>selectCat(cat,div);
         chips.appendChild(div);
     });
-
-    document.getElementById('result').style.display = 'block';
-    document.getElementById('result').scrollIntoView({ behavior:'smooth' });
+    document.getElementById('result').style.display='block';
+    document.getElementById('result').scrollIntoView({behavior:'smooth'});
 }
 
 function selectCat(cat, el){
     document.querySelectorAll('.cat-chip').forEach(c=>c.classList.remove('sel'));
     if(_selCat===cat){ _selCat=''; document.getElementById('cat-url-card').style.display='none'; return; }
-    el.classList.add('sel');
-    _selCat = cat;
-    const catUrl = `${BASE}/playlist?key=${encodeURIComponent(_userKey)}&cat=${encodeURIComponent(cat)}`;
-    document.getElementById('cat-url').innerText = catUrl;
-    document.getElementById('cat-url-card').style.display = 'block';
+    el.classList.add('sel'); _selCat=cat;
+    document.getElementById('cat-url').innerText = BASE+'/playlist?key='+encodeURIComponent(_userKey)+'&cat='+encodeURIComponent(cat);
+    document.getElementById('cat-url-card').style.display='block';
 }
 
 function showInstructions(app){
