@@ -1,5 +1,16 @@
 {
   "version": 1,
-  "include": ["/playlist", "/playlist/*", "/stream", "/stream/*"],
+  "include": ["/playlist", "/playlist/*", "/stream", "/stream/*", "/api/*"],
   "exclude": []
 }
+```
+
+**4.** Commit changes
+
+**5.** Attendez **2 minutes** que Cloudflare redéploie
+
+---
+
+**6.** Puis testez en **mode privé** avec ce lien spécial qui contourne le cache Chrome :
+```
+https://myboxtv-1.pages.dev/playlist?key=CLE-KODAK&nocache=1
