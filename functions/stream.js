@@ -4,7 +4,7 @@
  * Cloudflare Pages Function : /functions/stream.js
  *
  * Le client voit ce lien dans son lecteur :
- *   https://myboxsmart.pages.dev/stream?key=TV-XXXXX&ch=42
+ *   https://myboxsmart.pages.dev/stream?key=CLE-XXXXX&ch=42
  *
  * Ce fichier :
  *   1. Vérifie que la clé est valide et non expirée
@@ -16,12 +16,6 @@
 
 const SUPABASE_URL = "https://yvcdadenofftnbljutwk.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2Y2RhZGVub2ZmdG5ibGp1dHdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NzQ0ODIsImV4cCI6MjA4ODQ1MDQ4Mn0.xqJzLpQszFmph599FBIvdE7NF88_i-JkABG-aSrAndE";
-
-const TOP_CHANNELS = [
-    { name:"Ivoire Channel", url:"https://video1.getstreamhosting.com:1936/8244/8244/playlist.m3u8", logo:"https://upload.wikimedia.org/wikipedia/commons/f/fe/Flag_of_C%C3%B4te_d%27Ivoire.svg", category:"Ivoirien" },
-    { name:"A+ Ivoire",      url:"http://69.64.57.208/atv/playlist.m3u8",                            logo:"https://upload.wikimedia.org/wikipedia/commons/f/fe/Flag_of_C%C3%B4te_d%27Ivoire.svg", category:"Ivoirien" },
-    { name:"Novelas TV",     url:"https://stormcast-telenovelatv-1-fr.samsung.wurl.tv/playlist.m3u8", logo:"https://upload.wikimedia.org/wikipedia/commons/2/29/Novelas_TV_Logo.png",               category:"Divertissement" },
-];
 
 var sbHeaders = {
     "apikey":        SUPABASE_KEY,
@@ -67,15 +61,16 @@ export async function onRequest(context) {
     var userKey = (params.get("key") || "").trim().toUpperCase();
     var chIndex = parseInt(params.get("ch") || "-1");
 
-    // ── 1. Clé obligatoire ───────────────────────────────────
+    // ── 1. Clé et chaîne obligatoires ───────────────────────
     if (!userKey) {
-        return errResponse("Acces refuse - clé manquante", 403);
+        return errResponse("Accès refusé - clé manquante", 403);
     }
     if (isNaN(chIndex) || chIndex < 0) {
-        return errResponse("Acces refuse - chaîne invalide", 400);
+        return errResponse("Accès refusé - chaîne invalide", 400);
     }
 
-    // ── 2. Vérifier l'abonnement dans Supabase ───────────────
+    // ── 2. Vérifier l'abonnement dans Supabase (BLOQUANT) ───
+    // Si Supabase inaccessible → on bloque, jamais de passe-droit
     try {
         var authRes = await fetch(
             SUPABASE_URL + "/rest/v1/utilisateurs?cle=eq." +
@@ -85,61 +80,58 @@ export async function onRequest(context) {
         );
 
         if (!authRes.ok) {
-            return errResponse("Erreur serveur", 503);
+            return errResponse("Erreur serveur. Réessayez dans quelques instants.", 503);
         }
 
         var users = await authRes.json();
 
         if (!users || users.length === 0) {
-            return errResponse("Acces refuse - ID invalide", 403);
+            return errResponse("Accès refusé - clé invalide", 403);
         }
 
         var daysLeft = calcDaysLeft(users[0]);
         if (daysLeft <= 0 && users[0].duree !== "VIE") {
-            return errResponse("Acces refuse - abonnement expire", 403);
+            return errResponse("Accès refusé - abonnement expiré", 403);
         }
 
     } catch(e) {
-        return errResponse("Erreur serveur temporaire", 503);
+        return errResponse("Erreur serveur temporaire. Réessayez dans quelques instants.", 503);
     }
 
-    // ── 3. Récupérer le vrai lien de la chaîne ───────────────
+    // ── 3. Récupérer le vrai lien depuis Supabase uniquement ─
+    // Aucun lien n'est codé en dur dans ce fichier
     var realUrl = "";
 
     try {
-        // TOP_CHANNELS en tête (index 0, 1, 2)
-        if (chIndex < TOP_CHANNELS.length) {
-            realUrl = TOP_CHANNELS[chIndex].url;
-        } else {
-            // Chercher dans Supabase channels_data
-            var chRes = await fetch(
-                SUPABASE_URL + "/rest/v1/channels_data?select=data&order=published_at.desc&limit=1",
-                { headers: sbHeaders }
-            );
+        var chRes = await fetch(
+            SUPABASE_URL + "/rest/v1/channels_data?select=data&order=published_at.desc&limit=1",
+            { headers: sbHeaders }
+        );
 
-            if (chRes.ok) {
-                var rows = await chRes.json();
-                if (rows && rows.length > 0 && Array.isArray(rows[0].data)) {
-                    // Index dans channels_data = chIndex - TOP_CHANNELS.length
-                    var dataIndex = chIndex - TOP_CHANNELS.length;
-                    var chData    = rows[0].data[dataIndex];
-                    if (chData && chData.url) {
-                        realUrl = chData.url;
-                    }
-                }
+        if (!chRes.ok) {
+            return errResponse("Erreur chargement chaîne. Réessayez.", 503);
+        }
+
+        var rows = await chRes.json();
+
+        if (rows && rows.length > 0 && Array.isArray(rows[0].data)) {
+            var chData = rows[0].data[chIndex];
+            if (chData && chData.url) {
+                realUrl = chData.url;
             }
         }
+
     } catch(e) {
-        return errResponse("Erreur récupération chaîne", 503);
+        return errResponse("Erreur récupération chaîne.", 503);
     }
 
     if (!realUrl) {
-        return errResponse("Chaîne introuvable", 404);
+        return errResponse("Chaîne introuvable.", 404);
     }
 
     // ── 4. Redirection 302 vers le vrai flux ─────────────────
     // Le vrai lien n'apparaît JAMAIS dans le fichier M3U du client
-    // Le lecteur IPTV suit la redirection et lit le flux
+    // Le lecteur IPTV suit la redirection et lit le flux directement
     return new Response(null, {
         status: 302,
         headers: {
