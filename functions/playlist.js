@@ -1,24 +1,15 @@
 /**
  * ============================================================
- * MY BOX SMART — PLAYLIST M3U SÉCURISÉE AVEC TOKENS
+ * MY BOX SMART — PLAYLIST M3U SÉCURISÉE
  * Cloudflare Pages Function : /functions/playlist.js
  *
- * Génère un fichier M3U où chaque URL contient un token signé
- * valable 4 heures. Après 4h, le client doit retélécharger
- * sa playlist (son lecteur IPTV le fait automatiquement).
- *
- * Le vrai lien des chaînes n'apparaît JAMAIS dans ce fichier.
+ * Génère un fichier M3U avec des URLs proxy simples.
+ * Le token est généré dans stream.js à chaque lecture.
  * ============================================================
  */
 
 const SUPABASE_URL = "https://yvcdadenofftnbljutwk.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2Y2RhZGVub2ZmdG5ibGp1dHdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NzQ0ODIsImV4cCI6MjA4ODQ1MDQ4Mn0.xqJzLpQszFmph599FBIvdE7NF88_i-JkABG-aSrAndE";
-
-// ⚠️ DOIT ÊTRE IDENTIQUE À CELUI DANS stream.js
-const SECRET_KEY = "Maman Yasmine1@";
-
-// Durée de validité du token en secondes (4 heures)
-const TOKEN_TTL = 4 * 60 * 60;
 
 function calcDaysLeft(user) {
     if (!user) return 0;
@@ -38,31 +29,6 @@ function errResponse(msg, status, CORS) {
         status: status,
         headers: Object.assign({}, CORS, { "Content-Type": "text/plain; charset=utf-8" })
     });
-}
-
-// Générer un HMAC-SHA256
-async function hmacSign(message, secret) {
-    var enc     = new TextEncoder();
-    var keyData = enc.encode(secret);
-    var msgData = enc.encode(message);
-    var key = await crypto.subtle.importKey(
-        "raw", keyData,
-        { name: "HMAC", hash: "SHA-256" },
-        false, ["sign"]
-    );
-    var sig   = await crypto.subtle.sign("HMAC", key, msgData);
-    var bytes = new Uint8Array(sig);
-    var hex   = Array.from(bytes).map(b => b.toString(16).padStart(2,"0")).join("");
-    return hex;
-}
-
-// Créer un token signé pour une chaîne
-async function createToken(userKey, chIndex) {
-    var expiry  = Math.floor(Date.now() / 1000) + TOKEN_TTL;
-    var payload = chIndex + ":" + expiry + ":" + userKey;
-    var sig     = await hmacSign(payload, SECRET_KEY);
-    var b64     = btoa(payload);
-    return b64 + "." + sig;
 }
 
 export async function onRequest(context) {
@@ -173,7 +139,7 @@ export async function onRequest(context) {
         });
     }
 
-    // ── 5. Format JSON (sans vrais liens) ────────────────────
+    // ── 5. Format JSON ───────────────────────────────────────
     if (format === "json") {
         var safe = channels.map(function(c) {
             return { index: c.index, name: c.name, logo: c.logo, category: c.category };
@@ -187,9 +153,9 @@ export async function onRequest(context) {
         });
     }
 
-    // ── 6. Format M3U avec tokens signés (4h) ────────────────
-    // Chaque URL contient un token HMAC-SHA256 signé
-    // Impossible à falsifier — expire après 4 heures
+    // ── 6. Format M3U ────────────────────────────────────────
+    // URL proxy simple : /stream?key=CLE&ch=INDEX
+    // Le token est généré dans stream.js à chaque demande de lecture
     var m3u  = "#EXTM3U x-tvg-url=\"\" tvg-shift=0\n";
         m3u += "# My Box Smart - " + channels.length + " chaines\n";
         m3u += "# " + new Date().toISOString().split("T")[0] + "\n\n";
@@ -201,14 +167,13 @@ export async function onRequest(context) {
         var cat  = (c.category || "Autres").replace(/"/g,"'").replace(/,/g," ").trim();
         var num  = j + 1;
 
-        // Générer un token signé pour cette chaîne (valable 4h)
-        var token    = await createToken(userKey, c.index);
-        var streamUrl = baseUrl + "/stream?tok=" + encodeURIComponent(token) + "&ch=" + c.index;
+        // URL proxy — clé vérifiée à chaque lecture dans stream.js
+        var proxyUrl = baseUrl + "/stream?key=" + encodeURIComponent(userKey) + "&ch=" + c.index;
 
         m3u += "#EXTINF:-1 tvg-id=\"" + num + "\" tvg-chno=\"" + num + "\" tvg-name=\"" + name + "\"";
         if (logo) m3u += " tvg-logo=\"" + logo + "\"";
         m3u += " group-title=\"" + cat + "\"," + name + "\n";
-        m3u += streamUrl + "\n\n";
+        m3u += proxyUrl + "\n\n";
     }
 
     return new Response(m3u, {
