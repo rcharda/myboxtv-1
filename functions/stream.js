@@ -1,31 +1,27 @@
 /**
  * ============================================================
- * MY BOX SMART — PROXY DE FLUX AVEC TOKEN TEMPORAIRE
+ * MY BOX SMART — PROXY DE FLUX + VÉRIFICATION DEVICE ID
  * Cloudflare Pages Function : /functions/stream.js
  *
- * DEUX modes :
+ * Le client appelle :
+ *   /stream?key=CLE&ch=42&did=DEVICE_ID
  *
- * MODE 1 — Premier appel avec clé (/stream?key=CLE&ch=42)
- *   → Vérifie l'abonnement dans Supabase
- *   → Génère un token signé valable 4h
- *   → Redirige vers /stream?tok=TOKEN&ch=42
+ * Ce fichier :
+ *   1. Vérifie que la clé est valide et non expirée
+ *   2. Vérifie que le device_id est bien enregistré pour cette clé
+ *   3. Génère un token signé valable 4h
+ *   4. Redirige vers /stream?tok=TOKEN&ch=42
  *
- * MODE 2 — Appel avec token (/stream?tok=TOKEN&ch=42)
- *   → Vérifie signature + expiration du token
- *   → Redirige 302 vers le vrai flux
- *   → Token expiré = 403, le lecteur redemande le M3U
- *
- * SÉCURITÉ :
- *   - Token HMAC-SHA256 — impossible à falsifier
- *   - Expire après 4 heures automatiquement
- *   - Abonnement expiré = plus de token possible
+ * MODE TOKEN :
+ *   /stream?tok=TOKEN&ch=42
+ *   → Vérifie token → redirige vers vrai flux
  * ============================================================
  */
 
 const SUPABASE_URL = "https://yvcdadenofftnbljutwk.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2Y2RhZGVub2ZmdG5ibGp1dHdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NzQ0ODIsImV4cCI6MjA4ODQ1MDQ4Mn0.xqJzLpQszFmph599FBIvdE7NF88_i-JkABG-aSrAndE";
 
-// ⚠️ SECRET CONNU UNIQUEMENT DE VOTRE SERVEUR
+// ⚠️ DOIT ÊTRE IDENTIQUE À CELUI DANS stream.js
 const SECRET_KEY = "Maman Yasmine1@";
 
 // Durée de validité du token (4 heures)
@@ -61,7 +57,7 @@ function errResponse(msg, status) {
 }
 
 async function hmacSign(message, secret) {
-    var enc     = new TextEncoder();
+    var enc = new TextEncoder();
     var key = await crypto.subtle.importKey(
         "raw", enc.encode(secret),
         { name: "HMAC", hash: "SHA-256" },
@@ -72,9 +68,9 @@ async function hmacSign(message, secret) {
     return Array.from(bytes).map(b => b.toString(16).padStart(2,"0")).join("");
 }
 
-async function createToken(userKey, chIndex) {
+async function createToken(userKey, chIndex, deviceId) {
     var expiry  = Math.floor(Date.now() / 1000) + TOKEN_TTL;
-    var payload = chIndex + ":" + expiry + ":" + userKey;
+    var payload = chIndex + ":" + expiry + ":" + userKey + ":" + deviceId;
     var sig     = await hmacSign(payload, SECRET_KEY);
     return btoa(payload) + "." + sig;
 }
@@ -87,12 +83,13 @@ async function verifyToken(token) {
         var expected = await hmacSign(payload, SECRET_KEY);
         if (expected !== parts[1]) return null;
         var segs    = payload.split(":");
-        if (segs.length < 3) return null;
-        var chIndex = parseInt(segs[0]);
-        var expiry  = parseInt(segs[1]);
-        var userKey = segs.slice(2).join(":");
+        if (segs.length < 4) return null;
+        var chIndex  = parseInt(segs[0]);
+        var expiry   = parseInt(segs[1]);
+        var userKey  = segs[2];
+        var deviceId = segs[3];
         if (Math.floor(Date.now() / 1000) > expiry) return null;
-        return { chIndex, userKey };
+        return { chIndex, userKey, deviceId };
     } catch(e) {
         return null;
     }
@@ -111,12 +108,13 @@ export async function onRequest(context) {
         });
     }
 
-    var userKey = (params.get("key") || "").trim().toUpperCase();
-    var tokStr  = params.get("tok") || "";
-    var chIndex = parseInt(params.get("ch") ?? "-1");
+    var userKey  = (params.get("key") || "").trim().toUpperCase();
+    var tokStr   = params.get("tok")  || "";
+    var chIndex  = parseInt(params.get("ch") || "-1");
+    var deviceId = (params.get("did") || "").trim();
 
     // ══════════════════════════════════════════════════════════
-    // MODE 2 — Token présent → vérifier et rediriger
+    // MODE TOKEN — lecture directe via token signé
     // ══════════════════════════════════════════════════════════
     if (tokStr) {
         var decoded = await verifyToken(tokStr);
@@ -139,7 +137,6 @@ export async function onRequest(context) {
             var chData = rows?.[0]?.data?.[decoded.chIndex];
             if (!chData?.url) return errResponse("Chaîne introuvable.", 404);
 
-            // 302 vers le vrai flux
             return new Response(null, {
                 status: 302,
                 headers: {
@@ -148,51 +145,72 @@ export async function onRequest(context) {
                     "Cache-Control":               "no-store, no-cache",
                 }
             });
-
         } catch(e) {
             return errResponse("Erreur serveur.", 503);
         }
     }
 
     // ══════════════════════════════════════════════════════════
-    // MODE 1 — Clé présente → vérifier abonnement + générer token
+    // MODE CLÉ + DEVICE ID — vérification complète
     // ══════════════════════════════════════════════════════════
-    if (!userKey) return errResponse("Accès refusé - clé manquante", 403);
+    if (!userKey)  return errResponse("Accès refusé - clé manquante", 403);
+    if (!deviceId) return errResponse("Accès refusé - appareil non identifié", 403);
     if (isNaN(chIndex) || chIndex < 0) return errResponse("Chaîne invalide", 400);
 
-    // Vérifier abonnement dans Supabase
+    // ── 1. Vérifier abonnement + device_id dans Supabase ─────
     try {
         var authRes = await fetch(
             SUPABASE_URL + "/rest/v1/utilisateurs?cle=eq." +
             encodeURIComponent(userKey) +
-            "&select=cle,duree,date_activation&limit=1",
+            "&select=cle,duree,date_activation,max_ecrans,appareils_iptv&limit=1",
             { headers: sbHeaders }
         );
 
         if (!authRes.ok) return errResponse("Erreur serveur. Réessayez.", 503);
 
         var users = await authRes.json();
-        if (!users || users.length === 0) return errResponse("Accès refusé - clé invalide", 403);
+        if (!users || users.length === 0) {
+            return errResponse("Accès refusé - clé invalide", 403);
+        }
 
-        var daysLeft = calcDaysLeft(users[0]);
-        if (daysLeft <= 0 && users[0].duree !== "VIE") {
+        var user     = users[0];
+        var daysLeft = calcDaysLeft(user);
+        if (daysLeft <= 0 && user.duree !== "VIE") {
             return errResponse("Accès refusé - abonnement expiré", 403);
+        }
+
+        // Vérifier que ce device_id est bien enregistré pour cette clé
+        var appareils = (user.appareils_iptv || "")
+            .split(",")
+            .map(function(d){ return d.trim(); })
+            .filter(Boolean);
+
+        if (appareils.indexOf(deviceId) === -1) {
+            // Device non enregistré → accès refusé
+            return errResponse(
+                "Appareil non autorisé. Retéléchargez votre playlist sur myboxsmart.pages.dev",
+                403
+            );
         }
 
     } catch(e) {
         return errResponse("Erreur serveur temporaire.", 503);
     }
 
-    // Générer token signé (valable 4h) et rediriger
-    var token    = await createToken(userKey, chIndex);
-    var tokenUrl = baseUrl + "/stream?tok=" + encodeURIComponent(token) + "&ch=" + chIndex;
+    // ── 2. Générer token signé (valable 4h) et rediriger ─────
+    try {
+        var token    = await createToken(userKey, chIndex, deviceId);
+        var tokenUrl = baseUrl + "/stream?tok=" + encodeURIComponent(token) + "&ch=" + chIndex;
 
-    return new Response(null, {
-        status: 302,
-        headers: {
-            "Location":                    tokenUrl,
-            "Access-Control-Allow-Origin": "*",
-            "Cache-Control":               "no-store, no-cache",
-        }
-    });
+        return new Response(null, {
+            status: 302,
+            headers: {
+                "Location":                    tokenUrl,
+                "Access-Control-Allow-Origin": "*",
+                "Cache-Control":               "no-store, no-cache",
+            }
+        });
+    } catch(e) {
+        return errResponse("Erreur génération token.", 503);
+    }
 }
