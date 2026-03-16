@@ -5,33 +5,30 @@
  *
  * DEUX modes :
  *
- * MODE 1 — Génération du token (appelé par playlist.js)
- *   /stream?key=CLE&ch=42
- *   → Vérifie l'abonnement
+ * MODE 1 — Premier appel avec clé (/stream?key=CLE&ch=42)
+ *   → Vérifie l'abonnement dans Supabase
  *   → Génère un token signé valable 4h
  *   → Redirige vers /stream?tok=TOKEN&ch=42
  *
- * MODE 2 — Lecture avec token (appelé par le lecteur IPTV)
- *   /stream?tok=TOKEN&ch=42
- *   → Vérifie que le token est valide et non expiré
+ * MODE 2 — Appel avec token (/stream?tok=TOKEN&ch=42)
+ *   → Vérifie signature + expiration du token
  *   → Redirige 302 vers le vrai flux
- *   → Si token expiré → 403 (le client doit retélécharger le M3U)
+ *   → Token expiré = 403, le lecteur redemande le M3U
  *
  * SÉCURITÉ :
- *   - Token signé avec HMAC-SHA256 (SECRET_KEY)
- *   - Token expire après 4 heures
- *   - Impossible à falsifier sans connaître SECRET_KEY
- *   - Client ne voit jamais le vrai lien
+ *   - Token HMAC-SHA256 — impossible à falsifier
+ *   - Expire après 4 heures automatiquement
+ *   - Abonnement expiré = plus de token possible
  * ============================================================
  */
 
 const SUPABASE_URL = "https://yvcdadenofftnbljutwk.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2Y2RhZGVub2ZmdG5ibGp1dHdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NzQ0ODIsImV4cCI6MjA4ODQ1MDQ4Mn0.xqJzLpQszFmph599FBIvdE7NF88_i-JkABG-aSrAndE";
 
-// ⚠️ CHANGEZ CE SECRET — chaîne aléatoire connue uniquement de votre serveur
+// ⚠️ SECRET CONNU UNIQUEMENT DE VOTRE SERVEUR
 const SECRET_KEY = "Maman Yasmine1@";
 
-// Durée de validité du token en secondes (4 heures)
+// Durée de validité du token (4 heures)
 const TOKEN_TTL = 4 * 60 * 60;
 
 var sbHeaders = {
@@ -63,53 +60,39 @@ function errResponse(msg, status) {
     });
 }
 
-// Générer un HMAC-SHA256
 async function hmacSign(message, secret) {
     var enc     = new TextEncoder();
-    var keyData = enc.encode(secret);
-    var msgData = enc.encode(message);
     var key = await crypto.subtle.importKey(
-        "raw", keyData,
+        "raw", enc.encode(secret),
         { name: "HMAC", hash: "SHA-256" },
         false, ["sign"]
     );
-    var sig    = await crypto.subtle.sign("HMAC", key, msgData);
-    var bytes  = new Uint8Array(sig);
-    var hex    = Array.from(bytes).map(b => b.toString(16).padStart(2,"0")).join("");
-    return hex;
+    var sig   = await crypto.subtle.sign("HMAC", key, enc.encode(message));
+    var bytes = new Uint8Array(sig);
+    return Array.from(bytes).map(b => b.toString(16).padStart(2,"0")).join("");
 }
 
-// Créer un token : base64(chIndex + ":" + expiry) + "." + signature
 async function createToken(userKey, chIndex) {
     var expiry  = Math.floor(Date.now() / 1000) + TOKEN_TTL;
     var payload = chIndex + ":" + expiry + ":" + userKey;
     var sig     = await hmacSign(payload, SECRET_KEY);
-    var b64     = btoa(payload);
-    return b64 + "." + sig;
+    return btoa(payload) + "." + sig;
 }
 
-// Vérifier et décoder un token
 async function verifyToken(token) {
     try {
         var parts = token.split(".");
         if (parts.length !== 2) return null;
-        var payload = atob(parts[0]);
-        var sig     = parts[1];
-
-        // Vérifier la signature
+        var payload  = atob(parts[0]);
         var expected = await hmacSign(payload, SECRET_KEY);
-        if (expected !== sig) return null;
-
-        // Vérifier l'expiration
-        var segments = payload.split(":");
-        if (segments.length < 3) return null;
-        var chIndex  = parseInt(segments[0]);
-        var expiry   = parseInt(segments[1]);
-        var userKey  = segments.slice(2).join(":");
-
-        if (Math.floor(Date.now() / 1000) > expiry) return null; // expiré
-
-        return { chIndex: chIndex, userKey: userKey, expiry: expiry };
+        if (expected !== parts[1]) return null;
+        var segs    = payload.split(":");
+        if (segs.length < 3) return null;
+        var chIndex = parseInt(segs[0]);
+        var expiry  = parseInt(segs[1]);
+        var userKey = segs.slice(2).join(":");
+        if (Math.floor(Date.now() / 1000) > expiry) return null;
+        return { chIndex, userKey };
     } catch(e) {
         return null;
     }
@@ -119,6 +102,7 @@ export async function onRequest(context) {
     var request = context.request;
     var reqUrl  = new URL(request.url);
     var params  = reqUrl.searchParams;
+    var baseUrl = reqUrl.origin;
 
     if (request.method === "OPTIONS") {
         return new Response(null, {
@@ -129,40 +113,33 @@ export async function onRequest(context) {
 
     var userKey = (params.get("key") || "").trim().toUpperCase();
     var tokStr  = params.get("tok") || "";
-    var chIndex = parseInt(params.get("ch") || "-1");
+    var chIndex = parseInt(params.get("ch") ?? "-1");
 
     // ══════════════════════════════════════════════════════════
-    // MODE 2 — Lecture avec token (appelé par le lecteur IPTV)
-    // Le lecteur a un token dans son M3U → on vérifie et on redirige
+    // MODE 2 — Token présent → vérifier et rediriger
     // ══════════════════════════════════════════════════════════
     if (tokStr) {
         var decoded = await verifyToken(tokStr);
 
         if (!decoded) {
             return errResponse(
-                "Lien expiré. Retéléchargez votre playlist sur myboxsmart.pages.dev",
-                403
+                "Lien expiré. Retéléchargez votre playlist sur myboxsmart.pages.dev", 403
             );
         }
 
-        // Token valide → récupérer le vrai lien et rediriger
+        // Token valide → récupérer le vrai lien
         try {
             var chRes = await fetch(
                 SUPABASE_URL + "/rest/v1/channels_data?select=data&order=published_at.desc&limit=1",
                 { headers: sbHeaders }
             );
-
             if (!chRes.ok) return errResponse("Erreur serveur.", 503);
 
-            var rows = await chRes.json();
-            if (!rows || rows.length === 0 || !Array.isArray(rows[0].data)) {
-                return errResponse("Chaîne introuvable.", 404);
-            }
+            var rows   = await chRes.json();
+            var chData = rows?.[0]?.data?.[decoded.chIndex];
+            if (!chData?.url) return errResponse("Chaîne introuvable.", 404);
 
-            var chData = rows[0].data[decoded.chIndex];
-            if (!chData || !chData.url) return errResponse("Chaîne introuvable.", 404);
-
-            // 302 vers le vrai flux — token valide, abonnement vérifié à la génération
+            // 302 vers le vrai flux
             return new Response(null, {
                 status: 302,
                 headers: {
@@ -178,16 +155,12 @@ export async function onRequest(context) {
     }
 
     // ══════════════════════════════════════════════════════════
-    // MODE 1 — Génération du token (appelé au téléchargement M3U)
+    // MODE 1 — Clé présente → vérifier abonnement + générer token
     // ══════════════════════════════════════════════════════════
-    if (!userKey) {
-        return errResponse("Accès refusé - clé manquante", 403);
-    }
-    if (isNaN(chIndex) || chIndex < 0) {
-        return errResponse("Accès refusé - chaîne invalide", 400);
-    }
+    if (!userKey) return errResponse("Accès refusé - clé manquante", 403);
+    if (isNaN(chIndex) || chIndex < 0) return errResponse("Chaîne invalide", 400);
 
-    // Vérifier l'abonnement dans Supabase (BLOQUANT)
+    // Vérifier abonnement dans Supabase
     try {
         var authRes = await fetch(
             SUPABASE_URL + "/rest/v1/utilisateurs?cle=eq." +
@@ -199,9 +172,7 @@ export async function onRequest(context) {
         if (!authRes.ok) return errResponse("Erreur serveur. Réessayez.", 503);
 
         var users = await authRes.json();
-        if (!users || users.length === 0) {
-            return errResponse("Accès refusé - clé invalide", 403);
-        }
+        if (!users || users.length === 0) return errResponse("Accès refusé - clé invalide", 403);
 
         var daysLeft = calcDaysLeft(users[0]);
         if (daysLeft <= 0 && users[0].duree !== "VIE") {
@@ -212,11 +183,10 @@ export async function onRequest(context) {
         return errResponse("Erreur serveur temporaire.", 503);
     }
 
-    // Générer le token signé (valable 4h)
+    // Générer token signé (valable 4h) et rediriger
     var token    = await createToken(userKey, chIndex);
-    var tokenUrl = reqUrl.origin + "/stream?tok=" + encodeURIComponent(token) + "&ch=" + chIndex;
+    var tokenUrl = baseUrl + "/stream?tok=" + encodeURIComponent(token) + "&ch=" + chIndex;
 
-    // Rediriger vers l'URL avec token
     return new Response(null, {
         status: 302,
         headers: {
