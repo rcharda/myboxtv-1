@@ -1,19 +1,24 @@
 /**
  * ============================================================
- * MY BOX SMART — PLAYLIST M3U SÉCURISÉE
+ * MY BOX SMART — PLAYLIST M3U SÉCURISÉE AVEC TOKENS
  * Cloudflare Pages Function : /functions/playlist.js
  *
- * Les vrais liens des chaînes ne sont JAMAIS dans le fichier M3U.
- * À la place, le client reçoit des liens proxy :
- *   https://myboxsmart.pages.dev/stream?key=CLE-XXXXX&ch=42
+ * Génère un fichier M3U où chaque URL contient un token signé
+ * valable 4 heures. Après 4h, le client doit retélécharger
+ * sa playlist (son lecteur IPTV le fait automatiquement).
  *
- * Le lecteur IPTV appelle ce lien → vérification clé → redirection
- * vers le vrai flux. Le client ne voit jamais l'URL réelle.
+ * Le vrai lien des chaînes n'apparaît JAMAIS dans ce fichier.
  * ============================================================
  */
 
 const SUPABASE_URL = "https://yvcdadenofftnbljutwk.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2Y2RhZGVub2ZmdG5ibGp1dHdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NzQ0ODIsImV4cCI6MjA4ODQ1MDQ4Mn0.xqJzLpQszFmph599FBIvdE7NF88_i-JkABG-aSrAndE";
+
+// ⚠️ DOIT ÊTRE IDENTIQUE À CELUI DANS stream.js
+const SECRET_KEY = "Maman Yasmine1@";
+
+// Durée de validité du token en secondes (4 heures)
+const TOKEN_TTL = 4 * 60 * 60;
 
 function calcDaysLeft(user) {
     if (!user) return 0;
@@ -35,11 +40,36 @@ function errResponse(msg, status, CORS) {
     });
 }
 
+// Générer un HMAC-SHA256
+async function hmacSign(message, secret) {
+    var enc     = new TextEncoder();
+    var keyData = enc.encode(secret);
+    var msgData = enc.encode(message);
+    var key = await crypto.subtle.importKey(
+        "raw", keyData,
+        { name: "HMAC", hash: "SHA-256" },
+        false, ["sign"]
+    );
+    var sig   = await crypto.subtle.sign("HMAC", key, msgData);
+    var bytes = new Uint8Array(sig);
+    var hex   = Array.from(bytes).map(b => b.toString(16).padStart(2,"0")).join("");
+    return hex;
+}
+
+// Créer un token signé pour une chaîne
+async function createToken(userKey, chIndex) {
+    var expiry  = Math.floor(Date.now() / 1000) + TOKEN_TTL;
+    var payload = chIndex + ":" + expiry + ":" + userKey;
+    var sig     = await hmacSign(payload, SECRET_KEY);
+    var b64     = btoa(payload);
+    return b64 + "." + sig;
+}
+
 export async function onRequest(context) {
     var request = context.request;
     var reqUrl  = new URL(request.url);
     var params  = reqUrl.searchParams;
-    var baseUrl = reqUrl.origin; // https://myboxsmart.pages.dev
+    var baseUrl = reqUrl.origin;
 
     var CORS = {
         "Access-Control-Allow-Origin":  "*",
@@ -67,8 +97,6 @@ export async function onRequest(context) {
     }
 
     // ── 2. Vérification abonnement (BLOQUANTE) ───────────────
-    // Si Supabase est inaccessible → on bloque, on ne laisse pas passer
-    var authOk = false;
     try {
         var authRes = await fetch(
             SUPABASE_URL + "/rest/v1/utilisateurs?cle=eq." +
@@ -92,19 +120,11 @@ export async function onRequest(context) {
             return errResponse("Abonnement expiré. Renouvelez sur myboxsmart.pages.dev", 403, CORS);
         }
 
-        authOk = true;
-
     } catch(e) {
-        // Supabase inaccessible → on bloque, jamais de passe-droit
-        return errResponse("Erreur serveur temporaire. Réessayez dans quelques instants.", 503, CORS);
+        return errResponse("Erreur serveur temporaire. Réessayez.", 503, CORS);
     }
 
-    if (!authOk) {
-        return errResponse("Accès refusé.", 403, CORS);
-    }
-
-    // ── 3. Récupérer les chaînes depuis Supabase (channels_data) ─
-    // Les vrais liens sont dans Supabase, jamais exposés ici
+    // ── 3. Récupérer les chaînes depuis Supabase ─────────────
     var channels = [];
 
     try {
@@ -123,13 +143,12 @@ export async function onRequest(context) {
             var data = rows[0].data;
             for (var i = 0; i < data.length; i++) {
                 var ch = data[i];
-                if (!ch.url) continue; // ignorer chaînes sans lien (vérification côté Supabase)
+                if (!ch.url) continue;
                 channels.push({
                     index:    i,
                     name:     (ch.name     || "Chaine").trim(),
                     logo:     ch.logo      || "",
                     category: ch.category  || "Autres",
-                    // ⚠️ PAS d'URL ici — jamais exposée dans la playlist
                 });
             }
         }
@@ -168,9 +187,9 @@ export async function onRequest(context) {
         });
     }
 
-    // ── 6. Format M3U SÉCURISÉ ───────────────────────────────
-    // Chaque URL dans le M3U pointe vers le PROXY (/stream)
-    // Le vrai lien n'apparaît NULLE PART dans ce fichier
+    // ── 6. Format M3U avec tokens signés (4h) ────────────────
+    // Chaque URL contient un token HMAC-SHA256 signé
+    // Impossible à falsifier — expire après 4 heures
     var m3u  = "#EXTM3U x-tvg-url=\"\" tvg-shift=0\n";
         m3u += "# My Box Smart - " + channels.length + " chaines\n";
         m3u += "# " + new Date().toISOString().split("T")[0] + "\n\n";
@@ -182,13 +201,14 @@ export async function onRequest(context) {
         var cat  = (c.category || "Autres").replace(/"/g,"'").replace(/,/g," ").trim();
         var num  = j + 1;
 
-        // ⚠️ URL PROXY uniquement — jamais le vrai lien
-        var proxyUrl = baseUrl + "/stream?key=" + encodeURIComponent(userKey) + "&ch=" + c.index;
+        // Générer un token signé pour cette chaîne (valable 4h)
+        var token    = await createToken(userKey, c.index);
+        var streamUrl = baseUrl + "/stream?tok=" + encodeURIComponent(token) + "&ch=" + c.index;
 
         m3u += "#EXTINF:-1 tvg-id=\"" + num + "\" tvg-chno=\"" + num + "\" tvg-name=\"" + name + "\"";
         if (logo) m3u += " tvg-logo=\"" + logo + "\"";
         m3u += " group-title=\"" + cat + "\"," + name + "\n";
-        m3u += proxyUrl + "\n\n";
+        m3u += streamUrl + "\n\n";
     }
 
     return new Response(m3u, {
