@@ -162,7 +162,7 @@ export async function onRequest(context) {
         var authRes = await fetch(
             SUPABASE_URL + "/rest/v1/utilisateurs?cle=eq." +
             encodeURIComponent(userKey) +
-            "&select=cle,duree,date_activation,max_ecrans,appareils_iptv&limit=1",
+            "&select=cle,duree,date_activation,max_ecrans,appareils,appareils_iptv&limit=1",
             { headers: sbHeaders }
         );
 
@@ -179,14 +179,12 @@ export async function onRequest(context) {
             return errResponse("Accès refusé - abonnement expiré", 403);
         }
 
-        // Vérifier que ce device_id est bien enregistré pour cette clé
-        var appareils = (user.appareils_iptv || "")
-            .split(",")
-            .map(function(d){ return d.trim(); })
-            .filter(Boolean);
+        // Vérifier que ce device_id est enregistré (site OU IPTV)
+        var apSite = (user.appareils      || "").split(",").map(function(d){ return d.trim(); }).filter(Boolean);
+        var apIptv = (user.appareils_iptv || "").split(",").map(function(d){ return d.trim(); }).filter(Boolean);
+        var allAp  = apSite.concat(apIptv.filter(function(d){ return apSite.indexOf(d)===-1; }));
 
-        if (appareils.indexOf(deviceId) === -1) {
-            // Device non enregistré → accès refusé
+        if (allAp.indexOf(deviceId) === -1) {
             return errResponse(
                 "Appareil non autorisé. Retéléchargez votre playlist sur myboxsmart.pages.dev",
                 403
