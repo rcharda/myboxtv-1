@@ -1,10 +1,17 @@
 /**
  * ============================================================
- * MY BOX SMART — PLAYLIST M3U SÉCURISÉE
+ * MY BOX SMART — PLAYLIST M3U SÉCURISÉE + CONTRÔLE ÉCRANS
  * Cloudflare Pages Function : /functions/playlist.js
  *
- * Génère un fichier M3U avec des URLs proxy simples.
- * Le token est généré dans stream.js à chaque lecture.
+ * À chaque téléchargement du M3U :
+ *   1. Vérifie la clé et l'abonnement
+ *   2. Génère un device_id unique pour cet appareil
+ *   3. Vérifie si max_ecrans est atteint
+ *   4. Enregistre le device_id dans Supabase
+ *   5. Génère le M3U avec did= dans chaque URL
+ *
+ * Résultat : chaque M3U téléchargé appartient à 1 appareil
+ * Si le client partage son lien → bloqué si max atteint
  * ============================================================
  */
 
@@ -31,6 +38,13 @@ function errResponse(msg, status, CORS) {
     });
 }
 
+// Générer un device_id aléatoire unique
+function generateDeviceId() {
+    var arr = new Uint8Array(12);
+    crypto.getRandomValues(arr);
+    return Array.from(arr).map(b => b.toString(16).padStart(2,"0")).join("");
+}
+
 export async function onRequest(context) {
     var request = context.request;
     var reqUrl  = new URL(request.url);
@@ -50,6 +64,8 @@ export async function onRequest(context) {
     var category = (params.get("cat")    || "").trim().toLowerCase();
     var search   = (params.get("search") || "").trim().toLowerCase();
     var format   = (params.get("format") || "m3u").toLowerCase();
+    // did existant = l'appareil retélécharge son propre M3U
+    var existingDid = (params.get("did") || "").trim();
 
     var sbHeaders = {
         "apikey":        SUPABASE_KEY,
@@ -63,26 +79,25 @@ export async function onRequest(context) {
     }
 
     // ── 2. Vérification abonnement (BLOQUANTE) ───────────────
+    var user = null;
     try {
         var authRes = await fetch(
             SUPABASE_URL + "/rest/v1/utilisateurs?cle=eq." +
             encodeURIComponent(userKey) +
-            "&select=cle,duree,date_activation&limit=1",
+            "&select=cle,duree,date_activation,max_ecrans,appareils_iptv&limit=1",
             { headers: sbHeaders }
         );
 
-        if (!authRes.ok) {
-            return errResponse("Erreur serveur. Réessayez dans quelques instants.", 503, CORS);
-        }
+        if (!authRes.ok) return errResponse("Erreur serveur. Réessayez.", 503, CORS);
 
         var users = await authRes.json();
-
         if (!users || users.length === 0) {
             return errResponse("Clé invalide. Abonnez-vous sur myboxsmart.pages.dev", 403, CORS);
         }
 
-        var daysLeft = calcDaysLeft(users[0]);
-        if (daysLeft <= 0 && users[0].duree !== "VIE") {
+        user = users[0];
+        var daysLeft = calcDaysLeft(user);
+        if (daysLeft <= 0 && user.duree !== "VIE") {
             return errResponse("Abonnement expiré. Renouvelez sur myboxsmart.pages.dev", 403, CORS);
         }
 
@@ -90,21 +105,57 @@ export async function onRequest(context) {
         return errResponse("Erreur serveur temporaire. Réessayez.", 503, CORS);
     }
 
-    // ── 3. Récupérer les chaînes depuis Supabase ─────────────
-    var channels = [];
+    // ── 3. Contrôle des écrans (Device ID) ───────────────────
+    var maxScreens  = parseInt(user.max_ecrans) || 1;
+    // appareils_iptv = liste des device_id enregistrés pour IPTV
+    var appareilsRaw = user.appareils_iptv || "";
+    var appareils   = appareilsRaw ? appareilsRaw.split(",").map(function(d){ return d.trim(); }).filter(Boolean) : [];
 
+    var deviceId = "";
+
+    if (existingDid && appareils.indexOf(existingDid) !== -1) {
+        // ✅ Appareil déjà enregistré → il retélécharge son propre M3U
+        deviceId = existingDid;
+
+    } else if (appareils.length < maxScreens) {
+        // ✅ Place disponible → nouvel appareil, générer un did
+        deviceId = generateDeviceId();
+        appareils.push(deviceId);
+
+        // Enregistrer dans Supabase
+        try {
+            await fetch(
+                SUPABASE_URL + "/rest/v1/utilisateurs?cle=eq." + encodeURIComponent(userKey),
+                {
+                    method:  "PATCH",
+                    headers: Object.assign({}, sbHeaders, { "Prefer": "return=minimal" }),
+                    body:    JSON.stringify({ appareils_iptv: appareils.join(",") })
+                }
+            );
+        } catch(e) {
+            // Non bloquant — on continue quand même
+        }
+
+    } else {
+        // ❌ Max écrans atteint et appareil inconnu → BLOQUÉ
+        return errResponse(
+            "Limite d'appareils atteinte (" + maxScreens + " écran(s) max).\n" +
+            "Contactez le support sur WhatsApp : 63 82 87 67",
+            403, CORS
+        );
+    }
+
+    // ── 4. Récupérer les chaînes depuis Supabase ─────────────
+    var channels = [];
     try {
         var chRes = await fetch(
             SUPABASE_URL + "/rest/v1/channels_data?select=data&order=published_at.desc&limit=1",
             { headers: sbHeaders }
         );
 
-        if (!chRes.ok) {
-            return errResponse("Erreur chargement chaînes. Réessayez.", 503, CORS);
-        }
+        if (!chRes.ok) return errResponse("Erreur chargement chaînes. Réessayez.", 503, CORS);
 
         var rows = await chRes.json();
-
         if (rows && rows.length > 0 && Array.isArray(rows[0].data)) {
             var data = rows[0].data;
             for (var i = 0; i < data.length; i++) {
@@ -118,16 +169,15 @@ export async function onRequest(context) {
                 });
             }
         }
-
     } catch(e) {
         return errResponse("Erreur serveur chaînes. Réessayez.", 503, CORS);
     }
 
     if (channels.length === 0) {
-        return errResponse("Aucune chaîne disponible pour le moment.", 404, CORS);
+        return errResponse("Aucune chaîne disponible.", 404, CORS);
     }
 
-    // ── 4. Filtres ───────────────────────────────────────────
+    // ── 5. Filtres ───────────────────────────────────────────
     if (category) {
         channels = channels.filter(function(c) {
             return (c.category || "").toLowerCase().indexOf(category) !== -1;
@@ -139,7 +189,7 @@ export async function onRequest(context) {
         });
     }
 
-    // ── 5. Format JSON ───────────────────────────────────────
+    // ── 6. Format JSON ───────────────────────────────────────
     if (format === "json") {
         var safe = channels.map(function(c) {
             return { index: c.index, name: c.name, logo: c.logo, category: c.category };
@@ -153,9 +203,9 @@ export async function onRequest(context) {
         });
     }
 
-    // ── 6. Format M3U ────────────────────────────────────────
-    // URL proxy simple : /stream?key=CLE&ch=INDEX
-    // Le token est généré dans stream.js à chaque demande de lecture
+    // ── 7. Format M3U avec did intégré ───────────────────────
+    // Chaque URL contient le device_id de cet appareil
+    // stream.js vérifiera que ce did est bien enregistré
     var m3u  = "#EXTM3U x-tvg-url=\"\" tvg-shift=0\n";
         m3u += "# My Box Smart - " + channels.length + " chaines\n";
         m3u += "# " + new Date().toISOString().split("T")[0] + "\n\n";
@@ -167,8 +217,10 @@ export async function onRequest(context) {
         var cat  = (c.category || "Autres").replace(/"/g,"'").replace(/,/g," ").trim();
         var num  = j + 1;
 
-        // URL proxy — clé vérifiée à chaque lecture dans stream.js
-        var proxyUrl = baseUrl + "/stream?key=" + encodeURIComponent(userKey) + "&ch=" + c.index;
+        // URL proxy avec device_id — jamais le vrai lien
+        var proxyUrl = baseUrl + "/stream?key=" + encodeURIComponent(userKey) +
+                       "&ch=" + c.index +
+                       "&did=" + deviceId;
 
         m3u += "#EXTINF:-1 tvg-id=\"" + num + "\" tvg-chno=\"" + num + "\" tvg-name=\"" + name + "\"";
         if (logo) m3u += " tvg-logo=\"" + logo + "\"";
@@ -183,6 +235,7 @@ export async function onRequest(context) {
             "Content-Disposition": "attachment; filename=\"myboxsmart.m3u\"",
             "Cache-Control":       "no-store, no-cache",
             "X-Total-Channels":    String(channels.length),
+            "X-Device-Id":         deviceId,
         })
     });
 }
