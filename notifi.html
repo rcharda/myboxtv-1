@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Box Smart — Admin Notifications</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary:#e50914; --bg:#070707; --surface:#111; --surface2:#1a1a1a; --border:rgba(255,255,255,0.08); --green:#2ecc71; --blue:#0af; --gold:#ffc800; }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { background:var(--bg); color:#fff; font-family:'Exo 2',sans-serif; min-height:100vh; padding:20px; max-width:560px; margin:0 auto; }
+        .header { display:flex; align-items:center; gap:14px; margin-bottom:28px; padding-bottom:16px; border-bottom:1px solid rgba(229,9,20,0.3); }
+        .header img { width:44px; border-radius:10px; }
+        .header-title { font-family:'Orbitron',sans-serif; font-size:16px; font-weight:900; letter-spacing:2px; }
+        .header-sub { font-size:11px; color:#555; letter-spacing:1px; margin-top:2px; }
+        .status-dot { width:8px; height:8px; border-radius:50%; background:#333; margin-left:auto; flex-shrink:0; transition:all 0.3s; }
+        .status-dot.ok  { background:var(--green); box-shadow:0 0 8px var(--green); }
+        .status-dot.err { background:var(--primary); box-shadow:0 0 8px var(--primary); animation:blink 1s infinite; }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+        .card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px; margin-bottom:16px; }
+        .card-title { font-family:'Orbitron',sans-serif; font-size:11px; color:var(--primary); letter-spacing:2px; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+        label { font-size:11px; color:#666; display:block; margin-bottom:5px; }
+        input, textarea, select { width:100%; padding:11px 14px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:white; font-size:13px; font-family:'Exo 2',sans-serif; margin-bottom:12px; outline:none; transition:border-color 0.2s; }
+        input:focus, textarea:focus, select:focus { border-color:var(--primary); }
+        textarea { resize:vertical; min-height:80px; }
+        select option { background:#111; }
+        .templates { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px; }
+        .tpl-btn { padding:10px 8px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:#aaa; font-size:11px; font-weight:700; cursor:pointer; text-align:center; transition:all 0.2s; font-family:'Exo 2',sans-serif; }
+        .tpl-btn:hover { border-color:var(--primary); color:white; background:rgba(229,9,20,0.1); }
+        .btn { width:100%; padding:14px; border:none; border-radius:10px; font-weight:800; font-size:14px; cursor:pointer; font-family:'Exo 2',sans-serif; transition:all 0.2s; display:flex; align-items:center; justify-content:center; gap:8px; letter-spacing:0.5px; }
+        .btn-red   { background:var(--primary); color:white; box-shadow:0 4px 20px rgba(229,9,20,0.3); }
+        .btn-green { background:var(--green); color:#000; box-shadow:0 4px 20px rgba(46,204,113,0.3); margin-top:8px; }
+        .btn-blue  { background:rgba(0,170,255,0.12); color:var(--blue); border:1px solid rgba(0,170,255,0.3); margin-top:8px; }
+        .btn:disabled { opacity:0.5; cursor:not-allowed; }
+        .stats { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:14px; }
+        .stat-box { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:12px; text-align:center; }
+        .stat-val { font-family:'Orbitron',sans-serif; font-size:22px; font-weight:900; color:var(--primary); }
+        .stat-lbl { font-size:10px; color:#555; margin-top:3px; }
+        #log { background:#000; border:1px solid #1a1a1a; border-radius:8px; padding:12px; font-family:monospace; font-size:11px; max-height:220px; overflow-y:auto; line-height:1.9; }
+        .log-ok   { color:var(--green); }
+        .log-err  { color:#ff6b6b; }
+        .log-info { color:var(--blue); }
+        .log-warn { color:var(--gold); }
+        .preview-box { background:linear-gradient(135deg,#0d0d0d,#1a0a0a); border:1px solid rgba(229,9,20,0.4); border-radius:12px; padding:14px 16px; margin-bottom:12px; }
+        .preview-title { font-weight:900; font-size:14px; margin-bottom:4px; }
+        .preview-body  { font-size:12px; color:#aaa; }
+        .preview-badge { display:inline-block; padding:2px 8px; border-radius:20px; font-size:9px; font-weight:900; margin-top:6px; }
+        .badge-match   { background:rgba(46,204,113,0.2); color:var(--green); border:1px solid rgba(46,204,113,0.3); }
+        .badge-alerte  { background:rgba(229,9,20,0.2); color:#ff6b6b; border:1px solid rgba(229,9,20,0.3); }
+        .badge-promo   { background:rgba(255,200,0,0.2); color:var(--gold); border:1px solid rgba(255,200,0,0.3); }
+        .badge-general { background:rgba(0,170,255,0.2); color:var(--blue); border:1px solid rgba(0,170,255,0.3); }
+        .progress-bar { width:100%; height:4px; background:#222; border-radius:4px; overflow:hidden; margin-top:10px; display:none; }
+        .progress-fill { height:100%; background:linear-gradient(90deg,var(--primary),#ff4444); border-radius:4px; transition:width 0.3s; }
+        #toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(80px); background:#111; border:1px solid var(--border); border-radius:30px; padding:10px 22px; font-size:13px; font-weight:700; z-index:9999; transition:transform 0.3s; white-space:nowrap; }
+        #toast.show { transform:translateX(-50%) translateY(0); }
+        .info-box { background:rgba(0,170,255,0.07); border:1px solid rgba(0,170,255,0.2); border-radius:10px; padding:12px 14px; margin-bottom:12px; font-size:11px; color:#0af; line-height:1.7; }
+        @media (max-width:480px) { .templates { grid-template-columns:1fr; } .stats { grid-template-columns:1fr 1fr; } }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/b/bf/My_Box_Smart.png" alt="">
+    <div>
+        <div class="header-title">MY BOX SMART</div>
+        <div class="header-sub">ADMIN — NOTIFICATIONS FCM V1</div>
+    </div>
+    <div class="status-dot" id="fcm-dot"></div>
+</div>
+
+<!-- Stats -->
+<div class="card">
+    <div class="card-title"><i class="fas fa-chart-bar"></i> STATISTIQUES</div>
+    <div class="stats">
+        <div class="stat-box"><div class="stat-val" id="stat-users">—</div><div class="stat-lbl">Abonnés</div></div>
+        <div class="stat-box"><div class="stat-val" id="stat-tokens">—</div><div class="stat-lbl">Appareils FCM</div></div>
+        <div class="stat-box"><div class="stat-val" id="stat-sent">0</div><div class="stat-lbl">Envoyées</div></div>
+    </div>
+    <button class="btn btn-blue" onclick="loadStats()"><i class="fas fa-sync-alt"></i> Actualiser</button>
+</div>
+
+<!-- Composer -->
+<div class="card">
+    <div class="card-title"><i class="fas fa-bell"></i> COMPOSER UNE NOTIFICATION</div>
+
+    <label>Templates rapides</label>
+    <div class="templates">
+        <div class="tpl-btn" onclick="applyTemplate('match')">⚽ Match en direct</div>
+        <div class="tpl-btn" onclick="applyTemplate('alerte')">🚨 Alerte admin</div>
+        <div class="tpl-btn" onclick="applyTemplate('promo')">🎁 Promotion</div>
+        <div class="tpl-btn" onclick="applyTemplate('maintenance')">🔧 Maintenance</div>
+    </div>
+
+    <label>Titre *</label>
+    <input type="text" id="notif-title" placeholder="ex: ⚽ MATCH EN DIRECT" maxlength="60" oninput="updatePreview()">
+
+    <label>Message *</label>
+    <textarea id="notif-body" placeholder="ex: PSG vs Real Madrid — Ce soir 20h00" oninput="updatePreview()"></textarea>
+
+    <label>Type</label>
+    <select id="notif-type" onchange="onTypeChange()">
+        <option value="general">📢 Général</option>
+        <option value="match">⚽ Match en direct</option>
+        <option value="alerte">🚨 Alerte</option>
+        <option value="promo">🎁 Promotion</option>
+    </select>
+
+    <div id="match-fields" style="display:none;">
+        <label>Chaîne TV <span style="color:#555;">(bouton "Regarder")</span></label>
+        <input type="text" id="notif-channel" placeholder="ex: beIN Sports, Canal+, RMC Sport">
+        <label>Heure du match</label>
+        <input type="text" id="notif-time" placeholder="ex: Aujourd'hui 20h00">
+        <label>Équipes</label>
+        <input type="text" id="notif-match" placeholder="ex: PSG vs Real Madrid">
+    </div>
+
+    <label>Aperçu</label>
+    <div class="preview-box">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/b/bf/My_Box_Smart.png" style="width:20px;border-radius:4px;">
+            <span style="font-size:10px;color:#666;">MY BOX SMART</span>
+        </div>
+        <div class="preview-title" id="preview-title">Titre de la notification</div>
+        <div class="preview-body"  id="preview-body">Votre message apparaîtra ici...</div>
+        <span class="preview-badge badge-general" id="preview-badge">GÉNÉRAL</span>
+    </div>
+
+    <label>Envoyer à</label>
+    <select id="notif-target">
+        <option value="all">👥 Tous les appareils FCM</option>
+        <option value="active">✅ Abonnés actifs uniquement</option>
+    </select>
+
+    <div class="progress-bar" id="progress-bar">
+        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+
+    <button class="btn btn-red" id="btn-send" onclick="sendNotification()">
+        <i class="fas fa-paper-plane"></i> ENVOYER À TOUS
+    </button>
+    <button class="btn btn-green" id="btn-test" onclick="sendTestLocal()">
+        <i class="fas fa-flask"></i> TEST SUR CET APPAREIL
+    </button>
+</div>
+
+<!-- Journal -->
+<div class="card">
+    <div class="card-title" style="display:flex;justify-content:space-between;width:100%;">
+        <span><i class="fas fa-terminal"></i> JOURNAL</span>
+        <span style="color:#333;cursor:pointer;" onclick="clearLog()">VIDER</span>
+    </div>
+    <div id="log"><span class="log-info">› Panneau admin prêt.</span></div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js"></script>
+
+<script>
+const SUPABASE_URL  = "https://yvcdadenofftnbljutwk.supabase.co";
+const SUPABASE_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2Y2RhZGVub2ZmdG5ibGp1dHdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NzQ0ODIsImV4cCI6MjA4ODQ1MDQ4Mn0.xqJzLpQszFmph599FBIvdE7NF88_i-JkABG-aSrAndE";
+const EDGE_FUNCTION = SUPABASE_URL + "/functions/v1/dynamic-responder";
+const SB_H = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' };
+
+const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyCfVPeXlkykjonVRLpQONlsw5wbp1ELz_k",
+    authDomain: "my-box-smart.firebaseapp.com",
+    projectId: "my-box-smart",
+    storageBucket: "my-box-smart.firebasestorage.app",
+    messagingSenderId: "350859123838",
+    appId: "1:350859123838:web:b32a4b5b8293a685424c2f"
+};
+const VAPID_KEY = "BHt4Rk3NldtPfXOwt-6IIliOJEsCi8XBp0eJ88aKShVSzRLUU3YNO9Af7nL3gmi7bnaP87FfD96s_OLT0PE7rf8";
+
+let _messaging = null;
+let _myToken   = null;
+let _sentCount = parseInt(localStorage.getItem('admin_sent') || '0');
+
+async function sbGet(table, params) {
+    try {
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, { headers: SB_H });
+        return r.ok ? r.json() : null;
+    } catch { return null; }
+}
+
+function log(msg, type = 'info') {
+    const el = document.getElementById('log');
+    const d  = document.createElement('div');
+    d.className = 'log-' + type;
+    d.textContent = '[' + new Date().toLocaleTimeString('fr-FR') + '] › ' + msg;
+    el.appendChild(d);
+    el.scrollTop = el.scrollHeight;
+}
+function clearLog() { document.getElementById('log').innerHTML = '<span class="log-info">› Journal vidé.</span>'; }
+function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg; el.classList.add('show');
+    clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 3000);
+}
+function setProgress(pct) {
+    document.getElementById('progress-bar').style.display = (pct > 0 && pct < 100) ? 'block' : 'none';
+    document.getElementById('progress-fill').style.width = pct + '%';
+}
+
+async function loadStats() {
+    log('Chargement des statistiques...'); document.getElementById('stat-sent').textContent = _sentCount;
+    try {
+        const [users, tokens] = await Promise.all([
+            sbGet('utilisateurs', 'select=cle&limit=2000'),
+            sbGet('fcm_tokens',   'select=fcm_token&limit=2000')
+        ]);
+        document.getElementById('stat-users').textContent  = users  ? users.length  : '—';
+        document.getElementById('stat-tokens').textContent = tokens ? tokens.length : '—';
+        log('✅ ' + (users ? users.length : 0) + ' abonnés, ' + (tokens ? tokens.length : 0) + ' tokens FCM', 'ok');
+    } catch(e) { log('Erreur stats : ' + e.message, 'err'); }
+}
+
+function updatePreview() {
+    const title = document.getElementById('notif-title').value || 'Titre de la notification';
+    const body  = document.getElementById('notif-body').value  || 'Votre message apparaîtra ici...';
+    const type  = document.getElementById('notif-type').value;
+    document.getElementById('preview-title').textContent = title;
+    document.getElementById('preview-body').textContent  = body;
+    const badge = document.getElementById('preview-badge');
+    const LABELS = { match:'MATCH ⚽', alerte:'ALERTE 🚨', promo:'PROMO 🎁', general:'GÉNÉRAL 📢' };
+    badge.textContent = LABELS[type] || 'GÉNÉRAL';
+    badge.className   = 'preview-badge badge-' + type;
+}
+
+function onTypeChange() {
+    document.getElementById('match-fields').style.display =
+        document.getElementById('notif-type').value === 'match' ? 'block' : 'none';
+    updatePreview();
+}
+
+const TEMPLATES = {
+    match:       { title:'⚽ MATCH EN DIRECT',     body:'Un match commence maintenant sur My Box Smart !', type:'match'   },
+    alerte:      { title:'🚨 ALERTE MY BOX SMART', body:"Message important de l'équipe My Box Smart.",    type:'alerte'  },
+    promo:       { title:'🎁 OFFRE SPÉCIALE -50%', body:'Profitez de notre promotion exceptionnelle !',   type:'promo'   },
+    maintenance: { title:'🔧 MAINTENANCE CE SOIR', body:'Maintenance programmée de 2h à 4h du matin.',   type:'general' }
+};
+function applyTemplate(key) {
+    const t = TEMPLATES[key]; if (!t) return;
+    document.getElementById('notif-title').value = t.title;
+    document.getElementById('notif-body').value  = t.body;
+    document.getElementById('notif-type').value  = t.type;
+    onTypeChange(); updatePreview(); toast('Template appliqué ✓');
+}
+
+async function sendNotification() {
+    const title  = document.getElementById('notif-title').value.trim();
+    const body   = document.getElementById('notif-body').value.trim();
+    const type   = document.getElementById('notif-type').value;
+    const target = document.getElementById('notif-target').value;
+
+    if (!title) { toast('⚠️ Titre requis !'); return; }
+    if (!body)  { toast('⚠️ Message requis !'); return; }
+
+    const data = { type };
+    if (type === 'match') {
+        data.channel    = document.getElementById('notif-channel').value.trim();
+        data.match_time = document.getElementById('notif-time').value.trim();
+        data.match      = document.getElementById('notif-match').value.trim();
+    }
+
+    log('Récupération des tokens FCM...'); setProgress(20);
+    const params = 'select=fcm_token&limit=2000' + (target === 'active' ? '&user_key=not.is.null' : '');
+    const rows   = await sbGet('fcm_tokens', params);
+    const tokens = rows ? rows.map(r => r.fcm_token).filter(Boolean) : [];
+
+    if (!tokens.length) { log('❌ Aucun token FCM trouvé', 'err'); toast('❌ Aucun appareil enregistré'); setProgress(0); return; }
+
+    log('Envoi vers ' + tokens.length + ' appareil(s)...', 'warn'); setProgress(50);
+
+    const btn = document.getElementById('btn-send');
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ENVOI EN COURS...';
+
+    try {
+        const r = await fetch(EDGE_FUNCTION, {
+            method: 'POST', headers: { ...SB_H },
+            body: JSON.stringify({ title, body, data, tokens })
+        });
+        setProgress(90);
+        const result = await r.json();
+        if (r.ok) {
+            _sentCount++;
+            localStorage.setItem('admin_sent', _sentCount);
+            document.getElementById('stat-sent').textContent = _sentCount;
+            log('✅ ' + (result.success || 0) + ' succès, ' + (result.failure || 0) + ' échecs', 'ok');
+            toast('✅ ' + (result.success || 0) + ' notifications envoyées !');
+        } else {
+            log('❌ Erreur : ' + JSON.stringify(result), 'err');
+            toast('❌ Erreur — Edge Function non configurée ?');
+        }
+    } catch(e) { log('❌ Réseau : ' + e.message, 'err'); toast('❌ Erreur réseau'); }
+
+    setProgress(0); btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-paper-plane"></i> ENVOYER À TOUS';
+}
+
+async function sendTestLocal() {
+    if (!_myToken) {
+        await initFCMLocal();
+        if (!_myToken) { toast('❌ Token local non disponible'); return; }
+    }
+    const title = document.getElementById('notif-title').value.trim() || '🧪 Test My Box Smart';
+    const body  = document.getElementById('notif-body').value.trim()  || 'Notification de test admin — fonctionne !';
+    const type  = document.getElementById('notif-type').value;
+    const data  = { type, test: 'true' };
+    if (type === 'match') {
+        data.channel    = document.getElementById('notif-channel').value.trim();
+        data.match_time = document.getElementById('notif-time').value.trim();
+        data.match      = document.getElementById('notif-match').value.trim();
+    }
+    log('Test local en cours...', 'warn');
+    const btn = document.getElementById('btn-test');
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> TEST...';
+    try {
+        const r = await fetch(EDGE_FUNCTION, {
+            method: 'POST', headers: { ...SB_H },
+            body: JSON.stringify({ title, body, data, tokens: [_myToken] })
+        });
+        const result = await r.json();
+        if (r.ok && result.success >= 1) {
+            log('✅ Test envoyé avec succès !', 'ok');
+            toast('✅ Test envoyé ! Vérifiez vos notifications.');
+        } else {
+            log('❌ Échec test : ' + JSON.stringify(result), 'err');
+            toast('❌ Vérifiez l\'Edge Function Supabase');
+        }
+    } catch(e) { log('❌ ' + e.message, 'err'); toast('❌ Erreur réseau'); }
+    btn.disabled = false; btn.innerHTML = '<i class="fas fa-flask"></i> TEST SUR CET APPAREIL';
+}
+
+async function initFCMLocal() {
+    try {
+        log('Initialisation FCM...', 'info');
+        if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+        _messaging = firebase.messaging();
+        const perm = await Notification.requestPermission();
+        if (perm !== 'granted') { log('❌ Permission refusée', 'err'); return; }
+
+        const swCode = [
+            "importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');",
+            "importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');",
+            "firebase.initializeApp(" + JSON.stringify(FIREBASE_CONFIG) + ");",
+            "const messaging = firebase.messaging();",
+            "messaging.onBackgroundMessage(payload => {",
+            "  const t = (payload.notification && payload.notification.title) || 'My Box Smart';",
+            "  const b = (payload.notification && payload.notification.body)  || '';",
+            "  self.registration.showNotification(t, { body: b, icon: 'https://upload.wikimedia.org/wikipedia/commons/b/bf/My_Box_Smart.png', vibrate:[200,100,200] });",
+            "});"
+        ].join('\n');
+
+        const blob  = new Blob([swCode], { type: 'application/javascript' });
+        const swReg = await navigator.serviceWorker.register(URL.createObjectURL(blob), { scope: '/' });
+        await navigator.serviceWorker.ready;
+
+        _myToken = await _messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg });
+        if (_myToken) {
+            document.getElementById('fcm-dot').className = 'status-dot ok';
+            log('✅ FCM initialisé — token obtenu', 'ok');
+            _messaging.onMessage(payload => {
+                const t = (payload.notification && payload.notification.title) || '';
+                const b = (payload.notification && payload.notification.body)  || '';
+                log('📩 Message reçu : ' + t + ' — ' + b, 'ok');
+                toast('🔔 ' + t);
+            });
+        } else {
+            log('⚠️ Token non obtenu', 'warn');
+            document.getElementById('fcm-dot').className = 'status-dot err';
+        }
+    } catch(e) {
+        log('❌ FCM : ' + e.message, 'err');
+        document.getElementById('fcm-dot').className = 'status-dot err';
+    }
+}
+
+(async function() {
+    log('Démarrage panneau admin...', 'info');
+    document.getElementById('stat-sent').textContent = _sentCount;
+    updatePreview();
+    await loadStats();
+    await initFCMLocal();
+    log('Prêt — FCM V1 via Supabase Edge Function', 'ok');
+})();
+</script>
+</body>
+</html>
