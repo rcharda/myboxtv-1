@@ -342,20 +342,8 @@ async function initFCMLocal() {
         const perm = await Notification.requestPermission();
         if (perm !== 'granted') { log('❌ Permission refusée', 'err'); return; }
 
-        const swCode = [
-            "importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');",
-            "importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');",
-            "firebase.initializeApp(" + JSON.stringify(FIREBASE_CONFIG) + ");",
-            "const messaging = firebase.messaging();",
-            "messaging.onBackgroundMessage(payload => {",
-            "  const t = (payload.notification && payload.notification.title) || 'My Box Smart';",
-            "  const b = (payload.notification && payload.notification.body)  || '';",
-            "  self.registration.showNotification(t, { body: b, icon: 'https://upload.wikimedia.org/wikipedia/commons/b/bf/My_Box_Smart.png', vibrate:[200,100,200] });",
-            "});"
-        ].join('\n');
-
-        const blob  = new Blob([swCode], { type: 'application/javascript' });
-        const swReg = await navigator.serviceWorker.register(URL.createObjectURL(blob), { scope: '/' });
+        // Utiliser le vrai fichier SW hébergé sur le domaine
+        const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' });
         await navigator.serviceWorker.ready;
 
         _myToken = await _messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg });
