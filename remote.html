@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#080808">
+<title>MyBox Remote</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Barlow+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<style>
+:root{
+  --red:#e50914;--rg:rgba(229,9,20,.45);
+  --bg:#080808;--btn:#242428;--btnT:#2e2e34;--btnD:#1a1a1d;
+  --green:#22d45a;--blue:#00aaff;--gold:#ffcc00;
+  --muted:#666;--muted2:#333;
+  --rim:rgba(255,255,255,.07);--rim2:rgba(255,255,255,.04);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;outline:none}
+html,body{height:100%;background:var(--bg);color:#fff;font-family:'Barlow Condensed',sans-serif;overflow:hidden}
+
+/* SCREENS */
+.sc{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;overflow-y:auto}
+.sc.on{display:flex}
+
+/* LOGIN */
+#s1{background:radial-gradient(ellipse at 40% 20%,#260003 0%,var(--bg) 60%)}
+.logo{width:62px;height:62px;object-fit:contain;background:#fff;border-radius:14px;padding:3px;margin-bottom:14px;box-shadow:0 0 32px var(--rg);border:1px solid rgba(229,9,20,.35)}
+.ttl{font-family:'Orbitron',sans-serif;font-size:14px;letter-spacing:5px;color:var(--red);margin-bottom:6px;text-align:center}
+.sub{font-size:13px;color:var(--muted);text-align:center;max-width:270px;margin-bottom:24px;line-height:1.5}
+.lc{width:100%;max-width:320px;background:var(--rim2);border:1px solid var(--rim);border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:14px}
+.lb{font-size:9px;letter-spacing:2px;color:var(--muted2);font-family:'Orbitron',sans-serif;margin-bottom:3px}
+.inp{width:100%;padding:13px 15px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#fff;font-size:16px;font-family:'Barlow Condensed',sans-serif;font-weight:600;transition:.2s;-webkit-user-select:text;user-select:text}
+.inp:focus{border-color:var(--red)}
+.inp::placeholder{color:var(--muted2)}
+.lbtn{padding:15px;background:var(--red);border:none;border-radius:12px;color:#fff;font-size:13px;font-weight:700;letter-spacing:3px;font-family:'Orbitron',sans-serif;cursor:pointer;box-shadow:0 6px 24px var(--rg);transition:.15s}
+.lbtn:active{transform:scale(.97)}
+.ht{font-size:10px;color:var(--muted2);text-align:center;line-height:1.7;margin-top:14px}
+.ht code{background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;color:var(--muted)}
+
+/* DEVICES */
+#s2{background:radial-gradient(ellipse at 60% 80%,#00101a 0%,var(--bg) 55%)}
+.dh{width:100%;max-width:360px;display:flex;align-items:center;gap:12px;margin-bottom:22px}
+.bk{width:36px;height:36px;border-radius:50%;background:var(--rim2);border:1px solid var(--rim);color:var(--muted);font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.dh h2{font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:2px;color:var(--blue)}
+#dvl{width:100%;max-width:360px;display:flex;flex-direction:column;gap:10px}
+.dcd{background:var(--rim2);border:1px solid var(--rim);border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:.18s}
+.dcd:active{transform:scale(.97);border-color:var(--blue)}
+
+/* REMOTE SCREEN */
+#s3{padding:0;align-items:center;justify-content:flex-start;overflow-y:scroll;scrollbar-width:none;background:#060606}
+#s3::-webkit-scrollbar{display:none}
+
+/* STATUS BAR */
+.sb{position:sticky;top:0;z-index:50;width:100%;flex-shrink:0;background:rgba(6,6,6,.97);backdrop-filter:blur(14px);padding:10px 14px 9px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--rim)}
+.sbl{display:flex;align-items:center;gap:8px}
+.led{width:7px;height:7px;border-radius:50%;background:var(--muted2);transition:.5s}
+.led.on{background:var(--green);box-shadow:0 0 8px var(--green)}
+.sbn{font-size:13px;font-weight:700;line-height:1}
+.sbc{font-size:10px;color:var(--muted);margin-top:1px}
+.sbr{display:flex;align-items:center;gap:10px}
+.vp{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.06);border-radius:20px;padding:4px 10px;border:1px solid var(--rim)}
+.vp i{font-size:10px;color:var(--muted)}
+.vp span{font-family:'Orbitron',sans-serif;font-size:11px;color:var(--red)}
+.chgb{font-size:12px;color:var(--muted);cursor:pointer;padding:4px 8px}
+
+/* REMOTE BODY */
+.rw{padding:18px 0 60px;display:flex;flex-direction:column;align-items:center;width:100%}
+.rb2{
+  width:226px;
+  background:linear-gradient(168deg,#2c2c32 0%,#1f1f23 25%,#161618 60%,#0f0f11 100%);
+  border-radius:42px 42px 52px 52px;
+  padding:18px 17px 30px;position:relative;
+  display:flex;flex-direction:column;align-items:center;
+  box-shadow:0 2px 0 rgba(255,255,255,.08) inset,0 -2px 0 rgba(0,0,0,.5) inset,0 40px 100px rgba(0,0,0,.95),0 16px 40px rgba(0,0,0,.8);
+  border:1px solid rgba(255,255,255,.09);
+}
+.rb2::before{content:'';position:absolute;top:3px;left:36px;right:36px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent)}
+
+/* Top: brand + power */
+.rtp{width:100%;display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.rbd{display:flex;align-items:center;gap:7px}
+.rbd img{width:25px;height:25px;object-fit:contain;background:#fff;border-radius:5px;padding:1px}
+.rbd span{font-family:'Orbitron',sans-serif;font-size:7.5px;letter-spacing:3px;color:rgba(255,255,255,.32)}
+.rpw{width:36px;height:36px;border-radius:50%;cursor:pointer;background:radial-gradient(circle at 38% 35%,#3c0009,#1a0004);border:1px solid rgba(229,9,20,.5);box-shadow:0 3px 10px rgba(229,9,20,.3),0 1px 0 rgba(255,255,255,.09) inset;display:flex;align-items:center;justify-content:center;color:var(--red);font-size:13px;transition:.13s}
+.rpw:active{transform:scale(.88);box-shadow:0 0 18px var(--rg)}
+
+/* LCD */
+.lcd{width:160px;height:62px;background:linear-gradient(135deg,#0c0c0e,#050507);border-radius:10px;border:1px solid rgba(255,255,255,.11);box-shadow:0 2px 14px rgba(0,0,0,.7) inset;margin-bottom:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;overflow:hidden;position:relative}
+.lcd::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,170,255,.04),transparent 50%);pointer-events:none}
+.ll{width:24px;height:24px;object-fit:contain;background:#fff;border-radius:5px;padding:2px;margin-bottom:1px}
+.lc2{font-size:9px;font-weight:700;color:rgba(255,255,255,.9);text-align:center;padding:0 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%}
+.lca{font-size:7px;color:rgba(0,170,255,.7);letter-spacing:.8px}
+
+/* Colour keys */
+.ck{width:100%;display:flex;gap:7px;margin-bottom:12px;padding:0 4px}
+.kb{flex:1;height:20px;border-radius:5px;cursor:pointer;border:none;box-shadow:0 2px 6px rgba(0,0,0,.55),0 1px 0 rgba(255,255,255,.14) inset;transition:.1s}
+.kb:active{transform:scaleY(.85) translateY(1px)}
+.kr{background:linear-gradient(180deg,#ff2030,#c0000a)}
+.kg{background:linear-gradient(180deg,#27dc60,#0e8830)}
+.ky{background:linear-gradient(180deg,#ffdd00,#cc9900)}
+.kbl{background:linear-gradient(180deg,#22aaff,#0060cc)}
+
+/* ═══════════════════════════════
+   SECTION VOL+CH (rockers)
+   [VOL+  VOL-] [MUTE] [CH+ CH-]
+═══════════════════════════════ */
+.rcks{width:100%;display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.rok{flex:1;height:52px;background:linear-gradient(160deg,#262630 0%,#1c1c20 100%);border-radius:26px;border:1px solid var(--rim);box-shadow:0 4px 14px rgba(0,0,0,.75),0 1px 0 rgba(255,255,255,.07) inset;display:flex;overflow:hidden}
+.rh{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;transition:.1s}
+.rh:first-child{border-right:1px solid rgba(255,255,255,.05)}
+.rh:active{background:rgba(255,255,255,.06);transform:scaleY(.93)}
+.rh i{font-size:12px;color:rgba(255,255,255,.55)}
+.rh span{font-size:6px;color:rgba(255,255,255,.26);letter-spacing:1px;font-family:'Orbitron',sans-serif}
+.mt{width:44px;height:44px;border-radius:50%;cursor:pointer;flex-shrink:0;background:radial-gradient(circle at 38% 35%,#2c1015,#160608);border:1px solid rgba(229,9,20,.45);box-shadow:0 0 10px rgba(229,9,20,.2),0 3px 8px rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;color:var(--red);font-size:16px;transition:.12s}
+.mt:active{transform:scale(.88);box-shadow:0 0 16px var(--rg)}
+
+/* ═══════════════════════════════════════════════
+   CLUSTER NAVIGATION MULTI-FONCTION
+   
+   ┌─────────┬───────────────┬──────────┐
+   │  BACK   │    ▲ HAUT     │ SCR ▲   │
+   │retour/  │ • CH précédent│scroll   │
+   │ferme    │ • scroll menu │ haut    │
+   ├─────────┼───────────────┼──────────┤
+   │ ◄ GCHE  │    OK ✅      │ ► DROIT  │
+   │•ouvremenu•confirme/clique│•info/TAB►│
+   │•TAB←   │ •sélectionne  │ •TAB→   │
+   ├─────────┼───────────────┼──────────┤
+   │  TAB    │    ▼ BAS      │ SCR ▼   │
+   │focus    │ • CH suivante │scroll   │
+   │mode     │ • scroll menu │ bas     │
+   └─────────┴───────────────┴──────────┘
+═══════════════════════════════════════════════ */
+.nc{
+  width:100%;
+  display:grid;
+  grid-template-columns:1fr 1.25fr 1fr;
+  grid-template-rows:repeat(3,48px);
+  gap:6px;
+  margin-bottom:11px;
+}
+
+/* base nav button */
+.nb{
+  cursor:pointer;border-radius:10px;
+  background:linear-gradient(158deg,var(--btnT) 0%,var(--btn) 55%,var(--btnD) 100%);
+  border:1px solid var(--rim);
+  box-shadow:0 1px 0 rgba(255,255,255,.08) inset,0 3px 8px rgba(0,0,0,.6);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  transition:.1s;
+}
+.nb:active{transform:translateY(2px) scale(.93);box-shadow:0 1px 3px rgba(0,0,0,.7)}
+.ni{font-size:15px;color:rgba(255,255,255,.6);line-height:1}
+.nl{font-size:6px;color:rgba(255,255,255,.26);letter-spacing:.5px;font-family:'Orbitron',sans-serif;line-height:1;text-align:center}
+
+/* BACK */
+.n-back{grid-row:1;grid-column:1;background:linear-gradient(158deg,#1e1e24,#141418);border-color:rgba(255,255,255,.05)}
+.n-back .ni{color:rgba(255,100,100,.7);font-size:13px}
+
+/* Directions */
+.n-up  {grid-row:1;grid-column:2}
+.n-dn  {grid-row:3;grid-column:2}
+.n-lt  {grid-row:2;grid-column:1}
+.n-rt  {grid-row:2;grid-column:3}
+
+/* OK — grand, rouge */
+.n-ok{
+  grid-row:2;grid-column:2;
+  background:radial-gradient(circle at 40% 35%,#3e0008,#200003);
+  border:1px solid rgba(229,9,20,.55);
+  box-shadow:0 0 14px rgba(229,9,20,.3),0 3px 8px rgba(0,0,0,.6);
+}
+.n-ok .ni{color:var(--red);font-size:18px}
+.n-ok .nl{color:rgba(229,9,20,.55)}
+.n-ok:active{box-shadow:0 0 22px var(--rg),0 1px 3px rgba(0,0,0,.7)}
+
+/* TAB */
+.n-tab{grid-row:3;grid-column:1;background:linear-gradient(158deg,#1a1e28,#121418);border-color:rgba(0,170,255,.15)}
+.n-tab .ni{color:rgba(0,170,255,.65);font-size:12px}
+
+/* Scroll */
+.n-su{grid-row:1;grid-column:3}
+.n-sd{grid-row:3;grid-column:3}
+.n-su .ni,.n-sd .ni{color:rgba(255,255,255,.38)}
+
+/* Tooltip contextuel sous le cluster */
+.ctx-hint{
+  font-size:8px;color:rgba(255,255,255,.22);text-align:center;
+  font-family:'Orbitron',sans-serif;letter-spacing:.5px;
+  margin-bottom:10px;min-height:12px;transition:.2s;
+}
+
+/* SEPARATOR */
+.sep{width:55%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.07),transparent);margin:5px 0}
+
+/* RUBBER BUTTON */
+.rb{cursor:pointer;border-radius:9px;background:linear-gradient(158deg,var(--btnT) 0%,var(--btn) 55%,var(--btnD) 100%);border:1px solid var(--rim);box-shadow:0 1px 0 rgba(255,255,255,.08) inset,0 3px 9px rgba(0,0,0,.65);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;transition:.1s}
+.rb:active{transform:translateY(2px) scale(.94);box-shadow:0 1px 4px rgba(0,0,0,.7)}
+.rb.lit{background:linear-gradient(158deg,rgba(229,9,20,.22),rgba(229,9,20,.1));border-color:rgba(229,9,20,.4);box-shadow:0 0 12px rgba(229,9,20,.28),0 3px 9px rgba(0,0,0,.65)}
+.rb.lit .ri{color:var(--red)!important}
+.ri{font-size:14px;color:rgba(255,255,255,.62);line-height:1}
+.rl{font-size:6.5px;color:rgba(255,255,255,.3);letter-spacing:.5px;text-transform:uppercase;font-family:'Orbitron',sans-serif;line-height:1}
+
+/* FN ROW */
+.fr{width:100%;display:flex;gap:7px;margin-bottom:10px}
+.rb.sq{width:46px;height:40px;border-radius:10px;flex-shrink:0}
+.rb.sq .ri{font-size:12px}
+
+/* NUMPAD */
+.np{width:100%;display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.nr{display:flex;gap:6px;justify-content:center}
+.rb.nk{width:52px;height:40px;border-radius:10px}
+.rb.nk .ri{font-size:17px;font-weight:700;color:rgba(255,255,255,.75);font-family:'Barlow Condensed',sans-serif}
+.rb.nk .rl{font-size:5.5px;letter-spacing:1.5px}
+.rb.nk.dk{background:linear-gradient(158deg,#2a1a1a,#160f0f);border-color:rgba(229,9,20,.2)}
+.rb.nk.dk .ri{color:rgba(229,9,20,.6);font-size:12px}
+
+/* EXTRA ROW */
+.er{width:100%;display:flex;gap:5px}
+.rb.ex{flex:1;height:36px;border-radius:9px}
+.rb.ex .ri{font-size:11px}
+.rb.ex .rl{font-size:5.5px}
+
+/* OVERLAYS */
+.ov{position:fixed;inset:0;z-index:200;display:none;flex-direction:column;align-items:center;justify-content:center;padding:22px;gap:14px;background:rgba(0,0,0,.92);backdrop-filter:blur(18px)}
+.ov.on{display:flex}
+.ot{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:2px;color:var(--muted)}
+.od{width:100%;max-width:280px;background:rgba(255,255,255,.05);border:1px solid var(--red);border-radius:12px;padding:14px 20px;font-family:'Orbitron',sans-serif;font-size:28px;letter-spacing:6px;color:var(--red);text-align:center;min-height:56px}
+.og{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;max-width:280px}
+.ob{padding:14px 8px;text-align:center;background:rgba(255,255,255,.06);border:1px solid var(--rim);border-radius:12px;cursor:pointer;transition:.12s}
+.ob:active{transform:scale(.91)}
+.on2{font-size:21px;font-weight:700;display:block;line-height:1}
+.os{font-size:7px;color:var(--muted2);letter-spacing:2px}
+.ob.dl{background:rgba(229,9,20,.1);border-color:rgba(229,9,20,.2);font-size:18px;color:var(--red)}
+.ob.go{background:var(--red);border-color:var(--red);font-size:18px;color:#fff}
+.ob.go:active{background:#b50010}
+.ox{font-size:12px;color:var(--muted);cursor:pointer;padding:6px 22px;border:1px solid var(--rim);border-radius:20px;margin-top:4px}
+.sw{width:100%;max-width:310px;display:flex;gap:10px}
+.si{flex:1;padding:13px 15px;background:rgba(255,255,255,.07);border:1px solid rgba(0,170,255,.3);border-radius:12px;color:#fff;font-size:18px;font-family:'Barlow Condensed',sans-serif;font-weight:600;-webkit-user-select:text;user-select:text}
+.si:focus{border-color:var(--blue)}
+.sg{width:52px;height:52px;border-radius:12px;background:var(--blue);border:none;color:#fff;font-size:18px;cursor:pointer;flex-shrink:0}
+.sg2{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;max-width:280px}
+.sl{padding:17px;text-align:center;background:rgba(255,255,255,.05);border:1px solid var(--rim);border-radius:14px;cursor:pointer;font-size:14px;font-weight:700;color:var(--gold);transition:.12s}
+.sl:active{transform:scale(.92)}
+
+/* TOAST */
+#tst{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(14px);background:rgba(8,8,10,.97);border:1px solid var(--rim);backdrop-filter:blur(16px);border-radius:30px;padding:10px 22px;font-size:13px;font-weight:600;pointer-events:none;opacity:0;transition:all .27s;z-index:9999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,.7)}
+#tst.on{opacity:1;transform:translateX(-50%) translateY(0)}
+#tst.ok{border-color:rgba(34,212,90,.4);color:var(--green)}
+#tst.if{border-color:rgba(0,170,255,.3);color:var(--blue)}
+#tst.er{border-color:rgba(229,9,20,.4);color:var(--red)}
+
+@keyframes pp{0%{transform:scale(.82)}60%{transform:scale(1.12)}100%{transform:scale(1)}}
+.pp{animation:pp .22s ease}
+
+/* QR Scanner */
+#qr-overlay{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.97);display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+#qr-overlay.on{display:flex}
+#qr-reader{width:260px;height:260px;border-radius:14px;overflow:hidden;border:2px solid rgba(0,170,255,.4);position:relative;background:#000}
+#qr-reader video{width:100%!important;height:100%!important;object-fit:cover}
+.qr-frame{position:absolute;inset:0;pointer-events:none}
+.qr-corner{position:absolute;width:24px;height:24px;border-color:#0af;border-style:solid;border-width:0}
+.qr-corner.tl{top:8px;left:8px;border-top-width:3px;border-left-width:3px;border-radius:4px 0 0 0}
+.qr-corner.tr{top:8px;right:8px;border-top-width:3px;border-right-width:3px;border-radius:0 4px 0 0}
+.qr-corner.bl{bottom:8px;left:8px;border-bottom-width:3px;border-left-width:3px;border-radius:0 0 0 4px}
+.qr-corner.br{bottom:8px;right:8px;border-bottom-width:3px;border-right-width:3px;border-radius:0 0 4px 0}
+.qr-scan-line{position:absolute;left:10px;right:10px;height:2px;background:linear-gradient(90deg,transparent,#0af,transparent);animation:qrscan 2s ease-in-out infinite}
+@keyframes qrscan{0%,100%{top:15%}50%{top:80%}}
+.qr-hint{font-size:12px;color:rgba(255,255,255,.5);text-align:center;max-width:240px;line-height:1.5}
+.qr-cancel{font-size:12px;color:var(--muted);cursor:pointer;padding:6px 22px;border:1px solid var(--rim);border-radius:20px}
+
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="sc on" id="s1">
+  <img class="logo" src="https://upload.wikimedia.org/wikipedia/commons/b/bf/My_Box_Smart.png" alt="">
+  <div class="ttl">MY BOX REMOTE</div>
+  <div class="sub">Entrez votre clé MyBox</div>
+  <div class="lc">
+    <div><div class="lb">CLÉ D'ACTIVATION</div>
+    <input class="inp" id="ki" type="text" placeholder="Votre clé…" autocapitalize="none" spellcheck="false" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <button class="lbtn" onclick="doLogin()"><i class="fas fa-satellite-dish"></i>&nbsp; CONNEXION</button>
+  </div>
+  <p class="ht">💡 <code>MyBox → Paramètres → Compte</code></p>
+  <button style="width:100%;max-width:320px;padding:13px;background:rgba(0,170,255,.1);border:1px solid rgba(0,170,255,.25);border-radius:12px;color:#0af;font-size:13px;font-weight:700;letter-spacing:1px;font-family:'Orbitron',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-top:10px" onclick="openQR()">
+    <i class="fas fa-qrcode"></i>&nbsp; SCANNER LE QR CODE DE LA TV
+  </button>
+</div>
+
+<!-- DEVICES -->
+<div class="sc" id="s2">
+  <div class="dh">
+    <div class="bk" onclick="go('s1');stopPoll()"><i class="fas fa-chevron-left"></i></div>
+    <h2>CHOISIR UN ÉCRAN</h2>
+  </div>
+  <div id="dvl"></div>
+</div>
+
+<!-- REMOTE -->
+<div class="sc" id="s3">
+  <div class="sb">
+    <div class="sbl">
+      <div class="led" id="led"></div>
+      <div><div class="sbn" id="sbn">En attente…</div><div class="sbc" id="sbc">TV</div></div>
+    </div>
+    <div class="sbr">
+      <div class="vp"><i class="fas fa-volume-up" id="vi"></i><span id="vn">—</span></div>
+      <div class="chgb" onclick="go('s2');stopPoll();loadDevs()"><i class="fas fa-tv"></i></div>
+    </div>
+  </div>
+
+  <div class="rw">
+  <div class="rb2">
+
+    <!-- Brand + Veille -->
+    <div class="rtp">
+      <div class="rbd">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/b/bf/My_Box_Smart.png" alt="">
+        <span>MY BOX</span>
+      </div>
+      <div class="rpw" onclick="cmd('standby_toggle')" title="Veille / Réveil">
+        <i class="fas fa-power-off"></i>
+      </div>
+    </div>
+
+    <!-- LCD -->
+    <div class="lcd">
+      <img class="ll" id="ll" src="https://upload.wikimedia.org/wikipedia/commons/b/bf/My_Box_Smart.png" alt="">
+      <div class="lc2" id="lc2">MY BOX</div>
+      <div class="lca" id="lca">SMART TV</div>
+    </div>
+
+    <!-- Touches couleur : rouge=info vert=fav jaune=autozap bleu=vue -->
+    <div class="ck">
+      <div class="kb kr" onclick="cmd('info')"        title="Info chaîne"></div>
+      <div class="kb kg" onclick="cmd('fav_current')" title="Favori"></div>
+      <div class="kb ky" onclick="cmd('autozap')"     title="Auto-Zap"></div>
+      <div class="kb kbl" onclick="cmd('view_toggle')" title="Vue"></div>
+    </div>
+
+    <!-- VOL±  MUTE  CH±  (toujours CH prev/next) -->
+    <div class="rcks">
+      <div class="rok">
+        <div class="rh" onclick="cmd('vol_up')"  ><i class="fas fa-plus"></i><span>VOL</span></div>
+        <div class="rh" onclick="cmd('vol_down')"><i class="fas fa-minus"></i><span>VOL</span></div>
+      </div>
+      <div class="mt" onclick="cmd('mute')"><i class="fas fa-volume-mute"></i></div>
+      <div class="rok">
+        <div class="rh" onclick="cmd('next')" title="Chaîne suivante"><i class="fas fa-chevron-up"></i><span>CH +</span></div>
+        <div class="rh" onclick="cmd('prev')" title="Chaîne précédente"><i class="fas fa-chevron-down"></i><span>CH −</span></div>
+      </div>
+    </div>
+
+    <!--
+    ╔═══════════════════════════════════════════════╗
+    ║  CLUSTER NAVIGATION — MULTI-FONCTION          ║
+    ║                                               ║
+    ║  ↑↓ = CH prev/next (défaut)                  ║
+    ║      = scroll liste chaînes (menu ouvert)    ║
+    ║      = naviguer onglets (paramètres)         ║
+    ║      = TAB actif : élément prev/next         ║
+    ║                                               ║
+    ║  ←→ = ← ouvre menu / → info (défaut)        ║
+    ║      = ← ferme / → sélectionne (menu)       ║
+    ║      = ← NON / → OUI (confirm)              ║
+    ║      = TAB actif : élément prev/next         ║
+    ║                                               ║
+    ║  OK  = confirme/sélectionne/clique           ║
+    ║  BACK= ferme/annule selon contexte           ║
+    ║  TAB = activer mode focus sur panneau        ║
+    ║  SCR = scroll pur (sans changer focus)       ║
+    ╚═══════════════════════════════════════════════╝
+    -->
+    <div class="nc">
+      <!-- Ligne 1 -->
+      <div class="nb n-back" onclick="cmd('nav_back')" title="Retour / Fermer">
+        <i class="fas fa-arrow-left ni"></i><span class="nl">BACK</span>
+      </div>
+      <div class="nb n-up" onclick="cmd('nav_up')" title="Haut · CH préc · scroll menu">
+        <i class="fas fa-chevron-up ni"></i><span class="nl">▲ · CH−</span>
+      </div>
+      <div class="nb n-su" onclick="cmd('scroll_up')" title="Scroll haut (liste)">
+        <i class="fas fa-angle-double-up ni"></i><span class="nl">SCROLL</span>
+      </div>
+
+      <!-- Ligne 2 -->
+      <div class="nb n-lt" onclick="cmd('nav_left')" title="Gauche · ouvre menu · TAB←">
+        <i class="fas fa-chevron-left ni"></i><span class="nl">◄ / MENU</span>
+      </div>
+      <div class="nb n-ok" onclick="cmd('nav_ok')" title="OK — Confirmer / Sélectionner">
+        <i class="fas fa-check ni"></i><span class="nl">OK</span>
+      </div>
+      <div class="nb n-rt" onclick="cmd('nav_right')" title="Droite · info · TAB→">
+        <i class="fas fa-chevron-right ni"></i><span class="nl">► / INFO</span>
+      </div>
+
+      <!-- Ligne 3 -->
+      <div class="nb n-tab" onclick="cmd('nav_tab')" title="TAB — Activer mode focus">
+        <i class="fas fa-exchange-alt ni"></i><span class="nl">TAB</span>
+      </div>
+      <div class="nb n-dn" onclick="cmd('nav_down')" title="Bas · CH suiv · scroll menu">
+        <i class="fas fa-chevron-down ni"></i><span class="nl">▼ · CH+</span>
+      </div>
+      <div class="nb n-sd" onclick="cmd('scroll_down')" title="Scroll bas (liste)">
+        <i class="fas fa-angle-double-down ni"></i><span class="nl">SCROLL</span>
+      </div>
+    </div>
+
+    <!-- Fonctions : MENU / TOP / FULL / PiP -->
+    <div class="fr">
+      <div class="rb sq" id="bM" onclick="togCmd('bM','menu_open','menu_close')">
+        <i class="fas fa-bars ri"></i><span class="rl">MENU</span>
+      </div>
+      <div class="rb sq" id="bSet" onclick="togCmd('bSet','settings_open','settings_close')">
+        <i class="fas fa-cog ri"></i><span class="rl">PARAM</span>
+      </div>
+      <div class="rb sq" onclick="cmd('fullscreen')">
+        <i class="fas fa-expand ri"></i><span class="rl">FULL</span>
+      </div>
+      <div class="rb sq" id="bP" onclick="togCmd2('bP','pip')">
+        <i class="fas fa-clone ri"></i><span class="rl">PiP</span>
+      </div>
+    </div>
+
+    <div class="sep"></div>
+
+    <!-- Numpad -->
+    <div class="np">
+      <div class="nr">
+        <div class="rb nk" onclick="openNP()"><span class="ri">1</span><span class="rl"> </span></div>
+        <div class="rb nk" onclick="openNP()"><span class="ri">2</span><span class="rl">ABC</span></div>
+        <div class="rb nk" onclick="openNP()"><span class="ri">3</span><span class="rl">DEF</span></div>
+      </div>
+      <div class="nr">
+        <div class="rb nk" onclick="openNP()"><span class="ri">4</span><span class="rl">GHI</span></div>
+        <div class="rb nk" onclick="openNP()"><span class="ri">5</span><span class="rl">JKL</span></div>
+        <div class="rb nk" onclick="openNP()"><span class="ri">6</span><span class="rl">MNO</span></div>
+      </div>
+      <div class="nr">
+        <div class="rb nk" onclick="openNP()"><span class="ri">7</span><span class="rl">PRS</span></div>
+        <div class="rb nk" onclick="openNP()"><span class="ri">8</span><span class="rl">TUV</span></div>
+        <div class="rb nk" onclick="openNP()"><span class="ri">9</span><span class="rl">WXY</span></div>
+      </div>
+      <div class="nr">
+        <div class="rb nk" onclick="openSrch()"><i class="fas fa-search ri" style="font-size:12px"></i><span class="rl">SRCH</span></div>
+        <div class="rb nk" onclick="openNP()"><span class="ri">0</span><span class="rl"> </span></div>
+        <div class="rb nk dk" onclick="cmd('hide_current')"><i class="fas fa-eye-slash ri"></i><span class="rl">HIDE</span></div>
+      </div>
+    </div>
+
+    <div class="sep"></div>
+
+    <!-- Extras -->
+    <div class="er">
+      <div class="rb ex" id="bF" onclick="togCmd2('bF','fav_filter')">
+        <i class="fas fa-heart ri"></i><span class="rl">FAV</span>
+      </div>
+      <div class="rb ex" id="bH" onclick="togCmd2('bH','hd_filter')">
+        <i class="fas fa-film ri"></i><span class="rl">HD</span>
+      </div>
+      <div class="rb ex" onclick="cmd('reset_filters')">
+        <i class="fas fa-times ri"></i><span class="rl">RESET</span>
+      </div>
+      <div class="rb ex" onclick="openSleep()">
+        <i class="fas fa-moon ri"></i><span class="rl">SLEEP</span>
+      </div>
+      <div class="rb ex" onclick="cmd('sort')">
+        <i class="fas fa-sort ri"></i><span class="rl">TRI</span>
+      </div>
+    </div>
+
+  </div></div>
+</div><!-- /s3 -->
+
+<!-- NUMPAD OVERLAY -->
+<div class="ov" id="ovN">
+  <div class="ot">NUMÉRO DE CHAÎNE</div>
+  <div class="od" id="nd">___</div>
+  <div class="og">
+    <div class="ob" onclick="npa(1)"><span class="on2">1</span><span class="os"> </span></div>
+    <div class="ob" onclick="npa(2)"><span class="on2">2</span><span class="os">ABC</span></div>
+    <div class="ob" onclick="npa(3)"><span class="on2">3</span><span class="os">DEF</span></div>
+    <div class="ob" onclick="npa(4)"><span class="on2">4</span><span class="os">GHI</span></div>
+    <div class="ob" onclick="npa(5)"><span class="on2">5</span><span class="os">JKL</span></div>
+    <div class="ob" onclick="npa(6)"><span class="on2">6</span><span class="os">MNO</span></div>
+    <div class="ob" onclick="npa(7)"><span class="on2">7</span><span class="os">PRS</span></div>
+    <div class="ob" onclick="npa(8)"><span class="on2">8</span><span class="os">TUV</span></div>
+    <div class="ob" onclick="npa(9)"><span class="on2">9</span><span class="os">WXY</span></div>
+    <div class="ob dl" onclick="npd()"><i class="fas fa-backspace"></i></div>
+    <div class="ob" onclick="npa(0)"><span class="on2">0</span></div>
+    <div class="ob go" onclick="npGo()"><i class="fas fa-play"></i></div>
+  </div>
+  <div class="ox" onclick="cov('ovN')">✕ Annuler</div>
+</div>
+
+<!-- SEARCH OVERLAY -->
+<div class="ov" id="ovS">
+  <div class="ot" style="color:var(--blue)">RECHERCHER</div>
+  <div class="sw">
+    <input class="si" id="si" type="search" placeholder="Nom de chaîne…" enterkeyhint="search"
+      onkeydown="if(event.key==='Enter')doSrch()" style="-webkit-user-select:text;user-select:text">
+    <button class="sg" onclick="doSrch()"><i class="fas fa-search"></i></button>
+  </div>
+  <div class="ox" onclick="cov('ovS')">✕ Annuler</div>
+</div>
+
+<!-- SLEEP OVERLAY -->
+<div class="ov" id="ovSl">
+  <div class="ot" style="color:var(--gold)">⏱ MINUTERIE</div>
+  <div class="sg2">
+    <div class="sl" onclick="doSlp(15)">15 min</div>
+    <div class="sl" onclick="doSlp(30)">30 min</div>
+    <div class="sl" onclick="doSlp(60)">1 heure</div>
+    <div class="sl" style="color:var(--muted2)" onclick="doSlp(0)">Annuler</div>
+  </div>
+  <div class="ox" onclick="cov('ovSl')">✕ Fermer</div>
+</div>
+
+
+<!-- QR SCANNER -->
+<div id="qr-overlay">
+  <div style="font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:2px;color:var(--blue)">POINTER VERS LE QR CODE DE LA TV</div>
+  <div id="qr-reader">
+    <video id="qr-video" autoplay playsinline muted></video>
+    <canvas id="qr-canvas" style="display:none"></canvas>
+    <div class="qr-frame">
+      <div class="qr-corner tl"></div><div class="qr-corner tr"></div>
+      <div class="qr-corner bl"></div><div class="qr-corner br"></div>
+      <div class="qr-scan-line"></div>
+    </div>
+  </div>
+  <div class="qr-hint">Pointez la caméra vers le QR Code affiché sur la TV</div>
+  <div class="qr-cancel" onclick="closeQR()">✕ Annuler</div>
+</div>
+
+<div id="tst"></div>
+
+<script>
+'use strict';
+const SB='https://yvcdadenofftnbljutwk.supabase.co/rest/v1';
+const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2Y2RhZGVub2ZmdG5ibGp1dHdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NzQ0ODIsImV4cCI6MjA4ODQ1MDQ4Mn0.xqJzLpQszFmph599FBIvdE7NF88_i-JkABG-aSrAndE';
+const SH={'apikey':SK,'Authorization':'Bearer '+SK};
+const SHW={...SH,'Content-Type':'application/json'};
+async function dbG(t,q){const r=await fetch(`${SB}/${t}?${q}`,{headers:SH});if(!r.ok)throw r.status;return r.json();}
+async function dbP(t,b){const r=await fetch(`${SB}/${t}`,{method:'POST',headers:{...SHW,'Prefer':'return=minimal'},body:JSON.stringify(b)});return r.ok;}
+
+let uk='',di='',pt=null,fc=0;
+
+function go(id){document.querySelectorAll('.sc').forEach(s=>s.classList.remove('on'));document.getElementById(id).classList.add('on');}
+
+async function doLogin(){
+    const k=document.getElementById('ki').value.trim();
+    if(!k){t2('⚠️ Entrez votre clé','er');return;}
+    t2('🔄 Connexion…','if');
+    try{
+        const r=await dbG('utilisateurs',`cle=eq.${encodeURIComponent(k)}&select=appareils,appareils_iptv`);
+        if(!r||!r[0]){t2('❌ Clé invalide','er');return;}
+        uk=k;localStorage.setItem('rk',k);renderDevs(r[0]);
+    }catch(e){t2('❌ Erreur réseau','er');}
+}
+
+function renderDevs(u){
+    const a1=(u.appareils||'').split(',').map(d=>d.trim()).filter(Boolean);
+    const a2=(u.appareils_iptv||'').split(',').map(d=>d.trim()).filter(Boolean);
+    const all=[...new Set([...a1,...a2])];
+    const el=document.getElementById('dvl');
+    if(!all.length){el.innerHTML='<p style="color:var(--muted);font-size:13px;text-align:center;padding:20px">Aucun appareil.<br>Ouvre MyBox sur la TV.</p>';go('s2');return;}
+    if(all.length===1){selDev(all[0]);return;}
+    el.innerHTML='';
+    all.forEach(did=>{
+        const pts=did.split('__');
+        const nm=pts.length>1?pts.slice(1).join(' '):'Appareil '+pts[0].substring(0,8);
+        const ip=a2.includes(did)&&!a1.includes(did);
+        const c=document.createElement('div');
+        c.className='dcd';
+        c.innerHTML=`<div style="font-size:26px">${ip?'📺':'🖥️'}</div><div><div style="font-size:16px;font-weight:700">${nm}</div><div style="font-size:11px;color:${ip?'var(--blue)':'var(--green)'}">${ip?'IPTV':'Site Web'}</div></div><i class="fas fa-chevron-right" style="color:var(--muted2);font-size:13px;margin-left:auto"></i>`;
+        c.onclick=()=>selDev(did);
+        el.appendChild(c);
+    });
+    go('s2');
+}
+function selDev(did){di=did;fc=0;localStorage.setItem('rd',did);t2('📺 '+(did.split('__').slice(1).join(' ')||did.substring(0,12)),'ok');go('s3');sp();}
+async function loadDevs(){document.getElementById('dvl').innerHTML='<div style="color:var(--muted);font-size:13px;text-align:center;padding:30px"><i class="fas fa-spinner fa-spin"></i></div>';try{const r=await dbG('utilisateurs',`cle=eq.${encodeURIComponent(uk)}&select=appareils,appareils_iptv`);if(r&&r[0])renderDevs(r[0]);}catch(e){}}
+
+// SEND
+async function cmd(c,p){
+    if(!di)return;vib();
+    try{
+        await dbP('rc_commands',{device_id:di,cmd:c,payload:String(p||''),done:false,ts:new Date().toISOString()});
+        fc=0;setL(true);
+    }catch(e){fc++;if(fc>=3)setL(false);t2('❌ Pas de connexion','er');}
+}
+function togCmd(id,on,off){const e=document.getElementById(id);e.classList.toggle('lit');cmd(e.classList.contains('lit')?on:off);}
+function togCmd2(id,c){document.getElementById(id).classList.toggle('lit');cmd(c);}
+
+// POLL
+function sp(){stopPoll();ps();pt=setInterval(ps,3000);document.addEventListener('visibilitychange',ov2);}
+function stopPoll(){clearInterval(pt);pt=null;document.removeEventListener('visibilitychange',ov2);}
+function ov2(){if(document.hidden){clearInterval(pt);pt=null;}else if(!pt){ps();pt=setInterval(ps,3000);}}
+async function ps(){
+    if(!di)return;
+    try{
+        const r=await dbG('rc_status',`device_id=eq.${encodeURIComponent(di)}&select=ch_name,ch_cat,ch_logo,vol`);
+        fc=0;setL(true);if(r&&r[0])updUI(r[0]);
+    }catch(e){fc++;if(fc>=3)setL(false);}
+}
+function updUI(s){
+    if(!s)return;
+    const el=document.getElementById('sbn');
+    if(s.ch_name&&s.ch_name!==el.textContent){el.classList.add('pp');setTimeout(()=>el.classList.remove('pp'),250);}
+    el.textContent=s.ch_name||'—';
+    document.getElementById('sbc').textContent=s.ch_cat||'—';
+    document.getElementById('vn').textContent=s.vol!=null?s.vol+'%':'—';
+    const v=s.vol||0;document.getElementById('vi').className=v===0?'fas fa-volume-mute':v<40?'fas fa-volume-down':'fas fa-volume-up';
+    if(s.ch_logo){const l=document.getElementById('ll');l.src=s.ch_logo;l.onerror=()=>{l.src='https://upload.wikimedia.org/wikipedia/commons/b/bf/My_Box_Smart.png';};}
+    document.getElementById('lc2').textContent=s.ch_name||'MY BOX';
+    document.getElementById('lca').textContent=s.ch_cat||'SMART TV';
+}
+
+// NUMPAD
+let nb='';
+function openNP(){nb='';rNP();document.getElementById('ovN').classList.add('on');}
+function cov(id){document.getElementById(id).classList.remove('on');}
+function npa(d){if(nb.length>=4)return;nb+=d;rNP();vib();}
+function npd(){nb=nb.slice(0,-1);rNP();vib();}
+function npGo(){if(!nb)return;cmd('play_num',parseInt(nb)-1);t2('📺 Ch.'+nb,'ok');nb='';rNP();cov('ovN');vib();}
+function rNP(){document.getElementById('nd').textContent=nb||'___';}
+
+// SEARCH
+function openSrch(){document.getElementById('ovS').classList.add('on');setTimeout(()=>document.getElementById('si').focus(),80);}
+function doSrch(){const q=document.getElementById('si').value.trim();if(!q)return;cmd('search',q);t2('🔍 '+q,'ok');document.getElementById('si').value='';cov('ovS');vib();}
+
+// SLEEP
+function openSleep(){document.getElementById('ovSl').classList.add('on');}
+function doSlp(m){cmd('sleep',m);t2(m?'⏱ '+m+' min':'⏱ Annulée','ok');cov('ovSl');vib();}
+
+// HELPERS
+function setL(on){document.getElementById('led').className='led'+(on?' on':'');}
+let _tt=null;
+function t2(m,t='ok'){const e=document.getElementById('tst');e.textContent=m;e.className='on '+t;clearTimeout(_tt);_tt=setTimeout(()=>e.className='',2300);}
+function vib(){if(navigator.vibrate)navigator.vibrate(22);}
+
+// RESTORE
+window.addEventListener('load',async()=>{
+    const k=localStorage.getItem('rk');const d=localStorage.getItem('rd');
+    if(!k)return;uk=k;document.getElementById('ki').value=k;
+    if(d){di=d;go('s3');sp();}
+    else{try{const r=await dbG('utilisateurs',`cle=eq.${encodeURIComponent(k)}&select=appareils,appareils_iptv`);if(r&&r[0])renderDevs(r[0]);}catch(e){}}
+});
+
+// ════════════════════════════════════════════════════════
+// QR LOGIN — TÉLÉCOMMANDE
+// Client scanne le QR de la TV → envoie sa clé → TV se connecte
+// ════════════════════════════════════════════════════════
+let _qrStream=null, _qrScanT=null, _qrActive=false;
+
+function openQR(){
+    if(!uk){ t2('⚠️ Connectez-vous avec votre clé d\'abord','er'); go('s1'); return; }
+    _qrActive=true;
+    document.getElementById('qr-overlay').classList.add('on');
+    _startCam();
+}
+function closeQR(){
+    _qrActive=false;
+    document.getElementById('qr-overlay').classList.remove('on');
+    _stopCam();
+}
+async function _startCam(){
+    try{
+        _qrStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:720},height:{ideal:720}}});
+        const v=document.getElementById('qr-video');
+        v.srcObject=_qrStream; await v.play();
+        clearInterval(_qrScanT);
+        _qrScanT=setInterval(_scanFrame,200);
+    }catch(e){ t2('❌ Caméra inaccessible','er'); closeQR(); }
+}
+function _stopCam(){
+    clearInterval(_qrScanT);
+    if(_qrStream){_qrStream.getTracks().forEach(t=>t.stop());_qrStream=null;}
+}
+function _scanFrame(){
+    if(!_qrActive)return;
+    const v=document.getElementById('qr-video');
+    if(!v||!v.readyState||v.videoWidth===0)return;
+    const cvs=document.getElementById('qr-canvas');
+    const ctx=cvs.getContext('2d');
+    cvs.width=v.videoWidth; cvs.height=v.videoHeight;
+    ctx.drawImage(v,0,0);
+    const img=ctx.getImageData(0,0,cvs.width,cvs.height);
+    if(typeof jsQR==='undefined')return;
+    const code=jsQR(img.data,img.width,img.height,{inversionAttempts:'dontInvert'});
+    if(code&&code.data&&code.data.length>4){
+        _stopCam();
+        _sendQRLogin(code.data.trim());
+    }
+}
+async function _sendQRLogin(tvDevId){
+    closeQR();
+    t2('📡 Connexion de la TV…','info');
+    if(navigator.vibrate)navigator.vibrate([50,30,50]);
+    try{
+        const ok=await dbP('rc_commands',{device_id:tvDevId,cmd:'qr_login',payload:uk,done:false,ts:new Date().toISOString()});
+        if(ok){
+            t2('✅ TV connectée ! Connexion en cours…','ok');
+            // Coupler la télécommande sur cette TV
+            di=tvDevId; localStorage.setItem('rd',tvDevId);
+            go('s3'); sp();
+        } else { t2('❌ Erreur','er'); }
+    }catch(e){ t2('❌ Pas de connexion','er'); }
+}
+
+</script>
+</body>
+</html>
