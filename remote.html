@@ -7,10 +7,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#080808">
-<title>MyBox V8 </title>
+<title>MyBox Remote</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Barlow+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
 <style>
 :root{
   --red:#e50914;--rg:rgba(229,9,20,.45);
@@ -256,23 +255,9 @@ html,body{height:100%;background:var(--bg);color:#fff;font-family:'Barlow Conden
 
 @keyframes pp{0%{transform:scale(.82)}60%{transform:scale(1.12)}100%{transform:scale(1)}}
 .pp{animation:pp .22s ease}
-
-/* QR Scanner */
-#qr-overlay{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.97);display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px}
-#qr-overlay.on{display:flex}
-#qr-reader{width:260px;height:260px;border-radius:14px;overflow:hidden;border:2px solid rgba(0,170,255,.4);position:relative;background:#000}
-#qr-reader video{width:100%!important;height:100%!important;object-fit:cover}
-.qr-frame{position:absolute;inset:0;pointer-events:none}
-.qr-corner{position:absolute;width:24px;height:24px;border-color:#0af;border-style:solid;border-width:0}
-.qr-corner.tl{top:8px;left:8px;border-top-width:3px;border-left-width:3px;border-radius:4px 0 0 0}
-.qr-corner.tr{top:8px;right:8px;border-top-width:3px;border-right-width:3px;border-radius:0 4px 0 0}
-.qr-corner.bl{bottom:8px;left:8px;border-bottom-width:3px;border-left-width:3px;border-radius:0 0 0 4px}
-.qr-corner.br{bottom:8px;right:8px;border-bottom-width:3px;border-right-width:3px;border-radius:0 0 4px 0}
-.qr-scan-line{position:absolute;left:10px;right:10px;height:2px;background:linear-gradient(90deg,transparent,#0af,transparent);animation:qrscan 2s ease-in-out infinite}
-@keyframes qrscan{0%,100%{top:15%}50%{top:80%}}
-.qr-hint{font-size:12px;color:rgba(255,255,255,.5);text-align:center;max-width:240px;line-height:1.5}
-.qr-cancel{font-size:12px;color:var(--muted);cursor:pointer;padding:6px 22px;border:1px solid var(--rim);border-radius:20px}
-
+/* Points indicateur numpad */
+.npd{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.1);transition:.15s}
+.npd.active{background:var(--red);box-shadow:0 0 6px var(--rg)}
 </style>
 </head>
 <body>
@@ -288,9 +273,7 @@ html,body{height:100%;background:var(--bg);color:#fff;font-family:'Barlow Conden
     <button class="lbtn" onclick="doLogin()"><i class="fas fa-satellite-dish"></i>&nbsp; CONNEXION</button>
   </div>
   <p class="ht">💡 <code>MyBox → Paramètres → Compte</code></p>
-  <button style="width:100%;max-width:320px;padding:13px;background:rgba(0,170,255,.1);border:1px solid rgba(0,170,255,.25);border-radius:12px;color:#0af;font-size:13px;font-weight:700;letter-spacing:1px;font-family:'Orbitron',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-top:10px" onclick="openQR()">
-    <i class="fas fa-qrcode"></i>&nbsp; SCANNER LE QR CODE DE LA TV
-  </button>
+  <div style="width:100%;max-width:320px;margin-top:14px;border-top:1px solid rgba(255,255,255,.07);padding-top:14px;display:flex;flex-direction:column;gap:10px"><div style="font-size:9px;letter-spacing:2px;color:var(--muted2);font-family:'Orbitron',sans-serif;text-align:center">OU CONNECTER VIA CODE TV</div><div style="display:flex;gap:8px"><input id="pair-code-inp" type="text" maxlength="7" style="flex:1;padding:12px 14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#fff;font-size:20px;font-family:'Orbitron',sans-serif;letter-spacing:4px;text-transform:uppercase;text-align:center;-webkit-user-select:text;user-select:text" placeholder="XXX-XXX" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')doPairCode()"><button onclick="doPairCode()" style="padding:12px 16px;background:var(--red);border:none;border-radius:10px;color:#fff;font-size:18px;cursor:pointer;flex-shrink:0"><i class="fas fa-plug"></i></button></div><button onclick="searchNearbyTVs()" style="width:100%;padding:11px;background:rgba(0,170,255,.1);border:1px solid rgba(0,170,255,.25);border-radius:10px;color:#0af;font-size:12px;font-weight:700;letter-spacing:1px;font-family:'Orbitron',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px"><i class="fas fa-search"></i> RECHERCHER TV À PROXIMITÉ</button><div id="nearby-list" style="display:none;flex-direction:column;gap:8px"></div></div>
 </div>
 
 <!-- DEVICES -->
@@ -433,30 +416,30 @@ html,body{height:100%;background:var(--bg);color:#fff;font-family:'Barlow Conden
     <!-- Numpad -->
     <div class="np">
       <div class="nr">
-        <div class="rb nk" onclick="openNP()"><span class="ri">1</span><span class="rl"> </span></div>
-        <div class="rb nk" onclick="openNP()"><span class="ri">2</span><span class="rl">ABC</span></div>
-        <div class="rb nk" onclick="openNP()"><span class="ri">3</span><span class="rl">DEF</span></div>
+        <div class="rb nk" onclick="npTap(1)"><span class="ri">1</span><span class="rl"> </span></div>
+        <div class="rb nk" onclick="npTap(2)"><span class="ri">2</span><span class="rl">ABC</span></div>
+        <div class="rb nk" onclick="npTap(3)"><span class="ri">3</span><span class="rl">DEF</span></div>
       </div>
       <div class="nr">
-        <div class="rb nk" onclick="openNP()"><span class="ri">4</span><span class="rl">GHI</span></div>
-        <div class="rb nk" onclick="openNP()"><span class="ri">5</span><span class="rl">JKL</span></div>
-        <div class="rb nk" onclick="openNP()"><span class="ri">6</span><span class="rl">MNO</span></div>
+        <div class="rb nk" onclick="npTap(4)"><span class="ri">4</span><span class="rl">GHI</span></div>
+        <div class="rb nk" onclick="npTap(5)"><span class="ri">5</span><span class="rl">JKL</span></div>
+        <div class="rb nk" onclick="npTap(6)"><span class="ri">6</span><span class="rl">MNO</span></div>
       </div>
       <div class="nr">
-        <div class="rb nk" onclick="openNP()"><span class="ri">7</span><span class="rl">PRS</span></div>
-        <div class="rb nk" onclick="openNP()"><span class="ri">8</span><span class="rl">TUV</span></div>
-        <div class="rb nk" onclick="openNP()"><span class="ri">9</span><span class="rl">WXY</span></div>
+        <div class="rb nk" onclick="npTap(7)"><span class="ri">7</span><span class="rl">PRS</span></div>
+        <div class="rb nk" onclick="npTap(8)"><span class="ri">8</span><span class="rl">TUV</span></div>
+        <div class="rb nk" onclick="npTap(9)"><span class="ri">9</span><span class="rl">WXY</span></div>
       </div>
       <div class="nr">
         <div class="rb nk" onclick="openSrch()"><i class="fas fa-search ri" style="font-size:12px"></i><span class="rl">SRCH</span></div>
-        <div class="rb nk" onclick="openNP()"><span class="ri">0</span><span class="rl"> </span></div>
+        <div class="rb nk" onclick="npTap(0)"><span class="ri">0</span><span class="rl"> </span></div>
         <div class="rb nk dk" onclick="cmd('hide_current')"><i class="fas fa-eye-slash ri"></i><span class="rl">HIDE</span></div>
       </div>
     </div>
 
     <div class="sep"></div>
 
-    <!-- Extras -->
+    <!-- Extras ligne 1 : filtres -->
     <div class="er">
       <div class="rb ex" id="bF" onclick="togCmd2('bF','fav_filter')">
         <i class="fas fa-heart ri"></i><span class="rl">FAV</span>
@@ -464,14 +447,33 @@ html,body{height:100%;background:var(--bg);color:#fff;font-family:'Barlow Conden
       <div class="rb ex" id="bH" onclick="togCmd2('bH','hd_filter')">
         <i class="fas fa-film ri"></i><span class="rl">HD</span>
       </div>
+      <div class="rb ex" onclick="cmd('cat_local')">
+        <i class="fas fa-map-marker-alt ri"></i><span class="rl">LOCAL</span>
+      </div>
       <div class="rb ex" onclick="cmd('reset_filters')">
         <i class="fas fa-times ri"></i><span class="rl">RESET</span>
       </div>
+      <div class="rb ex" onclick="cmd('scroll_top')">
+        <i class="fas fa-arrow-up ri"></i><span class="rl">TOP</span>
+      </div>
+    </div>
+    <div style="height:6px;flex-shrink:0"></div>
+    <!-- Extras ligne 2 : actions -->
+    <div class="er">
       <div class="rb ex" onclick="openSleep()">
         <i class="fas fa-moon ri"></i><span class="rl">SLEEP</span>
       </div>
       <div class="rb ex" onclick="cmd('sort')">
         <i class="fas fa-sort ri"></i><span class="rl">TRI</span>
+      </div>
+      <div class="rb ex" onclick="cmd('mode_toggle')">
+        <i class="fas fa-exchange-alt ri"></i><span class="rl">MODE</span>
+      </div>
+      <div class="rb ex" onclick="cmd('ctx_open')">
+        <i class="fas fa-ellipsis-v ri"></i><span class="rl">CTX</span>
+      </div>
+      <div class="rb ex" onclick="cmd('reload')">
+        <i class="fas fa-sync-alt ri"></i><span class="rl">SCAN</span>
       </div>
     </div>
 
@@ -479,11 +481,45 @@ html,body{height:100%;background:var(--bg);color:#fff;font-family:'Barlow Conden
 </div><!-- /s3 -->
 
 <!-- NUMPAD OVERLAY -->
-<div class="ov" id="ovN">
-  <div class="ot">NUMÉRO DE CHAÎNE</div>
-  <div class="od" id="nd">___</div>
-  <div class="og">
-    <div class="ob" onclick="npa(1)"><span class="on2">1</span><span class="os"> </span></div>
+<div class="ov" id="ovN" style="gap:8px;padding:16px 14px">
+
+  <!-- Titre + compteur total chaînes -->
+  <div style="display:flex;align-items:center;justify-content:space-between;width:100%;max-width:300px">
+    <div class="ot">N° DE CHAÎNE</div>
+    <div id="np-total" style="font-size:9px;color:var(--muted2);font-family:'Orbitron',sans-serif">/ — chaînes</div>
+  </div>
+
+  <!-- Affichage numéro saisi -->
+  <div style="width:100%;max-width:300px;position:relative">
+    <div id="nd" style="
+      font-family:'Orbitron',sans-serif;
+      font-size:30px;font-weight:900;letter-spacing:6px;
+      color:var(--red);text-align:center;
+      background:rgba(229,9,20,.06);
+      border:2px solid rgba(229,9,20,.4);
+      border-radius:12px;padding:12px 16px;min-height:56px;
+      display:flex;align-items:center;justify-content:center;
+      transition:.15s;
+    ">_____</div>
+    <!-- Indicateur de position -->
+    <div id="np-pos" style="position:absolute;bottom:6px;left:50%;transform:translateX(-50%);display:flex;gap:4px">
+      <div class="npd" id="npd1"></div><div class="npd" id="npd2"></div>
+      <div class="npd" id="npd3"></div><div class="npd" id="npd4"></div>
+      <div class="npd" id="npd5"></div>
+    </div>
+  </div>
+
+  <!-- Zone de prévisualisation (nom chaîne en temps réel depuis rc_status) -->
+  <div id="np-preview" style="
+    width:100%;max-width:300px;min-height:28px;
+    font-size:13px;font-weight:600;color:rgba(255,255,255,.6);
+    text-align:center;padding:0 8px;
+    transition:.2s;
+  "></div>
+
+  <!-- Grille numpad compacte -->
+  <div class="og" style="gap:6px;width:100%;max-width:300px">
+    <div class="ob" onclick="npa(1)"><span class="on2">1</span></div>
     <div class="ob" onclick="npa(2)"><span class="on2">2</span><span class="os">ABC</span></div>
     <div class="ob" onclick="npa(3)"><span class="on2">3</span><span class="os">DEF</span></div>
     <div class="ob" onclick="npa(4)"><span class="on2">4</span><span class="os">GHI</span></div>
@@ -496,7 +532,16 @@ html,body{height:100%;background:var(--bg);color:#fff;font-family:'Barlow Conden
     <div class="ob" onclick="npa(0)"><span class="on2">0</span></div>
     <div class="ob go" onclick="npGo()"><i class="fas fa-play"></i></div>
   </div>
-  <div class="ox" onclick="cov('ovN')">✕ Annuler</div>
+
+  <!-- Barre d'actions rapides -->
+  <div style="width:100%;max-width:300px;display:flex;gap:7px">
+    <button onclick="cov('ovN');openSrch()" style="flex:1;padding:8px;background:rgba(0,170,255,.1);border:1px solid rgba(0,170,255,.25);border-radius:9px;color:#0af;font-size:11px;font-weight:700;font-family:'Orbitron',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+      <i class="fas fa-search"></i> RECHERCHER
+    </button>
+    <button onclick="cov('ovN')" style="padding:8px 14px;background:rgba(255,255,255,.05);border:1px solid var(--rim);border-radius:9px;color:var(--muted);font-size:11px;font-weight:700;cursor:pointer">
+      ✕
+    </button>
+  </div>
 </div>
 
 <!-- SEARCH OVERLAY -->
@@ -522,23 +567,6 @@ html,body{height:100%;background:var(--bg);color:#fff;font-family:'Barlow Conden
   <div class="ox" onclick="cov('ovSl')">✕ Fermer</div>
 </div>
 
-
-<!-- QR SCANNER -->
-<div id="qr-overlay">
-  <div style="font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:2px;color:var(--blue)">POINTER VERS LE QR CODE DE LA TV</div>
-  <div id="qr-reader">
-    <video id="qr-video" autoplay playsinline muted></video>
-    <canvas id="qr-canvas" style="display:none"></canvas>
-    <div class="qr-frame">
-      <div class="qr-corner tl"></div><div class="qr-corner tr"></div>
-      <div class="qr-corner bl"></div><div class="qr-corner br"></div>
-      <div class="qr-scan-line"></div>
-    </div>
-  </div>
-  <div class="qr-hint">Pointez la caméra vers le QR Code affiché sur la TV</div>
-  <div class="qr-cancel" onclick="closeQR()">✕ Annuler</div>
-</div>
-
 <div id="tst"></div>
 
 <script>
@@ -561,13 +589,7 @@ async function doLogin(){
     try{
         const r=await dbG('utilisateurs',`cle=eq.${encodeURIComponent(k)}&select=appareils,appareils_iptv`);
         if(!r||!r[0]){t2('❌ Clé invalide','er');return;}
-        uk=k;localStorage.setItem('rk',k);
-        // Si QR TV scanné avant la clé → connecter la TV maintenant
-        if(typeof _pendingTvDevId !== 'undefined' && _pendingTvDevId){
-            const pid=_pendingTvDevId; _pendingTvDevId='';
-            await _doQRConnect(pid, k); return;
-        }
-        renderDevs(r[0]);
+        uk=k;localStorage.setItem('rk',k);renderDevs(r[0]);
     }catch(e){t2('❌ Erreur réseau','er');}
 }
 
@@ -612,7 +634,7 @@ function ov2(){if(document.hidden){clearInterval(pt);pt=null;}else if(!pt){ps();
 async function ps(){
     if(!di)return;
     try{
-        const r=await dbG('rc_status',`device_id=eq.${encodeURIComponent(di)}&select=ch_name,ch_cat,ch_logo,vol`);
+        const r=await dbG('rc_status',`device_id=eq.${encodeURIComponent(di)}&select=ch_name,ch_cat,ch_logo,vol,total,preview_name,preview_num`);
         fc=0;setL(true);if(r&&r[0])updUI(r[0]);
     }catch(e){fc++;if(fc>=3)setL(false);}
 }
@@ -627,16 +649,127 @@ function updUI(s){
     if(s.ch_logo){const l=document.getElementById('ll');l.src=s.ch_logo;l.onerror=()=>{l.src='https://upload.wikimedia.org/wikipedia/commons/b/bf/My_Box_Smart.png';};}
     document.getElementById('lc2').textContent=s.ch_name||'MY BOX';
     document.getElementById('lca').textContent=s.ch_cat||'SMART TV';
+    // Stocker le total de chaînes pour le numpad
+    if(s.total && s.total > 0){
+        _npTotal = s.total;
+        const el2 = document.getElementById('np-total');
+        if(el2) el2.textContent = '/ ' + s.total.toLocaleString() + ' chaînes';
+    }
+    // Mettre à jour la prévisualisation si en attente
+    if(s.preview_name && s.preview_num !== undefined){
+        _npUpdatePreview(s.preview_name, s.preview_num + 1);
+    }
 }
 
-// NUMPAD
-let nb='';
-function openNP(){nb='';rNP();document.getElementById('ovN').classList.add('on');}
-function cov(id){document.getElementById(id).classList.remove('on');}
-function npa(d){if(nb.length>=4)return;nb+=d;rNP();vib();}
-function npd(){nb=nb.slice(0,-1);rNP();vib();}
-function npGo(){if(!nb)return;cmd('play_num',parseInt(nb)-1);t2('📺 Ch.'+nb,'ok');nb='';rNP();cov('ovN');vib();}
-function rNP(){document.getElementById('nd').textContent=nb||'___';}
+// ══════════════════════════════════════════════════════
+// NUMPAD — jusqu'à 5 chiffres (50 000 chaînes max)
+// Prévisualisation du nom de chaîne en temps réel
+// ══════════════════════════════════════════════════════
+let nb = '';
+let _npTotal = 0;  // total chaînes reçu depuis rc_status
+let _npPreviewT = null;
+
+function openNP(){
+    nb = '';
+    rNP();
+    if(_npTotal > 0){
+        const el = document.getElementById('np-total');
+        if(el) el.textContent = '/ ' + _npTotal.toLocaleString() + ' chaînes';
+    }
+    document.getElementById('ovN').classList.add('on');
+}
+
+// Touche numpad physique : ouvre l'overlay ET entre le chiffre
+function npTap(d){
+    const wasOpen = document.getElementById('ovN').classList.contains('on');
+    if(!wasOpen) openNP();
+    npa(d);
+}
+
+// openNPSearch : alias vers la recherche par nom
+function openNPSearch(){ cov('ovN'); openSrch(); }
+
+function cov(id){ document.getElementById(id).classList.remove('on'); }
+
+function npa(d){
+    // Limite dynamique selon le total de chaînes
+    const maxDigits = 5;
+    if(nb.length >= maxDigits) return;
+    nb += d;
+    rNP();
+    vib();
+    // Prévisualisation avec délai court
+    clearTimeout(_npPreviewT);
+    _npPreviewT = setTimeout(()=>_npShowPreview(nb), 150);
+}
+
+function npd(){
+    nb = nb.slice(0, -1);
+    rNP();
+    vib();
+    clearTimeout(_npPreviewT);
+    if(nb.length >= 1){
+        _npPreviewT = setTimeout(()=>_npShowPreview(nb), 150);
+    } else {
+        const p = document.getElementById('np-preview');
+        if(p) p.textContent = '';
+    }
+}
+
+function npGo(){
+    if(!nb) return;
+    const chNum = parseInt(nb);
+    cmd('play_num', chNum - 1); // 0-based pour la TV
+    t2('📺 Chaîne ' + nb, 'ok');
+    nb = ''; rNP(); cov('ovN'); vib();
+}
+
+// Affichage du numéro + points indicateurs
+function rNP(){
+    const el = document.getElementById('nd');
+    if(!el) return;
+    const maxDigits = 5;
+    if(nb === ''){
+        el.textContent = '_'.repeat(maxDigits);
+        el.style.color = 'rgba(229,9,20,.3)';
+    } else {
+        // Afficher le numéro avec underscores pour les positions vides
+        el.textContent = nb + '_'.repeat(maxDigits - nb.length);
+        el.style.color = 'var(--red)';
+    }
+    // Mettre à jour les points
+    for(let i=1; i<=5; i++){
+        const dot = document.getElementById('npd'+i);
+        if(dot) dot.className = 'npd' + (i <= nb.length ? ' active' : '');
+    }
+    // Mettre à jour compteur
+    const cnt = document.getElementById('np-count');
+    if(cnt) cnt.textContent = nb.length + '/' + (maxDigits);
+}
+
+// Prévisualisation: envoyer cmd 'preview_num' → TV répond avec le nom
+// En attendant la réponse TV, on peut afficher depuis rc_status
+function _npShowPreview(num){
+    const prev = document.getElementById('np-preview');
+    if(!prev) return;
+    const n = parseInt(num);
+    if(isNaN(n) || n < 1) { prev.textContent = ''; return; }
+    prev.textContent = '⟳ Chaîne ' + n + '…';
+    prev.style.color = 'rgba(255,255,255,.4)';
+    // Envoyer une commande preview à la TV (non-bloquante)
+    cmd('preview_num', n - 1);
+}
+
+// Mettre à jour la prévisualisation depuis rc_status (quand la TV répond)
+// La TV met à jour rc_status avec preview_name après cmd preview_num
+function _npUpdatePreview(chName, chNum){
+    const prev = document.getElementById('np-preview');
+    if(!prev || !nb) return;
+    if(parseInt(nb) === chNum){
+        prev.textContent = '📺 ' + chName;
+        prev.style.color = 'rgba(255,255,255,.8)';
+    }
+}
 
 // SEARCH
 function openSrch(){document.getElementById('ovS').classList.add('on');setTimeout(()=>document.getElementById('si').focus(),80);}
@@ -659,85 +792,48 @@ window.addEventListener('load',async()=>{
     if(d){di=d;go('s3');sp();}
     else{try{const r=await dbG('utilisateurs',`cle=eq.${encodeURIComponent(k)}&select=appareils,appareils_iptv`);if(r&&r[0])renderDevs(r[0]);}catch(e){}}
 });
-
-// ════════════════════════════════════════════════════════
-// QR LOGIN — TÉLÉCOMMANDE
-// Client scanne le QR de la TV → envoie sa clé → TV se connecte
-// ════════════════════════════════════════════════════════
-let _qrStream=null, _qrScanT=null, _qrActive=false;
-
-function openQR(){
-    // Peut scanner AVEC ou SANS clé
-    // Si sans clé: scanne d'abord puis demande la clé
-    _qrActive=true;
-    document.getElementById('qr-overlay').classList.add('on');
-    _startCam();
-}
-function closeQR(){
-    _qrActive=false;
-    document.getElementById('qr-overlay').classList.remove('on');
-    _stopCam();
-}
-async function _startCam(){
+// ══ CODE COUPLAGE TV ══
+async function doPairCode(){
+    const code=(document.getElementById('pair-code-inp').value||'').trim().toUpperCase();
+    if(code.length<6){t2('⚠️ Code TV manquant (XXX-XXX)','er');return;}
+    if(!uk){t2('⚠️ Entrez votre clé d\'abord','er');return;}
+    t2('🔍 Recherche…','if');
     try{
-        _qrStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:720},height:{ideal:720}}});
-        const v=document.getElementById('qr-video');
-        v.srcObject=_qrStream; await v.play();
-        clearInterval(_qrScanT);
-        _qrScanT=setInterval(_scanFrame,200);
-    }catch(e){ t2('❌ Caméra inaccessible','er'); closeQR(); }
+        const rows=await dbG('rc_status',`pair_code=eq.${encodeURIComponent(code)}&online=eq.true&select=device_id`);
+        if(!rows||!rows.length){t2('❌ Code invalide ou TV hors ligne','er');return;}
+        await _connTV(rows[0].device_id);
+    }catch(e){t2('❌ Erreur réseau','er');}
 }
-function _stopCam(){
-    clearInterval(_qrScanT);
-    if(_qrStream){_qrStream.getTracks().forEach(t=>t.stop());_qrStream=null;}
-}
-function _scanFrame(){
-    if(!_qrActive)return;
-    const v=document.getElementById('qr-video');
-    if(!v||!v.readyState||v.videoWidth===0)return;
-    const cvs=document.getElementById('qr-canvas');
-    const ctx=cvs.getContext('2d');
-    cvs.width=v.videoWidth; cvs.height=v.videoHeight;
-    ctx.drawImage(v,0,0);
-    const img=ctx.getImageData(0,0,cvs.width,cvs.height);
-    if(typeof jsQR==='undefined')return;
-    const code=jsQR(img.data,img.width,img.height,{inversionAttempts:'dontInvert'});
-    if(code&&code.data&&code.data.length>4){
-        _stopCam();
-        _sendQRLogin(code.data.trim());
-    }
-}
-// deviceId TV scanné en attente si pas encore de clé
-let _pendingTvDevId = '';
-
-async function _sendQRLogin(tvDevId){
-    closeQR();
-    if(navigator.vibrate)navigator.vibrate([50,30,50]);
-
-    if(!uk){
-        // Pas encore de clé → stocker le deviceId TV et demander la clé
-        _pendingTvDevId = tvDevId;
-        t2('✅ TV détectée ! Entrez votre clé','ok');
-        // Pré-remplir un message dans le champ login
-        const ki = document.getElementById('ki');
-        if(ki){ ki.placeholder = 'Entrez votre clé MyBox…'; ki.focus(); }
-        go('s1');
-        // Intercepter le login pour envoyer qr_login après
-        return;
-    }
-    await _doQRConnect(tvDevId, uk);
-}
-
-async function _doQRConnect(tvDevId, key){
-    t2('📡 Connexion de la TV…','info');
+async function searchNearbyTVs(){
+    if(!uk){t2('⚠️ Entrez votre clé d\'abord','er');return;}
+    const L=document.getElementById('nearby-list');if(!L)return;
+    L.style.display='flex';L.innerHTML='<div style="color:var(--muted);font-size:12px;text-align:center;padding:10px"><i class="fas fa-spinner fa-spin"></i> Recherche…</div>';
     try{
-        const ok=await dbP('rc_commands',{device_id:tvDevId,cmd:'qr_login',payload:key,done:false,ts:new Date().toISOString()});
-        if(ok){
-            t2('✅ TV connectée ! Connexion en cours…','ok');
-            di=tvDevId; localStorage.setItem('rd',tvDevId);
-            go('s3'); sp();
-        } else { t2('❌ Erreur envoi','er'); }
-    }catch(e){ t2('❌ Pas de connexion','er'); }
+        const cut=new Date(Date.now()-3*60*1000).toISOString();
+        const rows=await dbG('rc_status',`user_key=eq.${encodeURIComponent(uk)}&online=eq.true&last_seen=gte.${encodeURIComponent(cut)}&select=device_id,pair_code,ch_name`);
+        if(!rows||!rows.length){L.innerHTML='<div style="color:var(--muted);font-size:12px;text-align:center;padding:10px">Aucune TV détectée.<br><small>Vérifiez que MyBox est ouvert.</small></div>';return;}
+        const avail=rows.filter(r=>r.device_id!==di);
+        if(!avail.length){L.innerHTML='<div style="color:var(--muted);font-size:12px;text-align:center;padding:10px">Toutes vos TVs sont connectées.</div>';return;}
+        L.innerHTML='';
+        avail.forEach(tv=>{
+            const nm=tv.device_id.split('__').slice(1).join(' ')||tv.device_id.substring(0,12);
+            const c=document.createElement('div');
+            c.style.cssText='display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px 14px;cursor:pointer;transition:.15s';
+            c.innerHTML=`<div style="font-size:20px">📺</div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">${nm}</div><div style="font-size:10px;color:var(--muted);margin-top:2px">${tv.ch_name||'—'}</div></div><div style="font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:var(--red);letter-spacing:2px;flex-shrink:0">${tv.pair_code||''}</div>`;
+            c.addEventListener('click',()=>_connTV(tv.device_id));
+            c.addEventListener('touchstart',()=>c.style.background='rgba(229,9,20,.08)');
+            c.addEventListener('touchend',()=>c.style.background='rgba(255,255,255,.04)');
+            L.appendChild(c);
+        });
+    }catch(e){L.innerHTML='<div style="color:var(--red);font-size:12px;text-align:center;padding:10px">Erreur réseau</div>';}
+}
+async function _connTV(tvDevId){
+    t2('📡 Connexion…','if');if(navigator.vibrate)navigator.vibrate([40,20,40]);
+    try{
+        const ok=await dbP('rc_commands',{device_id:tvDevId,cmd:'pair_login',payload:uk,done:false,ts:new Date().toISOString()});
+        if(ok){t2('✅ TV connectée !','ok');di=tvDevId;localStorage.setItem('rd',tvDevId);go('s3');sp();}
+        else t2('❌ Erreur','er');
+    }catch(e){t2('❌ Pas de connexion','er');}
 }
 
 </script>
