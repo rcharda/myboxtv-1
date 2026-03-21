@@ -561,7 +561,13 @@ async function doLogin(){
     try{
         const r=await dbG('utilisateurs',`cle=eq.${encodeURIComponent(k)}&select=appareils,appareils_iptv`);
         if(!r||!r[0]){t2('❌ Clé invalide','er');return;}
-        uk=k;localStorage.setItem('rk',k);renderDevs(r[0]);
+        uk=k;localStorage.setItem('rk',k);
+        // Si QR TV scanné avant la clé → connecter la TV maintenant
+        if(typeof _pendingTvDevId !== 'undefined' && _pendingTvDevId){
+            const pid=_pendingTvDevId; _pendingTvDevId='';
+            await _doQRConnect(pid, k); return;
+        }
+        renderDevs(r[0]);
     }catch(e){t2('❌ Erreur réseau','er');}
 }
 
@@ -661,7 +667,8 @@ window.addEventListener('load',async()=>{
 let _qrStream=null, _qrScanT=null, _qrActive=false;
 
 function openQR(){
-    if(!uk){ t2('⚠️ Connectez-vous avec votre clé d\'abord','er'); go('s1'); return; }
+    // Peut scanner AVEC ou SANS clé
+    // Si sans clé: scanne d'abord puis demande la clé
     _qrActive=true;
     document.getElementById('qr-overlay').classList.add('on');
     _startCam();
@@ -700,18 +707,36 @@ function _scanFrame(){
         _sendQRLogin(code.data.trim());
     }
 }
+// deviceId TV scanné en attente si pas encore de clé
+let _pendingTvDevId = '';
+
 async function _sendQRLogin(tvDevId){
     closeQR();
-    t2('📡 Connexion de la TV…','info');
     if(navigator.vibrate)navigator.vibrate([50,30,50]);
+
+    if(!uk){
+        // Pas encore de clé → stocker le deviceId TV et demander la clé
+        _pendingTvDevId = tvDevId;
+        t2('✅ TV détectée ! Entrez votre clé','ok');
+        // Pré-remplir un message dans le champ login
+        const ki = document.getElementById('ki');
+        if(ki){ ki.placeholder = 'Entrez votre clé MyBox…'; ki.focus(); }
+        go('s1');
+        // Intercepter le login pour envoyer qr_login après
+        return;
+    }
+    await _doQRConnect(tvDevId, uk);
+}
+
+async function _doQRConnect(tvDevId, key){
+    t2('📡 Connexion de la TV…','info');
     try{
-        const ok=await dbP('rc_commands',{device_id:tvDevId,cmd:'qr_login',payload:uk,done:false,ts:new Date().toISOString()});
+        const ok=await dbP('rc_commands',{device_id:tvDevId,cmd:'qr_login',payload:key,done:false,ts:new Date().toISOString()});
         if(ok){
             t2('✅ TV connectée ! Connexion en cours…','ok');
-            // Coupler la télécommande sur cette TV
             di=tvDevId; localStorage.setItem('rd',tvDevId);
             go('s3'); sp();
-        } else { t2('❌ Erreur','er'); }
+        } else { t2('❌ Erreur envoi','er'); }
     }catch(e){ t2('❌ Pas de connexion','er'); }
 }
 
