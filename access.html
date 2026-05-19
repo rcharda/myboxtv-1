@@ -10,7 +10,7 @@
 <link rel="icon" href="https://upload.wikimedia.org/wikipedia/commons/b/bf/My_Box_Smart.png">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600;700;900&display=swap" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-<script src="https://cdn.kkiapay.me/k.js"></script>
+<script src="https://cdn.fedapay.com/checkout.js?v=1.1.7"></script>
 <style>
 :root {
   --primary: #e50914;
@@ -566,10 +566,10 @@ header {
           <div class="recap-price" id="recap-price">— <small>FCFA</small></div>
         </div>
         <div>
-          <button class="btn-pay" id="btn-pay" onclick="payWithKkiapay()">
-            <i class="fas fa-mobile-alt"></i> PAYER AVEC KKIAPAY
+          <button class="btn-pay" id="btn-pay" onclick="payWithFedapay()">
+            <i class="fas fa-mobile-alt"></i> PAYER AVEC FEDAPAY
           </button>
-          <div class="pay-note"><i class="fas fa-shield-alt"></i> Paiement Mobile Money sécurisé · KKiaPay</div>
+          <div class="pay-note"><i class="fas fa-shield-alt"></i> Paiement Mobile Money sécurisé · FedaPay</div>
         </div>
       </div>
     </div>
@@ -698,7 +698,7 @@ header {
 /* ─── Config ─── */
 const SUPABASE_URL = "https://yvcdadenofftnbljutwk.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2Y2RhZGVub2ZmdG5ibGp1dHdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NzQ0ODIsImV4cCI6MjA4ODQ1MDQ4Mn0.xqJzLpQszFmph599FBIvdE7NF88_i-JkABG-aSrAndE";
-const KKIAPAY_KEY  = 'adaa98fcfed792479755dbc84a0dfdaf91482b8e';
+const FEDAPAY_KEY  = 'pk_live_1i7UkFPVn-pUhhO1OnoKQncy';
 const SBH_R = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY };
 const SBH_W = { ...SBH_R, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' };
 
@@ -714,8 +714,6 @@ const FALLBACK = [
 /* ─── État ─── */
 let _cache=null, _tarif=null, _key=null, _paying=false;
 let _parrainOk=false, _parrainType=null, _pTimer=null;
-/* FIX BUG: flag pour éviter l'empilement des listeners KKiaPay */
-let _kkiapayListenersAdded=false;
 
 /* ─── Supabase helpers ─── */
 async function sbGet(t,q){ const r=await fetch(`${SUPABASE_URL}/rest/v1/${t}?${q}`,{headers:SBH_R}); if(!r.ok)throw new Error(await r.text()); return r.json(); }
@@ -862,38 +860,36 @@ function validateParrain(inp){
 /* ─── Prix final ─── */
 function finalPrice(){ if(!_tarif)return 0; const hp=_tarif.prix_promo&&_tarif.prix_promo<_tarif.prix; return hp?_tarif.prix_promo:_tarif.prix; }
 
-/* ─── Lancer KKiaPay — FIX: listeners ajoutés une seule fois ─── */
-function payWithKkiapay(){
+/* ─── Lancer FedaPay ─── */
+function payWithFedapay(){
   if(!_tarif){ showToast('⚠️ Sélectionnez une offre.','error'); return; }
   if(_paying){ showToast('Paiement en cours…','error'); return; }
   _paying=true;
   document.getElementById('btn-pay').disabled=true;
   const codeParrain=document.getElementById('parrain-input').value.trim().toUpperCase();
 
-  openKkiapayWidget({
-    amount: finalPrice(),
-    key: KKIAPAY_KEY,
-    sandbox: false,
-    position: 'center',
-    data: _key,
-    name: 'Client My Box Smart',
-    theme: '#e50914'
+  const checkout = FedaPay.init({
+    public_key: FEDAPAY_KEY,
+    transaction: {
+      amount: finalPrice(),
+      description: 'Abonnement My Box Smart — ' + (_tarif.label_ecran||'') + ' ' + (_tarif.label_duree||'')
+    },
+    customer: {
+      firstname: 'Client',
+      lastname: 'My Box Smart'
+    },
+    onComplete: function(transaction){
+      if(transaction.reason === FedaPay.CHECKOUT_COMPLETED){
+        const cp=document.getElementById('parrain-input').value.trim().toUpperCase();
+        processSuccess(cp);
+      } else {
+        _paying=false;
+        document.getElementById('btn-pay').disabled=false;
+        showToast('❌ Paiement échoué. Réessayez.','error');
+      }
+    }
   });
-
-  /* FIX BUG CRITIQUE: les listeners ne sont ajoutés qu'une seule fois
-     pour éviter que plusieurs clics accumulent N callbacks qui se déclenchent tous */
-  if(!_kkiapayListenersAdded){
-    _kkiapayListenersAdded=true;
-    addSuccessListener(({data})=>{
-      const cp=document.getElementById('parrain-input').value.trim().toUpperCase();
-      processSuccess(cp);
-    });
-    addFailedListener(()=>{
-      _paying=false;
-      document.getElementById('btn-pay').disabled=false;
-      showToast('❌ Paiement échoué. Réessayez.','error');
-    });
-  }
+  checkout.open();
 }
 
 /* ─── Traitement paiement réussi ─── */
@@ -999,8 +995,6 @@ function copyKey(){
 function resetPage(){
   _tarif=null; _key=null; _paying=false;
   _parrainOk=false; _parrainType=null;
-  /* FIX: reset listeners flag pour prochaine session */
-  _kkiapayListenersAdded=false;
 
   document.getElementById('success-section').style.display='none';
   document.getElementById('buy-section').style.display='block';
