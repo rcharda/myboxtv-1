@@ -11,6 +11,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600;700;900&display=swap" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 <script src="https://cdn.fedapay.com/checkout.js?v=1.1.7"></script>
+<script src="https://api-v2.feexpay.me/feexpay-javascript-sdk/index.js"></script>
+
 <style>
 :root {
   --primary: #e50914;
@@ -570,6 +572,18 @@ header {
             <i class="fas fa-mobile-alt"></i> PAYER AVEC FEDAPAY
           </button>
           <div class="pay-note"><i class="fas fa-shield-alt"></i> Paiement Mobile Money sécurisé · FedaPay</div>
+          <div style="display:flex;align-items:center;gap:10px;margin:14px 0 4px;">
+            <div style="flex:1;height:1px;background:rgba(255,255,255,0.07);"></div>
+            <span style="font-size:10px;color:#444;font-weight:700;letter-spacing:1px;">OU</span>
+            <div style="flex:1;height:1px;background:rgba(255,255,255,0.07);"></div>
+          </div>
+          <!-- Conteneur caché requis par le SDK FeexPay -->
+          <div id="feexpay-render" style="display:none;"></div>
+          <button class="btn-pay" id="btn-pay-feexpay"
+            style="background:linear-gradient(135deg,#6c3fc5,#4a2a8a);box-shadow:0 4px 28px rgba(108,63,197,0.4);margin-top:4px;">
+            <i class="fas fa-wallet"></i> PAYER AVEC FEEXPAY
+          </button>
+          <div class="pay-note" style="margin-top:6px;"><i class="fas fa-shield-alt"></i> Paiement Mobile Money sécurisé · FeexPay</div>
         </div>
       </div>
     </div>
@@ -699,6 +713,8 @@ header {
 const SUPABASE_URL = "https://yvcdadenofftnbljutwk.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2Y2RhZGVub2ZmdG5ibGp1dHdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NzQ0ODIsImV4cCI6MjA4ODQ1MDQ4Mn0.xqJzLpQszFmph599FBIvdE7NF88_i-JkABG-aSrAndE";
 const FEDAPAY_KEY  = 'pk_live_1i7UkFPVn-pUhhO1OnoKQncy';
+const FEEXPAY_TOKEN = 'fp_zpMYFlyQ9RcPloRrySnIl05C52imKeND6uCECBoyRTPqns55RwyXBVKwjF8fPbMg';
+const FEEXPAY_ID    = 'caDf4zegjmE2zp0';
 const SBH_R = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY };
 const SBH_W = { ...SBH_R, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' };
 
@@ -802,6 +818,9 @@ function selectPlan(id){
   /* FIX BUG: stepSet correct — étape 3 active après sélection plan */
   stepSet(3);
   setTimeout(()=>document.getElementById('pay-wrap').scrollIntoView({behavior:'smooth',block:'nearest'}),150);
+
+  /* ── Initialiser FeexPay avec le bon montant ── */
+  initFeexpay(pf);
 }
 
 /* ─── Stepper — FIX: loop corrigée jusqu'à 4 max ─── */
@@ -866,7 +885,7 @@ function payWithFedapay(){
   if(_paying){ showToast('Paiement en cours…','error'); return; }
   _paying=true;
   document.getElementById('btn-pay').disabled=true;
-  const codeParrain=document.getElementById('parrain-input').value.trim().toUpperCase();
+  document.getElementById('btn-pay-feexpay').disabled=true;
 
   const checkout = FedaPay.init({
     public_key: FEDAPAY_KEY,
@@ -885,11 +904,44 @@ function payWithFedapay(){
       } else {
         _paying=false;
         document.getElementById('btn-pay').disabled=false;
+        document.getElementById('btn-pay-feexpay').disabled=false;
         showToast('❌ Paiement échoué. Réessayez.','error');
       }
     }
   });
   checkout.open();
+}
+
+/* ─── Initialiser FeexPay avec le bon montant (appelé à chaque sélection de plan) ─── */
+function initFeexpay(amount){
+  if(typeof FeexPayButton === 'undefined'){
+    console.warn('FeexPay SDK pas encore chargé — réessai dans 500ms');
+    setTimeout(()=>initFeexpay(amount), 500);
+    return;
+  }
+
+  const customId = 'MBS-' + Date.now() + '-' + Math.random().toString(36).slice(2,7).toUpperCase();
+
+  FeexPayButton.init('feexpay-render', {
+    id          : FEEXPAY_ID,
+    token       : FEEXPAY_TOKEN,
+    amount      : amount,
+    mode        : 'LIVE',
+    description : 'Abonnement My Box Smart — ' + (_tarif?.label_ecran||'') + ' ' + (_tarif?.label_duree||''),
+    custom_id   : customId,
+    custom_button    : true,
+    id_custom_button : 'btn-pay-feexpay',
+    callback    : function(response){
+      console.log('FeexPay success:', response);
+      document.getElementById('btn-pay').disabled=false;
+      document.getElementById('btn-pay-feexpay').disabled=false;
+      const cp = document.getElementById('parrain-input').value.trim().toUpperCase();
+      showLoader(true);
+      processSuccess(cp);
+    },
+    callback_url       : window.location.href.split('?')[0],
+    error_callback_url : window.location.href.split('?')[0]
+  });
 }
 
 /* ─── Traitement paiement réussi ─── */
@@ -1004,6 +1056,7 @@ function resetPage(){
   document.getElementById('parrain-icon').textContent='';
   document.getElementById('parrain-msg').textContent='';
   document.getElementById('btn-pay').disabled=false;
+  document.getElementById('btn-pay-feexpay').disabled=false;
   document.querySelectorAll('.plan-card').forEach(c=>c.classList.remove('selected'));
   /* FIX BUG: step 1 actif au reset (pas step 2 comme avant) */
   stepSet(1);
