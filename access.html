@@ -3,1080 +3,1078 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#000000">
-<title>My Box Smart — Abonnement</title>
-<link rel="icon" href="https://upload.wikimedia.org/wikipedia/commons/b/bf/My_Box_Smart.png">
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600;700;900&display=swap" rel="stylesheet">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#080808">
+<title>My Box Smart — Accès & Abonnement</title>
+<link rel="icon" href="https://i.ibb.co/WWk0s4M8/My-Box-Smart.png">
 <script src="https://cdn.fedapay.com/checkout.js?v=1.1.7"></script>
 <script src="https://api-v2.feexpay.me/feexpay-javascript-sdk/index.js"></script>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Barlow+Condensed:wght@400;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 <style>
 :root {
-  --primary: #e50914;
-  --primary-glow: rgba(229,9,20,0.45);
-  --primary-dim: rgba(229,9,20,0.12);
-  --primary-border: rgba(229,9,20,0.3);
+  --red: #e50914;
+  --rg: rgba(229,9,20,.4);
   --bg: #060608;
-  --surface: #0d0d10;
-  --surface2: #141418;
-  --border: rgba(255,255,255,0.07);
-  --text: #f0f0f5;
+  --card: rgba(14,14,18,0.97);
+  --card2: rgba(20,20,26,1);
+  --border: rgba(255,255,255,.07);
+  --border2: rgba(255,255,255,.12);
+  --green: #00e87a;
+  --blue: #00aaff;
+  --gold: #ffcc00;
   --muted: #666;
-  --green: #2ecc71;
-  --green-dim: rgba(46,204,113,0.12);
-  --green-border: rgba(46,204,113,0.3);
-  --gold: #ffc800;
-  --blue: #0af;
-  --radius: 14px;
-  --fh: 'Orbitron', sans-serif;
-  --fb: 'Exo 2', sans-serif;
+  --muted2: #444;
+  --text: #f0f0f0;
 }
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;outline:none}
+html{height:100%;background:var(--bg)}
+body{min-height:100%;background:var(--bg);color:var(--text);font-family:'Barlow Condensed',sans-serif;overflow-x:hidden}
 
-/* ── RESET ── */
-*, *::before, *::after {
-  box-sizing: border-box; margin: 0; padding: 0;
-  -webkit-tap-highlight-color: transparent;
-}
-html {
-  scroll-behavior: smooth;
-  overflow-x: hidden; /* FIX: évite scroll horizontal mobile */
-}
-body {
-  font-family: var(--fb);
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  overflow-x: hidden;
-  -webkit-text-size-adjust: 100%; /* FIX: empêche zoom texte iOS */
-}
-body::before {
-  content: ''; position: fixed; inset: 0;
-  background-image:
-    linear-gradient(rgba(229,9,20,0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(229,9,20,0.025) 1px, transparent 1px);
-  background-size: 50px 50px;
-  pointer-events: none; z-index: 0;
-}
-.bg-halo {
-  position: fixed; top: -250px; left: 50%; transform: translateX(-50%);
-  width: 1000px; height: 600px;
-  background: radial-gradient(ellipse, rgba(229,9,20,0.07) 0%, transparent 65%);
-  pointer-events: none; z-index: 0;
-}
+/* ═══ BG NOISE ═══ */
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 0%,rgba(229,9,20,.08) 0%,transparent 60%),radial-gradient(ellipse at 80% 100%,rgba(0,170,255,.05) 0%,transparent 50%);pointer-events:none;z-index:0}
 
-/* ── HEADER ── */
-header {
-  position: sticky; top: 0; z-index: 50;
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 24px;
-  background: rgba(6,6,8,0.96);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px); /* FIX: Safari */
-  border-bottom: 1px solid var(--primary-border);
-}
-.logo { display: flex; align-items: center; gap: 11px; text-decoration: none; }
-.logo img { height: 34px; filter: drop-shadow(0 0 10px var(--primary-glow)); }
-.logo-text { font-family: var(--fh); font-size: 14px; font-weight: 900; letter-spacing: 1px; color: #fff; }
-.logo-text em { color: var(--primary); font-style: normal; }
-.secure-badge {
-  display: flex; align-items: center; gap: 7px;
-  font-size: 10px; font-weight: 700; color: var(--green);
-  background: var(--green-dim); border: 1px solid var(--green-border);
-  padding: 5px 12px; border-radius: 20px;
-  white-space: nowrap; /* FIX: pas de wrap sur mobile */
-}
-.secure-badge i { font-size: 7px; animation: blink 1.4s ease infinite; }
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+/* ═══ TOAST ═══ */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(10,10,14,.96);border:1px solid var(--border2);border-radius:30px;padding:11px 22px;font-size:13px;font-weight:600;letter-spacing:.3px;z-index:9999;opacity:0;transition:all .35s cubic-bezier(.4,0,.2,1);pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center;backdrop-filter:blur(20px)}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.ok{border-color:rgba(0,232,122,.35);color:var(--green)}
+#toast.er{border-color:rgba(229,9,20,.45);color:#ff5555}
+#toast.if{border-color:rgba(0,170,255,.35);color:var(--blue)}
 
-/* ── HERO ── */
-.hero { position: relative; z-index: 1; text-align: center; padding: 52px 20px 36px; }
-.hero-tag {
-  display: inline-flex; align-items: center; gap: 8px;
-  font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase;
-  color: var(--primary); border: 1px solid var(--primary-border);
-  background: var(--primary-dim); padding: 6px 18px; border-radius: 30px; margin-bottom: 20px;
-}
-.hero h1 { font-family: var(--fh); font-size: clamp(22px, 5vw, 46px); font-weight: 900; line-height: 1.15; margin-bottom: 14px; }
-.hero h1 em { color: var(--primary); font-style: normal; text-shadow: 0 0 30px var(--primary-glow); }
-.hero p { font-size: 14px; color: var(--muted); max-width: 460px; margin: 0 auto; line-height: 1.7; }
+/* ═══ SCREENS ═══ */
+.sc{display:none;min-height:100vh;flex-direction:column;align-items:center;justify-content:flex-start;padding:0 0 60px;position:relative;z-index:1}
+.sc.on{display:flex}
 
-/* ── STEPPER ── */
-.stepper {
-  position: relative; z-index: 1;
-  display: flex; align-items: center; justify-content: center;
-  max-width: 420px; margin: 0 auto 48px; padding: 0 20px;
-}
-.stp { display: flex; flex-direction: column; align-items: center; gap: 5px; flex: 1; }
-.stp-circle {
-  width: 34px; height: 34px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--fh); font-size: 12px; font-weight: 700;
-  border: 2px solid #222; color: #444; background: var(--surface);
-  transition: all 0.35s;
-}
-.stp.active .stp-circle { border-color: var(--primary); color: #fff; background: var(--primary); box-shadow: 0 0 16px var(--primary-glow); }
-.stp.done .stp-circle { border-color: var(--green); color: var(--green); background: var(--green-dim); }
-.stp-label { font-size: 9px; font-weight: 700; letter-spacing: 0.5px; color: #333; white-space: nowrap; }
-.stp.active .stp-label { color: var(--primary); }
-.stp.done .stp-label { color: var(--green); }
-.stp-line { flex: 1; height: 2px; background: #1a1a20; max-width: 44px; transition: background 0.4s; }
-.stp-line.done { background: var(--primary); }
+/* ════════════════════════════════════════
+   SCREEN 1 — HERO + TARIFS
+════════════════════════════════════════ */
+#s1{padding-bottom:80px}
 
-/* ── WRAP ── */
-.wrap { position: relative; z-index: 1; max-width: 880px; margin: 0 auto; padding: 0 20px 60px; }
-.sec-label {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
-  color: var(--muted); margin-bottom: 18px;
-}
-.sec-label i { color: var(--primary); }
-.sec-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.hero{width:100%;padding:44px 24px 32px;display:flex;flex-direction:column;align-items:center;gap:12px;position:relative}
+.hero::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(229,9,20,.3),transparent)}
+.hero-logo{width:68px;height:68px;object-fit:contain;background:#fff;border-radius:16px;padding:4px;box-shadow:0 0 40px var(--rg),0 0 0 1px rgba(229,9,20,.3)}
+.hero-brand{font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:5px;color:var(--red);margin-top:4px}
+.hero-title{font-family:'Orbitron',sans-serif;font-size:22px;font-weight:900;text-align:center;line-height:1.2}
+.hero-sub{font-size:14px;color:var(--muted);text-align:center;max-width:300px;line-height:1.6;margin-top:2px}
 
-/* ── PLANS GRID — FIX responsive ── */
-#plans-grid {
-  display: grid;
-  /* FIX: minmax réduit à 150px pour s'adapter aux petits écrans */
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 12px;
-  margin-bottom: 40px;
-}
-.plan-skeleton {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); height: 230px;
-  animation: shimmer 1.5s infinite;
-}
-@keyframes shimmer { 0%{opacity:.4} 50%{opacity:.7} 100%{opacity:.4} }
+/* ── Features pills ── */
+.feat-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;padding:0 16px 24px}
+.feat{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:30px;padding:6px 14px;font-size:11px;font-weight:600;color:#aaa;display:flex;align-items:center;gap:5px;letter-spacing:.3px}
+.feat i{color:var(--red)}
 
-/* ── PLAN CARD ── */
-.plan-card {
-  position: relative;
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 22px 16px;
-  cursor: pointer;
-  transition: all 0.28s cubic-bezier(0.4,0,0.2,1);
-  overflow: hidden;
-  /* FIX: touch-action pour meilleur comportement mobile */
-  touch-action: manipulation;
-}
-.plan-card::after {
-  content: ''; position: absolute; inset: 0;
-  background: linear-gradient(135deg, var(--primary-dim), transparent 55%);
-  opacity: 0; transition: opacity 0.28s;
-}
-/* FIX: hover uniquement sur devices avec souris */
-@media (hover: hover) {
-  .plan-card:hover { border-color: rgba(229,9,20,0.35); transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0,0,0,0.4); }
-  .plan-card:hover::after { opacity: 1; }
-}
-.plan-card.selected { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary), 0 12px 40px rgba(229,9,20,0.25); transform: translateY(-5px); }
-.plan-card.selected::after { opacity: 1; }
+/* ── Section title ── */
+.sec-title{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:3px;color:var(--muted2);text-align:center;padding:24px 0 16px}
 
-.plan-badge {
-  position: absolute; top: 11px; right: 11px;
-  font-size: 8px; font-weight: 800; font-family: var(--fh);
-  letter-spacing: 0.5px; padding: 3px 9px; border-radius: 20px; color: #fff; z-index: 1;
-}
-.badge-hot { background: var(--primary); }
-.badge-gold { background: var(--gold); color: #000 !important; }
+/* ── Tarif cards ── */
+.tarifs-wrap{width:100%;max-width:440px;padding:0 16px;display:flex;flex-direction:column;gap:10px}
+.tarif{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:16px 18px;cursor:pointer;transition:all .2s cubic-bezier(.4,0,.2,1);display:flex;align-items:center;gap:14px;position:relative;overflow:hidden}
+.tarif::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(229,9,20,0),rgba(229,9,20,0));transition:.2s}
+.tarif:active{transform:scale(.98)}
+.tarif.selected{border-color:var(--red);background:rgba(229,9,20,.08)}
+.tarif.selected::before{background:linear-gradient(135deg,rgba(229,9,20,.06),transparent)}
+.tarif.popular{border-color:rgba(255,204,0,.35)}
+.pop-badge{position:absolute;top:10px;right:12px;background:linear-gradient(135deg,#ffcc00,#cc8800);border-radius:20px;padding:2px 10px;font-size:9px;font-weight:700;color:#000;letter-spacing:1px;font-family:'Orbitron',sans-serif}
+.tarif-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;background:rgba(229,9,20,.12);border:1px solid rgba(229,9,20,.2)}
+.tarif-info{flex:1;min-width:0}
+.tarif-name{font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;color:#fff;letter-spacing:1px}
+.tarif-detail{font-size:12px;color:var(--muted);margin-top:3px}
+.tarif-prix{font-family:'Orbitron',sans-serif;font-size:17px;font-weight:900;color:var(--red);flex-shrink:0;text-align:right}
+.tarif-prix small{display:block;font-size:8px;letter-spacing:1px;color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-weight:400}
 
-.plan-radio {
-  position: absolute; top: 12px; left: 12px;
-  width: 17px; height: 17px; border-radius: 50%;
-  border: 2px solid #333;
-  display: flex; align-items: center; justify-content: center;
-  transition: all 0.25s; z-index: 1;
-}
-.plan-radio::after {
-  content: ''; width: 7px; height: 7px;
-  background: #fff; border-radius: 50%;
-  opacity: 0; transform: scale(0); transition: all 0.2s;
-}
-.plan-card.selected .plan-radio { border-color: var(--primary); background: var(--primary); }
-.plan-card.selected .plan-radio::after { opacity: 1; transform: scale(1); }
+/* ── Parrain input ── */
+.parrain-wrap{width:100%;max-width:440px;padding:0 16px;margin-top:6px}
+.parrain-box{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:10px}
+.parrain-icon{width:36px;height:36px;border-radius:10px;background:rgba(0,232,122,.08);border:1px solid rgba(0,232,122,.2);display:flex;align-items:center;justify-content:center;color:var(--green);font-size:14px;flex-shrink:0}
+.parrain-inp{flex:1;background:transparent;border:none;color:#fff;font-size:14px;font-family:'Barlow Condensed',sans-serif;font-weight:600;letter-spacing:1px;-webkit-user-select:text;user-select:text}
+.parrain-inp::placeholder{color:var(--muted2);font-weight:400;letter-spacing:0}
+.parrain-status{width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
 
-.plan-icon { font-size: 26px; margin: 4px 0 10px; display: block; }
-.plan-name { font-family: var(--fh); font-size: 10px; font-weight: 700; color: #fff; margin-bottom: 3px; }
-.plan-ecran { font-size: 10px; color: var(--blue); margin-bottom: 2px; font-weight: 600; }
-.plan-duree { font-size: 10px; color: var(--muted); margin-bottom: 14px; }
-.plan-prix { font-family: var(--fh); font-size: 22px; font-weight: 900; line-height: 1; }
-.plan-prix.promo { color: var(--gold); text-shadow: 0 0 15px rgba(255,200,0,0.4); }
-.plan-prix.normal { color: var(--green); text-shadow: 0 0 15px rgba(46,204,113,0.3); }
-.plan-old { font-size: 11px; color: #444; text-decoration: line-through; font-family: var(--fb); font-weight: 400; margin-top: 2px; }
-.plan-fcfa { font-size: 10px; color: var(--muted); font-family: var(--fb); font-weight: 600; margin-top: 2px; }
-.plan-eco { display: inline-block; font-size: 9px; font-weight: 800; font-family: var(--fh); color: #000; background: var(--gold); padding: 2px 7px; border-radius: 10px; margin-top: 5px; }
+/* ── Pay buttons ── */
+.pay-section{width:100%;max-width:440px;padding:16px 16px 0;display:flex;flex-direction:column;gap:10px}
+.pay-divider{display:flex;align-items:center;gap:10px;margin:2px 0}
+.pay-divider span{font-size:9px;letter-spacing:2px;color:var(--muted2);font-family:'Orbitron',sans-serif;flex-shrink:0}
+.pay-divider::before,.pay-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.btn-pay{width:100%;padding:16px;border-radius:14px;border:none;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .18s cubic-bezier(.4,0,.2,1)}
+.btn-pay:active{transform:scale(.97)}
+.btn-pay:disabled{opacity:.45;cursor:not-allowed}
+.btn-feex{background:linear-gradient(135deg,#e50914,#900);color:#fff;box-shadow:0 6px 28px var(--rg)}
+.btn-feda{background:linear-gradient(135deg,#1a1a2e,#2a2a4e);color:#aaaaff;border:1px solid rgba(100,100,255,.3)}
+#feexpay-render{display:none}
 
-/* ── PARRAINAGE ── */
-#parrain-wrap {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 18px 20px; margin-bottom: 20px; display: none;
-}
-.parrain-label { font-size: 11px; color: var(--muted); font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.parrain-label i { color: var(--blue); }
-.parrain-row { display: flex; align-items: center; gap: 10px; }
-.parrain-row input {
-  flex: 1; min-width: 0; /* FIX: empêche overflow flex sur mobile */
-  background: var(--surface2); border: 1px solid var(--border);
-  border-radius: 9px; padding: 12px 14px; /* FIX: min 44px touch target */
-  color: #fff; font-family: var(--fh); font-size: 13px; letter-spacing: 2px;
-  transition: border-color 0.2s;
-}
-.parrain-row input:focus { outline: none; border-color: var(--blue); }
-.parrain-row input.valid { border-color: var(--green); }
-.parrain-row input.invalid { border-color: var(--primary); }
-#parrain-icon { font-size: 18px; width: 24px; flex-shrink: 0; }
-#parrain-msg { font-size: 10px; margin-top: 6px; min-height: 14px; }
+/* ── Key display ── */
+.key-section{display:none;width:100%;max-width:440px;padding:0 16px;margin-top:8px}
+.key-card{background:var(--card);border:1px solid rgba(0,232,122,.3);border-radius:18px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.key-label{font-size:10px;letter-spacing:2px;color:var(--muted);font-family:'Orbitron',sans-serif}
+.key-val{font-family:'Orbitron',sans-serif;font-size:24px;font-weight:900;color:var(--red);letter-spacing:4px;background:rgba(229,9,20,.06);border:1.5px solid rgba(229,9,20,.3);border-radius:12px;padding:14px 24px;cursor:pointer;transition:.15s;text-align:center;-webkit-user-select:text;user-select:text}
+.key-val:active{background:rgba(229,9,20,.15)}
+.key-actions{display:flex;gap:10px;width:100%}
+.btn-action{flex:1;padding:13px 10px;border-radius:12px;border:none;cursor:pointer;font-family:'Orbitron',sans-serif;font-size:9px;font-weight:700;letter-spacing:1px;display:flex;align-items:center;justify-content:center;gap:7px;transition:.15s}
+.btn-action:active{transform:scale(.96)}
+.btn-copy{background:rgba(229,9,20,.15);color:var(--red);border:1px solid rgba(229,9,20,.3)}
+.btn-pdf{background:rgba(0,170,255,.12);color:var(--blue);border:1px solid rgba(0,170,255,.3)}
+.btn-tv{background:rgba(0,232,122,.1);color:var(--green);border:1px solid rgba(0,232,122,.25)}
 
-/* ── RECAP ── */
-.recap-box {
-  display: flex; align-items: center; justify-content: space-between;
-  flex-wrap: wrap; gap: 14px;
-  background: var(--surface); border: 1px solid var(--primary-border);
-  border-radius: var(--radius); padding: 18px 22px; margin-bottom: 16px;
-}
-.recap-left { display: flex; align-items: center; gap: 14px; min-width: 0; /* FIX */ }
-.recap-icon {
-  width: 44px; height: 44px; flex-shrink: 0;
-  background: var(--primary-dim); border: 1px solid var(--primary-border);
-  border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px;
-}
-.recap-plan { font-family: var(--fh); font-size: 13px; font-weight: 700; word-break: break-word; }
-.recap-detail { font-size: 11px; color: var(--muted); margin-top: 2px; }
-.recap-price { font-family: var(--fh); font-size: 24px; font-weight: 900; color: var(--green); white-space: nowrap; }
-.recap-price.promo { color: var(--gold); }
-.recap-price small { font-size: 11px; font-family: var(--fb); font-weight: 400; color: var(--muted); }
+/* ════════════════════════════════════════
+   SCREEN 2 — CONNECT TV
+════════════════════════════════════════ */
+#s2{padding-top:0}
 
-/* ── BOUTON PAYER — FIX touch target ── */
-.btn-pay {
-  width: 100%; padding: 18px 30px; /* FIX: 18px min pour mobile */
-  border: none; border-radius: 12px; cursor: pointer;
-  font-family: var(--fh); font-size: 15px; font-weight: 800; letter-spacing: 0.8px;
-  background: linear-gradient(135deg, #ff6b00, #cc4e00);
-  color: #fff; box-shadow: 0 4px 28px rgba(255,107,0,0.4);
-  display: flex; align-items: center; justify-content: center; gap: 10px;
-  transition: all 0.3s; position: relative; overflow: hidden;
-  touch-action: manipulation; /* FIX */
-  -webkit-appearance: none; /* FIX: iOS button reset */
-}
-.btn-pay::before {
-  content: ''; position: absolute; top: 0; left: -100%;
-  width: 100%; height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
-  transition: left 0.55s;
-}
-@media (hover: hover) {
-  .btn-pay:hover { box-shadow: 0 6px 40px rgba(255,107,0,0.55); transform: translateY(-2px); }
-  .btn-pay:hover::before { left: 100%; }
-}
-.btn-pay:active { opacity: 0.85; transform: scale(0.98); } /* FIX: feedback tactile */
-.btn-pay:disabled { opacity: 0.35; cursor: not-allowed; transform: none; box-shadow: none; }
-.pay-note {
-  text-align: center; font-size: 10px; color: #333; margin-top: 10px;
-  display: flex; align-items: center; justify-content: center; gap: 6px;
-}
-.pay-note i { color: var(--green); }
+.s2-header{width:100%;background:rgba(6,6,8,.98);backdrop-filter:blur(20px);padding:16px 20px 14px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50}
+.bk{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--muted);font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:.15s}
+.bk:active{background:rgba(255,255,255,.1)}
+.s2-header h2{font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:2px;color:var(--blue);flex:1}
 
-/* ── SECTION SUCCÈS ── */
-#success-section { display: none; }
-.success-head {
-  display: flex; flex-direction: column; align-items: center;
-  text-align: center; padding: 40px 20px 28px; gap: 12px;
-}
-.success-check {
-  width: 76px; height: 76px; border-radius: 50%;
-  background: var(--green-dim); border: 2px solid var(--green-border);
-  display: flex; align-items: center; justify-content: center; font-size: 34px;
-  animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1);
-}
-@keyframes popIn { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
-.success-title { font-family: var(--fh); font-size: 18px; font-weight: 900; color: var(--green); letter-spacing: 2px; }
-.success-sub { font-size: 13px; color: var(--muted); max-width: 400px; line-height: 1.6; }
+.s2-body{width:100%;max-width:440px;padding:24px 16px;display:flex;flex-direction:column;gap:20px}
 
-/* ── CLÉ ── */
-.key-card {
-  background: var(--surface); border: 1px solid var(--primary-border);
-  border-radius: var(--radius); overflow: hidden; margin-bottom: 24px;
-}
-.key-card-hd {
-  padding: 16px 20px;
-  background: linear-gradient(135deg, rgba(229,9,20,0.12), rgba(229,9,20,0.04));
-  border-bottom: 1px solid var(--primary-border);
-  display: flex; align-items: center; gap: 12px;
-}
-.key-card-hd .kh-icon {
-  width: 44px; height: 44px; background: var(--primary); border-radius: 10px;
-  display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;
-}
-.key-card-hd h3 { font-family: var(--fh); font-size: 13px; font-weight: 700; margin-bottom: 3px; }
-.key-card-hd p { font-size: 11px; color: var(--muted); }
+/* ── Clé active chip ── */
+.active-key{background:rgba(0,232,122,.06);border:1px solid rgba(0,232,122,.2);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px}
+.ak-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);flex-shrink:0;animation:pulse-dot 2s infinite}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.4}}
+.ak-key{font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:var(--green);letter-spacing:2px;flex:1}
+.ak-label{font-size:10px;color:var(--muted)}
 
-.key-display-row { display: flex; align-items: center; gap: 10px; padding: 20px; }
-.key-value {
-  flex: 1; min-width: 0; /* FIX: évite overflow */
-  background: #000; border: 2px solid var(--primary); border-radius: 10px;
-  padding: 16px 10px; /* FIX: réduit padding latéral */
-  font-family: var(--fh); font-size: clamp(15px, 4.5vw, 26px); /* FIX: min réduit */
-  font-weight: 900; letter-spacing: clamp(2px, 1vw, 5px); /* FIX: letter-spacing adaptatif */
-  color: var(--primary); text-align: center;
-  text-shadow: 0 0 20px var(--primary-glow);
-  word-break: break-all; user-select: all;
-  overflow: hidden; /* FIX */
-}
-.btn-copy {
-  padding: 16px 18px; min-width: 54px; /* FIX: touch target minimum */
-  background: var(--surface2); border: 1px solid var(--border);
-  border-radius: 10px; color: #fff; font-size: 18px; cursor: pointer;
-  flex-shrink: 0; transition: all 0.25s; touch-action: manipulation;
-}
-@media (hover: hover) {
-  .btn-copy:hover { background: var(--primary-dim); border-color: var(--primary); }
-}
-.btn-copy.copied { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+/* ── Method tabs ── */
+.method-tabs{display:flex;gap:6px}
+.mtab{flex:1;padding:10px 8px;border-radius:12px;border:1px solid var(--border);background:var(--card);color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.5px;cursor:pointer;text-align:center;transition:.18s;font-family:'Barlow Condensed',sans-serif}
+.mtab.on{background:rgba(0,170,255,.12);border-color:rgba(0,170,255,.35);color:var(--blue)}
 
-.key-meta {
-  display: grid; grid-template-columns: 1fr 1fr; /* FIX: 2 colonnes partout */
-  gap: 10px; padding: 0 20px 20px;
-}
-.key-meta-item {
-  background: var(--surface2); border: 1px solid var(--border);
-  border-radius: 9px; padding: 11px 14px;
-}
-.key-meta-item .lbl { font-size: 10px; color: var(--muted); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 4px; }
-.key-meta-item .val { font-size: 12px; font-weight: 700; color: #fff; word-break: break-word; }
+/* ── Method panels ── */
+.mpanel{display:none}
+.mpanel.on{display:block}
 
-/* ── GUIDE TV ── */
-.tv-guide {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); overflow: hidden;
-}
-.tv-guide-head {
-  padding: 15px 20px; background: rgba(255,255,255,0.03);
-  border-bottom: 1px solid var(--border);
-  font-family: var(--fh); font-size: 12px; font-weight: 700;
-  display: flex; align-items: center; gap: 10px; letter-spacing: 1px;
-}
-.tv-guide-head i { color: var(--primary); }
-.tv-step { display: flex; align-items: flex-start; gap: 16px; padding: 18px 20px; border-bottom: 1px solid var(--border); }
-.tv-step:last-child { border-bottom: none; }
-.tv-step-num {
-  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
-  background: var(--primary-dim); border: 1px solid var(--primary-border);
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--fh); font-size: 11px; font-weight: 700; color: var(--primary);
-}
-.tv-step h4 { font-size: 13px; font-weight: 700; margin-bottom: 5px; }
-.tv-step p { font-size: 12px; color: var(--muted); line-height: 1.6; }
-.tv-key-snippet {
-  display: inline-flex; align-items: center; gap: 6px; margin-top: 8px;
-  background: #000; border: 1px solid var(--primary-border); border-radius: 6px;
-  padding: 6px 14px; font-family: var(--fh); font-size: 13px;
-  color: var(--primary); letter-spacing: 4px; font-weight: 700;
-  max-width: 100%; overflow: hidden; /* FIX */
-  word-break: break-all;
-}
-.mock-screens { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
-.mock-tv {
-  background: #0a0a0d; border: 2px solid #1e1e24; border-radius: 8px;
-  width: 120px; aspect-ratio: 16/9;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 5px; padding: 8px; position: relative; overflow: hidden;
-}
-.mock-tv::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--primary); }
-.mock-tv .m-logo { font-family: var(--fh); font-size: 7px; color: var(--primary); font-weight: 700; }
-.mock-tv .m-field { background: #111; border: 1px solid #2a2a2a; width: 88%; padding: 3px 5px; border-radius: 3px; font-size: 7px; color: #555; }
-.mock-tv .m-field.hl { border-color: var(--primary); color: var(--primary); letter-spacing: 1px; }
-.mock-tv .m-btn { background: var(--primary); color: #fff; font-size: 7px; padding: 2px 10px; border-radius: 3px; font-family: var(--fh); font-weight: 700; margin-top: 2px; }
+/* ── Code couplage ── */
+.pair-box{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px}
+.pair-box-title{font-size:10px;letter-spacing:2px;color:var(--muted);font-family:'Orbitron',sans-serif;margin-bottom:14px}
+.pair-input-wrap{position:relative;margin-bottom:14px}
+.pair-input{width:100%;padding:16px 18px;background:rgba(255,255,255,.04);border:1.5px solid var(--border2);border-radius:12px;color:#fff;font-size:20px;font-family:'Orbitron',sans-serif;font-weight:700;letter-spacing:4px;text-align:center;-webkit-user-select:text;user-select:text;transition:.18s}
+.pair-input:focus{border-color:var(--blue);background:rgba(0,170,255,.05)}
+.pair-input::placeholder{font-size:13px;letter-spacing:1px;color:var(--muted2);font-family:'Barlow Condensed',sans-serif;font-weight:400}
+.btn-connect{width:100%;padding:15px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--blue),#0066bb);color:#fff;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 6px 24px rgba(0,170,255,.3);transition:.15s}
+.btn-connect:active{transform:scale(.97)}
+.btn-connect:disabled{opacity:.4;cursor:not-allowed}
 
-/* ── TOAST ── */
-#toast {
-  position: fixed; bottom: 28px; left: 50%;
-  transform: translateX(-50%) translateY(80px);
-  padding: 11px 22px; border-radius: 30px;
-  font-weight: 700; font-size: 13px; z-index: 999;
-  pointer-events: none;
-  transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
-  display: flex; align-items: center; gap: 8px;
-  white-space: nowrap;
-  max-width: calc(100vw - 40px); /* FIX: pas de débordement mobile */
-  text-overflow: ellipsis; overflow: hidden;
-}
-#toast.show { transform: translateX(-50%) translateY(0); }
-#toast.success { background: var(--green); color: #000; }
-#toast.error { background: var(--primary); color: #fff; }
+/* ── Nearby TVs ── */
+.nearby-box{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px}
+.nearby-box-title{font-size:10px;letter-spacing:2px;color:var(--muted);font-family:'Orbitron',sans-serif;margin-bottom:14px}
+.btn-scan{width:100%;padding:13px;border-radius:12px;border:1px solid rgba(229,9,20,.3);background:rgba(229,9,20,.08);color:var(--red);font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:.15s;margin-bottom:12px}
+.btn-scan:active{background:rgba(229,9,20,.15)}
+#nearby-list{display:none;flex-direction:column;gap:8px}
+.tv-item{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:12px;padding:12px 14px;cursor:pointer;transition:.15s}
+.tv-item:active{background:rgba(229,9,20,.07);border-color:rgba(229,9,20,.3)}
+.tv-emoji{font-size:22px;flex-shrink:0}
+.tv-info{flex:1;min-width:0}
+.tv-name{font-size:14px;font-weight:700;color:#fff}
+.tv-ch{font-size:10px;color:var(--muted);margin-top:2px}
+.tv-code{font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:var(--red);letter-spacing:2px;flex-shrink:0}
 
-/* ── LOADER ── */
-#loading-overlay {
-  display: none; position: fixed; inset: 0; z-index: 200;
-  background: rgba(6,6,8,0.93);
-  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-  align-items: center; justify-content: center; flex-direction: column; gap: 16px;
-}
-#loading-overlay.show { display: flex; }
-.loader-ring {
-  width: 56px; height: 56px; border: 3px solid var(--border);
-  border-top-color: var(--primary); border-radius: 50%;
-  animation: spin 0.75s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-.loader-text { font-family: var(--fh); font-size: 12px; color: var(--muted); letter-spacing: 1.5px; }
+/* ── Connected banner ── */
+.connected-banner{display:none;background:rgba(0,232,122,.06);border:1px solid rgba(0,232,122,.25);border-radius:14px;padding:16px;text-align:center;flex-direction:column;align-items:center;gap:8px}
+.connected-banner.show{display:flex}
+.cb-icon{font-size:32px}
+.cb-msg{font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;color:var(--green);letter-spacing:1px}
+.cb-sub{font-size:11px;color:var(--muted)}
 
-/* ── ANIMATIONS ── */
-@keyframes fadeUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
-.fu  { animation: fadeUp 0.5s ease forwards; }
-.fu1 { opacity:0; animation-delay:0.05s; }
-.fu2 { opacity:0; animation-delay:0.15s; }
-.fu3 { opacity:0; animation-delay:0.25s; }
-.fu4 { opacity:0; animation-delay:0.35s; }
+/* ── Nav bottom ── */
+.nav-bottom{position:fixed;bottom:0;left:0;right:0;background:rgba(6,6,8,.97);backdrop-filter:blur(20px);border-top:1px solid var(--border);padding:10px 16px 16px;display:flex;gap:8px;z-index:100;max-width:100%}
+.nav-btn{flex:1;padding:12px 8px;border-radius:14px;border:none;background:var(--card);color:var(--muted);font-family:'Orbitron',sans-serif;font-size:8px;font-weight:700;letter-spacing:1px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;transition:.18s}
+.nav-btn i{font-size:16px}
+.nav-btn.on{background:rgba(229,9,20,.12);color:var(--red);border:1px solid rgba(229,9,20,.2)}
+.nav-btn:active{transform:scale(.95)}
 
-/* ══════════════════════════════════════════
-   RESPONSIVE — MOBILE (< 480px)
-══════════════════════════════════════════ */
-@media(max-width: 480px) {
-  header { padding: 11px 14px; }
-  .logo img { height: 28px; }
-  .logo-text { font-size: 12px; }
-  .secure-badge { padding: 4px 10px; font-size: 9px; }
+/* ════════════════════════════════════════
+   SUCCESS MODAL
+════════════════════════════════════════ */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(12px);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.on{display:flex}
+.modal-box{background:var(--card);border:1px solid var(--border2);border-radius:24px;padding:28px 22px;width:100%;max-width:380px;display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center}
+.modal-check{width:64px;height:64px;border-radius:50%;background:rgba(0,232,122,.12);border:2px solid rgba(0,232,122,.35);display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--green)}
+.modal-title{font-family:'Orbitron',sans-serif;font-size:14px;font-weight:900;letter-spacing:2px;color:var(--green)}
+.modal-sub{font-size:13px;color:var(--muted);line-height:1.6}
+.modal-key-disp{font-family:'Orbitron',sans-serif;font-size:22px;font-weight:900;color:var(--red);background:rgba(229,9,20,.06);border:1.5px solid rgba(229,9,20,.25);border-radius:12px;padding:14px 20px;letter-spacing:4px;cursor:pointer;width:100%;-webkit-user-select:text;user-select:text}
+.modal-btns{display:flex;flex-direction:column;gap:9px;width:100%}
+.modal-btn{width:100%;padding:14px;border-radius:12px;border:none;cursor:pointer;font-family:'Orbitron',sans-serif;font-size:9px;font-weight:700;letter-spacing:2px;display:flex;align-items:center;justify-content:center;gap:8px;transition:.15s}
+.modal-btn:active{transform:scale(.97)}
+.mbtn-copy{background:rgba(229,9,20,.15);color:var(--red);border:1px solid rgba(229,9,20,.3)}
+.mbtn-pdf{background:rgba(0,170,255,.12);color:var(--blue);border:1px solid rgba(0,170,255,.3)}
+.mbtn-tv{background:rgba(0,232,122,.1);color:var(--green);border:1px solid rgba(0,232,122,.25)}
+.mbtn-close{background:rgba(255,255,255,.05);color:var(--muted);border:1px solid var(--border)}
 
-  .hero  { padding: 32px 16px 24px; }
-  .hero p { font-size: 13px; }
-
-  .stepper { padding: 0 12px; margin-bottom: 32px; }
-  .stp-line { max-width: 28px; }
-
-  .wrap { padding: 0 12px 50px; }
-
-  /* Plans: 2 colonnes fixes sur mobile */
-  #plans-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-  }
-  .plan-card { padding: 18px 12px; }
-  .plan-prix { font-size: 19px; }
-  .plan-icon { font-size: 22px; }
-
-  .recap-box { padding: 14px 16px; }
-  .recap-price { font-size: 20px; }
-
-  .btn-pay { font-size: 13px; padding: 16px 20px; }
-
-  /* Clé TV */
-  .key-display-row { padding: 14px; gap: 8px; }
-  .key-value { font-size: clamp(13px, 5vw, 20px); letter-spacing: 2px; padding: 14px 8px; }
-  .btn-copy { padding: 14px 14px; min-width: 48px; font-size: 16px; }
-  .key-meta { grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 14px 14px; }
-  .key-card-hd { padding: 12px 14px; }
-  .key-card-hd h3 { font-size: 11px; }
-
-  .tv-step { padding: 14px 16px; gap: 12px; }
-  .tv-step h4 { font-size: 12px; }
-  .mock-tv { width: 100px; }
-  .tv-key-snippet { font-size: 11px; letter-spacing: 2px; }
-}
-
-/* ══════════════════════════════════════════
-   RESPONSIVE — TABLETTE (480px – 768px)
-══════════════════════════════════════════ */
-@media(min-width: 480px) and (max-width: 768px) {
-  #plans-grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
-}
-
-/* ══════════════════════════════════════════
-   RESPONSIVE — PC LARGE (> 960px)
-══════════════════════════════════════════ */
-@media(min-width: 960px) {
-  #plans-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
-  /* Checkout 2 colonnes sur grand écran */
-  #pay-wrap-inner {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start;
-  }
-}
+/* Responsive */
+@media(max-width:380px){.tarif-prix{font-size:14px}.hero-title{font-size:18px}.modal-key-disp{font-size:18px;letter-spacing:2px}}
+@media(min-width:600px){.tarifs-wrap,.pay-section,.parrain-wrap,.s2-body,.key-section{max-width:480px}.hero{padding-top:60px}}
 </style>
 </head>
 <body>
 
-<div class="bg-halo"></div>
-
-<!-- ── HEADER ── -->
-<header>
-  <a class="logo" href="#">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/b/bf/My_Box_Smart.png" alt="Logo My Box Smart">
-    <span class="logo-text">MY BOX <em>SMART</em></span>
-  </a>
-  <div class="secure-badge"><i class="fas fa-circle"></i> Sécurisé</div>
-</header>
-
-<!-- ════════════ SECTION ACHAT ════════════ -->
-<div id="buy-section">
-
-  <div class="hero fu fu1">
-    <div class="hero-tag"><i class="fas fa-tv"></i>&nbsp; Activation Smart TV</div>
-    <h1>Votre <em>abonnement</em><br>en 3 clics</h1>
-    <p>Choisissez une offre, payez par Mobile Money et recevez votre clé à copier sur la TV.</p>
-  </div>
-
-  <!-- Stepper — FIX: step 1 actif seulement au démarrage -->
-  <div class="stepper fu fu2" id="stepper">
-    <div class="stp active" id="stp1"><div class="stp-circle">1</div><div class="stp-label">Offre</div></div>
-    <div class="stp-line" id="ln1"></div>
-    <div class="stp" id="stp2"><div class="stp-circle">2</div><div class="stp-label">Parrainage</div></div>
-    <div class="stp-line" id="ln2"></div>
-    <div class="stp" id="stp3"><div class="stp-circle">3</div><div class="stp-label">Paiement</div></div>
-    <div class="stp-line" id="ln3"></div>
-    <div class="stp" id="stp4"><div class="stp-circle"><i class="fas fa-key" style="font-size:10px"></i></div><div class="stp-label">Clé TV</div></div>
-  </div>
-
-  <div class="wrap">
-
-    <div class="sec-label fu fu3"><i class="fas fa-layer-group"></i> Choisissez une offre</div>
-    <div id="plans-grid" class="fu fu3">
-      <div class="plan-skeleton"></div>
-      <div class="plan-skeleton"></div>
-      <div class="plan-skeleton"></div>
-      <div class="plan-skeleton"></div>
-    </div>
-
-    <!-- Parrainage -->
-    <div id="parrain-wrap" class="fu fu4">
-      <div class="parrain-label">
-        <i class="fas fa-users"></i> Code de parrainage
-        <span style="color:#333;margin-left:4px;">(optionnel — +7 jours bonus)</span>
-      </div>
-      <div class="parrain-row">
-        <input type="text" id="parrain-input" placeholder="PAR-XXXXXX"
-               maxlength="20" oninput="validateParrain(this)"
-               autocomplete="off" autocorrect="off" autocapitalize="characters"
-               spellcheck="false"><!-- FIX: autocapitalize + spellcheck -->
-        <span id="parrain-icon"></span>
-      </div>
-      <div id="parrain-msg"></div>
-    </div>
-
-    <!-- Récap + paiement -->
-    <div id="pay-wrap" style="display:none;" class="fu fu4">
-      <div class="sec-label"><i class="fas fa-shopping-cart"></i> Récapitulatif</div>
-      <div id="pay-wrap-inner">
-        <div class="recap-box">
-          <div class="recap-left">
-            <div class="recap-icon" id="recap-icon">📦</div>
-            <div>
-              <div class="recap-plan" id="recap-plan">—</div>
-              <div class="recap-detail" id="recap-detail">—</div>
-            </div>
-          </div>
-          <div class="recap-price" id="recap-price">— <small>FCFA</small></div>
-        </div>
-        <div>
-          <button class="btn-pay" id="btn-pay" onclick="payWithFedapay()">
-            <i class="fas fa-mobile-alt"></i> PAYER AVEC FEDAPAY
-          </button>
-          <div class="pay-note"><i class="fas fa-shield-alt"></i> Paiement Mobile Money sécurisé · FedaPay</div>
-          <div style="display:flex;align-items:center;gap:10px;margin:14px 0 4px;">
-            <div style="flex:1;height:1px;background:rgba(255,255,255,0.07);"></div>
-            <span style="font-size:10px;color:#444;font-weight:700;letter-spacing:1px;">OU</span>
-            <div style="flex:1;height:1px;background:rgba(255,255,255,0.07);"></div>
-          </div>
-          <!-- Conteneur caché requis par le SDK FeexPay -->
-          <div id="feexpay-render" style="display:none;"></div>
-          <button class="btn-pay" id="btn-pay-feexpay"
-            style="background:linear-gradient(135deg,#6c3fc5,#4a2a8a);box-shadow:0 4px 28px rgba(108,63,197,0.4);margin-top:4px;">
-            <i class="fas fa-wallet"></i> PAYER AVEC FEEXPAY
-          </button>
-          <div class="pay-note" style="margin-top:6px;"><i class="fas fa-shield-alt"></i> Paiement Mobile Money sécurisé · FeexPay</div>
-        </div>
-      </div>
-    </div>
-
-  </div>
-</div>
-
-<!-- ════════════ SECTION SUCCÈS + CLÉ ════════════ -->
-<div id="success-section">
-
-  <div class="success-head fu fu1">
-    <div class="success-check">✓</div>
-    <div class="success-title">PAIEMENT RÉUSSI !</div>
-    <div class="success-sub">Votre compte est activé. Copiez la clé ci-dessous et entrez-la dans My Box Smart sur votre TV.</div>
-  </div>
-
-  <div class="wrap">
-
-    <div class="sec-label"><i class="fas fa-key"></i> Votre clé d'activation</div>
-    <div class="key-card">
-      <div class="key-card-hd">
-        <div class="kh-icon">🎉</div>
-        <div>
-          <h3>Clé TV générée avec succès</h3>
-          <p>Valable immédiatement · À saisir dans My Box Smart</p>
-        </div>
-      </div>
-      <div class="key-display-row">
-        <div class="key-value" id="key-display">TV-XXXXXX</div>
-        <button class="btn-copy" id="btn-copy" title="Copier la clé" onclick="copyKey()">
-          <i class="fas fa-copy"></i>
-        </button>
-      </div>
-      <div class="key-meta">
-        <div class="key-meta-item"><div class="lbl">Plan</div><div class="val" id="km-plan">—</div></div>
-        <div class="key-meta-item"><div class="lbl">Durée</div><div class="val" id="km-duree">—</div></div>
-        <div class="key-meta-item"><div class="lbl">Écrans max</div><div class="val" id="km-ecrans">—</div></div>
-        <div class="key-meta-item"><div class="lbl">Date activation</div><div class="val" id="km-date">—</div></div>
-      </div>
-    </div>
-
-    <!-- Guide TV -->
-    <div class="sec-label"><i class="fas fa-tv"></i> Comment activer sur votre Smart TV</div>
-    <div class="tv-guide">
-
-      <div class="tv-guide-head"><i class="fas fa-list-ol"></i> GUIDE D'ACTIVATION</div>
-
-      <div class="tv-step">
-        <div class="tv-step-num">1</div>
-        <div>
-          <h4>Ouvrez My Box Smart sur votre TV</h4>
-          <p>Lancez l'application <strong>My Box Smart</strong> depuis votre Smart TV (Samsung, LG, Android TV, Fire TV Stick…).</p>
-          <div class="mock-screens">
-            <div class="mock-tv">
-              <div class="m-logo">MY BOX SMART</div>
-              <div style="font-size:7px;color:#333;margin-top:3px;">Démarrage…</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="tv-step">
-        <div class="tv-step-num">2</div>
-        <div>
-          <h4>Cliquez sur « ID ABONNEMENT »</h4>
-          <p>Sur l'écran de connexion, sélectionnez le champ <strong>ID ABONNEMENT</strong> avec votre télécommande.</p>
-          <div class="mock-screens">
-            <div class="mock-tv">
-              <div class="m-logo">MY BOX SMART</div>
-              <div class="m-field hl">🔑 ID ABONNEMENT</div>
-              <div class="m-btn">ACCÉDER</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="tv-step">
-        <div class="tv-step-num">3</div>
-        <div>
-          <h4>Saisissez votre clé d'activation</h4>
-          <p>Entrez la clé exactement comme indiquée (majuscules + tiret) :</p>
-          <div class="tv-key-snippet" id="guide-key-display">
-            <i class="fas fa-key" style="font-size:11px"></i> TV-XXXXXX
-          </div>
-        </div>
-      </div>
-
-      <div class="tv-step">
-        <div class="tv-step-num">4</div>
-        <div>
-          <h4>Appuyez sur ACCÉDER et profitez !</h4>
-          <p>Confirmez avec <strong>ACCÉDER</strong>. En quelques secondes votre abonnement est actif.</p>
-          <div class="mock-screens">
-            <div class="mock-tv">
-              <div class="m-logo">MY BOX SMART</div>
-              <div class="m-field hl" id="mock-key-preview">TV-XXXXXX</div>
-              <div class="m-btn">ACCÉDER ✓</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-    </div>
-
-    <div style="margin-top:24px;text-align:center;">
-      <button onclick="resetPage()"
-        style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:14px 28px;border-radius:10px;cursor:pointer;font-family:var(--fb);font-weight:700;font-size:13px;transition:background 0.2s;touch-action:manipulation;-webkit-appearance:none;"
-        onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='transparent'">
-        <i class="fas fa-plus" style="margin-right:8px;color:var(--primary);"></i>Souscrire un autre abonnement
-      </button>
-    </div>
-
-  </div>
-</div>
-
-<!-- LOADING -->
-<div id="loading-overlay">
-  <div class="loader-ring"></div>
-  <div class="loader-text">TRAITEMENT EN COURS…</div>
-</div>
-
-<!-- TOAST -->
 <div id="toast"></div>
 
+<!-- ════════════════════════════════
+     SCREEN 1 — OFFRES + PAIEMENT
+════════════════════════════════ -->
+<div id="s1" class="sc on">
+
+  <div class="hero">
+    <img src="https://i.ibb.co/WWk0s4M8/My-Box-Smart.png" class="hero-logo" alt="MyBox">
+    <div class="hero-brand">MY BOX SMART</div>
+    <div class="hero-title">Choisissez votre<br>abonnement</div>
+    <div class="hero-sub">Payez depuis votre téléphone · Recevez votre ID instantanément</div>
+  </div>
+
+  <div class="feat-row">
+    <div class="feat"><i class="fas fa-tv"></i> +14 000 chaînes</div>
+    <div class="feat"><i class="fas fa-film"></i> Films & Séries</div>
+    <div class="feat"><i class="fas fa-wifi"></i> HD / 4K</div>
+    <div class="feat"><i class="fas fa-mobile-alt"></i> Multi-écrans</div>
+  </div>
+
+  <div class="sec-title">SÉLECTIONNEZ UNE OFFRE</div>
+
+  <div class="tarifs-wrap" id="tarifs-list">
+    <!-- Rempli dynamiquement depuis Supabase -->
+    <div style="text-align:center;color:var(--muted);padding:30px 0;font-size:13px"><i class="fas fa-spinner fa-spin" style="margin-right:8px"></i>Chargement des offres...</div>
+  </div>
+
+  <!-- Code parrain -->
+  <div class="parrain-wrap" style="margin-top:14px">
+    <div class="parrain-box">
+      <div class="parrain-icon"><i class="fas fa-gift"></i></div>
+      <input class="parrain-inp" id="parrain-input" placeholder="Code de parrainage (optionnel)" maxlength="12" autocapitalize="characters" oninput="onParrainInput()" style="-webkit-user-select:text;user-select:text">
+      <div class="parrain-status" id="parrain-status"></div>
+    </div>
+  </div>
+
+  <!-- Résumé sélection -->
+  <div id="selected-summary" style="display:none;width:100%;max-width:440px;padding:12px 16px 0">
+    <div style="background:rgba(229,9,20,.06);border:1px solid rgba(229,9,20,.2);border-radius:12px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:10px;letter-spacing:1px;color:var(--muted);font-family:'Orbitron',sans-serif">SÉLECTIONNÉ</div>
+        <div id="sel-name" style="font-size:14px;font-weight:700;margin-top:2px"></div>
+      </div>
+      <div style="text-align:right">
+        <div id="sel-prix" style="font-family:'Orbitron',sans-serif;font-size:18px;font-weight:900;color:var(--red)"></div>
+        <div style="font-size:9px;color:var(--muted)">FCFA</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Boutons paiement -->
+  <div class="pay-section">
+    <button class="btn-pay btn-feex" id="btn-feex" onclick="payFeexPay()" disabled>
+      <i class="fas fa-mobile-alt"></i> PAYER AVEC FEEXPAY
+    </button>
+    <div class="pay-divider"><span>OU</span></div>
+    <button class="btn-pay btn-feda" id="btn-feda" onclick="payFedaPay()" disabled>
+      <i class="fas fa-credit-card"></i> PAYER AVEC FEDAPAY
+    </button>
+    <div id="feexpay-render"></div>
+  </div>
+
+  <!-- Clé reçue inline (après paiement depuis cette page) -->
+  <div class="key-section" id="inline-key-section">
+    <div class="key-card">
+      <div class="key-label">VOTRE ID D'ABONNEMENT</div>
+      <div class="key-val" id="inline-key-val" onclick="copyKey()">TV-XXXXXX</div>
+      <div style="font-size:11px;color:var(--muted);text-align:center">Appuyez sur l'ID pour le copier</div>
+      <div class="key-actions">
+        <button class="btn-action btn-copy" onclick="copyKey()"><i class="fas fa-copy"></i> COPIER</button>
+        <button class="btn-action btn-pdf" onclick="dlPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
+        <button class="btn-action btn-tv" onclick="goConnectTV()"><i class="fas fa-tv"></i> CONNECTER</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /s1 -->
+
+<!-- ════════════════════════════════
+     SCREEN 2 — CONNEXION SMART TV
+════════════════════════════════ -->
+<div id="s2" class="sc">
+
+  <div class="s2-header">
+    <div class="bk" onclick="goScreen('s1')"><i class="fas fa-arrow-left"></i></div>
+    <h2>CONNECTER MA SMART TV</h2>
+  </div>
+
+  <div class="s2-body">
+
+    <!-- Clé active -->
+    <div class="active-key" id="active-key-chip" style="display:none">
+      <div class="ak-dot"></div>
+      <div>
+        <div class="ak-label">ID ACTIF</div>
+        <div class="ak-key" id="active-key-txt">—</div>
+      </div>
+    </div>
+
+    <!-- Saisie manuelle si pas de clé -->
+    <div id="manual-key-wrap" style="display:none">
+      <div style="font-size:10px;letter-spacing:2px;color:var(--muted);font-family:'Orbitron',sans-serif;margin-bottom:8px">VOTRE ID D'ABONNEMENT</div>
+      <div style="position:relative">
+        <input id="manual-key-inp" placeholder="TV-XXXXXX" maxlength="9" autocapitalize="characters"
+          style="width:100%;padding:14px 18px;background:rgba(255,255,255,.05);border:1.5px solid var(--border2);border-radius:12px;color:#fff;font-size:18px;font-family:'Orbitron',sans-serif;font-weight:700;letter-spacing:3px;-webkit-user-select:text;user-select:text"
+          oninput="this.value=this.value.toUpperCase()">
+      </div>
+    </div>
+
+    <!-- Tabs méthode connexion -->
+    <div class="method-tabs">
+      <div class="mtab on" id="tab-code" onclick="switchMethod('code')"><i class="fas fa-keyboard" style="margin-right:5px"></i>Code TV</div>
+      <div class="mtab" id="tab-auto" onclick="switchMethod('auto')"><i class="fas fa-broadcast-tower" style="margin-right:5px"></i>Auto-détection</div>
+    </div>
+
+    <!-- MÉTHODE 1 : Code de couplage -->
+    <div class="mpanel on" id="panel-code">
+      <div class="pair-box">
+        <div class="pair-box-title"><i class="fas fa-info-circle" style="margin-right:6px;color:var(--blue)"></i>LE CODE AFFICHÉ SUR VOTRE SMART TV</div>
+        <div class="pair-input-wrap">
+          <input class="pair-input" id="pair-code-inp" placeholder="Ex : MYB-7K2" maxlength="7" autocapitalize="characters"
+            oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,'')">
+        </div>
+        <button class="btn-connect" id="btn-pair" onclick="doPairCode()">
+          <i class="fas fa-link"></i> CONNECTER À LA TV
+        </button>
+        <div style="margin-top:14px;background:rgba(0,170,255,.05);border:1px solid rgba(0,170,255,.12);border-radius:10px;padding:12px 14px">
+          <div style="font-size:10px;letter-spacing:1px;color:var(--blue);font-family:'Orbitron',sans-serif;margin-bottom:8px">COMMENT TROUVER LE CODE ?</div>
+          <ol style="padding-left:16px;font-size:11px;color:var(--muted);line-height:2">
+            <li>Ouvrez <b style="color:#fff">My Box Smart</b> sur votre Smart TV</li>
+            <li>L'application affiche un code (ex: <b style="color:var(--red);font-family:'Orbitron',sans-serif">MYB-7K2</b>)</li>
+            <li>Entrez ce code ici et appuyez sur <b style="color:#fff">Connecter</b></li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <!-- MÉTHODE 2 : Auto-détection -->
+    <div class="mpanel" id="panel-auto">
+      <div class="nearby-box">
+        <div class="nearby-box-title"><i class="fas fa-satellite-dish" style="margin-right:6px;color:var(--red)"></i>SMART TVS DISPONIBLES</div>
+        <button class="btn-scan" onclick="searchNearbyTVs()">
+          <i class="fas fa-search"></i> RECHERCHER MES SMART TVS
+        </button>
+        <div id="nearby-list"></div>
+        <div style="font-size:10px;color:var(--muted);text-align:center;line-height:1.7;margin-top:8px">
+          Assurez-vous que <b style="color:#fff">My Box Smart</b> est ouvert sur votre TV<br>et que les deux appareils sont connectés à Internet.
+        </div>
+      </div>
+    </div>
+
+    <!-- Banner succès connexion -->
+    <div class="connected-banner" id="connected-banner">
+      <div class="cb-icon">📺✅</div>
+      <div class="cb-msg">TV CONNECTÉE !</div>
+      <div class="cb-sub">Votre Smart TV a reçu votre ID et démarre automatiquement.</div>
+    </div>
+
+  </div>
+</div><!-- /s2 -->
+
+<!-- ════════════════════════════════
+     MODAL SUCCÈS PAIEMENT
+════════════════════════════════ -->
+<div class="modal-overlay" id="success-modal">
+  <div class="modal-box">
+    <div class="modal-check"><i class="fas fa-check"></i></div>
+    <div class="modal-title">ABONNEMENT ACTIVÉ !</div>
+    <div class="modal-sub">Votre paiement a bien été reçu.<br>Conservez précieusement votre ID.</div>
+    <div class="modal-key-disp" id="modal-key-disp" onclick="copyKey()">TV-XXXXXX</div>
+    <div style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:6px"><i class="fas fa-hand-pointer" style="color:var(--red)"></i>Appuyez pour copier</div>
+    <div class="modal-btns">
+      <button class="modal-btn mbtn-copy" onclick="copyKey()"><i class="fas fa-copy"></i> COPIER L'ID</button>
+      <button class="modal-btn mbtn-pdf" onclick="dlPDF()"><i class="fas fa-file-pdf"></i> TÉLÉCHARGER LE REÇU PDF</button>
+      <button class="modal-btn mbtn-tv" onclick="closeSuccessAndTV()"><i class="fas fa-tv"></i> CONNECTER MA SMART TV</button>
+      <button class="modal-btn mbtn-close" onclick="closeSuccess()"><i class="fas fa-times"></i> FERMER</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     BARRE DE NAVIGATION
+════════════════════════════════ -->
+<div class="nav-bottom">
+  <button class="nav-btn on" id="nav-abo" onclick="goScreen('s1')">
+    <i class="fas fa-id-card"></i>
+    ABONNEMENT
+  </button>
+  <button class="nav-btn" id="nav-tv" onclick="goScreen('s2')">
+    <i class="fas fa-tv"></i>
+    MA SMART TV
+  </button>
+</div>
+
 <script>
-/* ─── Config ─── */
-const SUPABASE_URL = "https://yvcdadenofftnbljutwk.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2Y2RhZGVub2ZmdG5ibGp1dHdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NzQ0ODIsImV4cCI6MjA4ODQ1MDQ4Mn0.xqJzLpQszFmph599FBIvdE7NF88_i-JkABG-aSrAndE";
-const FEDAPAY_KEY  = 'pk_live_1i7UkFPVn-pUhhO1OnoKQncy';
-const FEEXPAY_TOKEN = 'fp_zpMYFlyQ9RcPloRrySnIl05C52imKeND6uCECBoyRTPqns55RwyXBVKwjF8fPbMg';
-const FEEXPAY_ID    = 'caDf4zegjmE2zp0';
-const SBH_R = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY };
-const SBH_W = { ...SBH_R, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' };
+// ══════════════════════════════════════════════
+// CONFIG — Reprend exactement les mêmes clés que insvox.html
+// ══════════════════════════════════════════════
+const SUPABASE_URL    = "https://yvcdadenofftnbljutwk.supabase.co";
+const SUPABASE_KEY    = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2Y2RhZGVub2ZmdG5ibGp1dHdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NzQ0ODIsImV4cCI6MjA4ODQ1MDQ4Mn0.xqJzLpQszFmph599FBIvdE7NF88_i-JkABG-aSrAndE";
+const FEDAPAY_KEY     = 'pk_live_1i7UkFPVn-pUhhO1OnoKQncy';
+const FEEXPAY_ID      = 'caDf4zegjmE2zp0';
+const FEEXPAY_TOKEN   = 'fp_zpMYFlyQ9RcPloRrySnIl05C52imKeND6uCECBoyRTPqns55RwyXBVKwjF8fPbMg';
 
-/* Tarifs de secours */
-const FALLBACK = [
-  {id:1,screens:1,days:30, label_ecran:'1 Écran', label_duree:'1 Mois', prix:300, prix_promo:null,badge:null,      badge_color:'#e50914'},
-  {id:2,screens:1,days:90, label_ecran:'1 Écran', label_duree:'3 Mois', prix:900, prix_promo:null,badge:'POPULAIRE',badge_color:'#0af'},
-  {id:3,screens:1,days:365,label_ecran:'1 Écran', label_duree:'1 An',   prix:3000,prix_promo:null,badge:null,      badge_color:'#e50914'},
-  {id:4,screens:2,days:30, label_ecran:'2 Écrans',label_duree:'1 Mois', prix:500, prix_promo:null,badge:null,      badge_color:'#e50914'},
-  {id:5,screens:4,days:30, label_ecran:'4 Écrans',label_duree:'1 Mois', prix:900, prix_promo:null,badge:null,      badge_color:'#e50914'},
-];
+const SB_H_R = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY };
+const SB_H_W = { ...SB_H_R, 'Content-Type': 'application/json', 'Prefer': 'return=representation' };
 
-/* ─── État ─── */
-let _cache=null, _tarif=null, _key=null, _paying=false;
-let _parrainOk=false, _parrainType=null, _pTimer=null;
-
-/* ─── Supabase helpers ─── */
-async function sbGet(t,q){ const r=await fetch(`${SUPABASE_URL}/rest/v1/${t}?${q}`,{headers:SBH_R}); if(!r.ok)throw new Error(await r.text()); return r.json(); }
-async function sbPost(t,b){ const r=await fetch(`${SUPABASE_URL}/rest/v1/${t}`,{method:'POST',headers:SBH_W,body:JSON.stringify(b)}); if(!r.ok)throw new Error(await r.text()); }
-async function sbPatch(t,q,b){ const r=await fetch(`${SUPABASE_URL}/rest/v1/${t}?${q}`,{method:'PATCH',headers:SBH_W,body:JSON.stringify(b)}); if(!r.ok)throw new Error(await r.text()); }
-
-/* ─── Charger tarifs ─── */
-async function loadTarifs(){
-  if(_cache)return _cache;
-  try{
-    const d=await sbGet('tarifs','actif=eq.true&order=ordre.asc');
-    _cache=(d&&d.length>0)?d:FALLBACK;
-  }catch(e){ _cache=FALLBACK; }
-  return _cache;
+// ── Helpers Supabase ────────────────────────────────────────
+async function sbGet(table, params) {
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params||''}`, { headers: SB_H_R });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch(e) { return null; }
+}
+async function sbInsert(table, body) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, { method:'POST', headers:SB_H_W, body:JSON.stringify(body) });
+  if (!r.ok) { let m = `err ${r.status}`; try{const j=await r.json();m+=': '+(j.message||'')}catch(e){} throw new Error(m); }
+  return true;
+}
+async function sbPatch(table, params, body) {
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, { method:'PATCH', headers:SB_H_W, body:JSON.stringify(body) });
+    return r.ok;
+  } catch(e) { return false; }
+}
+async function sbUpsert(table, body, conflict='') {
+  try {
+    const h = { ...SB_H_R, 'Content-Type':'application/json', 'Prefer':'resolution=merge-duplicates,return=minimal' };
+    const url = `${SUPABASE_URL}/rest/v1/${table}` + (conflict ? `?on_conflict=${conflict}` : '');
+    const r = await fetch(url, { method:'POST', headers:h, body:JSON.stringify(body) });
+    return r.ok;
+  } catch(e) { return false; }
+}
+async function rcPost(body) {
+  return sbInsert('rc_commands', body);
 }
 
-/* ─── Générer clé ─── */
-function genKey(){
-  const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let r=''; for(let i=0;i<6;i++)r+=c.charAt(Math.floor(Math.random()*c.length));
-  return 'TV-'+r;
+// ══════════════════════════════════════════════
+// ÉTAT GLOBAL
+// ══════════════════════════════════════════════
+let _selectedTarif = null;
+let _pendingKey    = null;
+let _activeKey     = localStorage.getItem('mybox_key') || null;
+let _payInProgress = false;
+let _activationDone = {};
+let _parrainValide = false;
+let _parrainType   = null;
+let _parrainTimer  = null;
+let _receipt       = null; // { key, days, screens, amount, bonus }
+
+// Device ID
+const _devId = localStorage.getItem('mybox_device_id') || ('DEV-' + Math.random().toString(36).substr(2,9).toUpperCase());
+localStorage.setItem('mybox_device_id', _devId);
+
+// ══════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════
+let _tTimer = null;
+function toast(msg, type='ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'on ' + type;
+  clearTimeout(_tTimer);
+  _tTimer = setTimeout(() => { el.className = ''; }, 2800);
 }
 
-/* ─── Icône plan ─── */
-function icon(d){ return d>=365?'👑':d>=180?'💎':d>=90?'⚡':d>=60?'🚀':'📺'; }
+// ══════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════
+function goScreen(id) {
+  document.querySelectorAll('.sc').forEach(s => s.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('on'));
+  const map = { s1: 'nav-abo', s2: 'nav-tv' };
+  if (map[id]) document.getElementById(map[id]).classList.add('on');
+  if (id === 's2') initS2();
+  window.scrollTo(0, 0);
+}
 
-/* ─── Grille plans ─── */
-function buildGrid(tarifs){
-  const g=document.getElementById('plans-grid');
-  g.innerHTML='';
-  tarifs.forEach(t=>{
-    const hp=t.prix_promo&&t.prix_promo<t.prix;
-    const pf=hp?t.prix_promo:t.prix;
-    const card=document.createElement('div');
-    card.className='plan-card'; card.id='pc-'+t.id;
+// ══════════════════════════════════════════════
+// CHARGEMENT TARIFS DEPUIS SUPABASE
+// ══════════════════════════════════════════════
+const TARIF_ICONS = ['🥉','🥈','🥇','💎','👑'];
+const TARIF_COLORS = ['#888','#aaa','#ffcc00','#00aaff','#e50914'];
 
-    if(t.badge){
-      const b=document.createElement('div');
-      b.className='plan-badge '+(hp?'badge-gold':'badge-hot');
-      b.style.background=t.badge_color||'#e50914';
-      if(hp)b.style.color='#000';
-      b.textContent=t.badge; card.appendChild(b);
+async function loadTarifs() {
+  try {
+    const rows = await sbGet('tarifs', 'actif=eq.true&order=prix.asc&select=*');
+    const list = document.getElementById('tarifs-list');
+    if (!rows || !rows.length) {
+      list.innerHTML = '<div style="color:var(--muted);text-align:center;padding:20px;font-size:13px">Aucun tarif disponible</div>';
+      return;
     }
-    const radio=document.createElement('div'); radio.className='plan-radio'; card.appendChild(radio);
-    const mk=(cls,html)=>{ const d=document.createElement('div');d.className=cls;d.innerHTML=html;return d; };
-    card.appendChild(mk('plan-icon',icon(t.days)));
-    card.appendChild(mk('plan-name',esc(t.label_ecran)+' · '+esc(t.label_duree)));
-    card.appendChild(mk('plan-ecran','<i class="fas fa-desktop" style="margin-right:5px;font-size:10px;"></i>'+esc(t.screens>1?t.screens+' connexions simultanées':'1 connexion')));
-    card.appendChild(mk('plan-duree','<i class="fas fa-clock" style="margin-right:5px;font-size:10px;"></i>'+t.days+' jours'));
-    card.appendChild(mk('plan-prix '+(hp?'promo':'normal'),num(pf)));
-    if(hp){
-      card.appendChild(mk('plan-old',num(t.prix)+' FCFA'));
-      const pct=Math.round((1-t.prix_promo/t.prix)*100);
-      card.appendChild(mk('plan-eco','-'+pct+'%'));
-    }
-    card.appendChild(mk('plan-fcfa','FCFA'));
-    card.addEventListener('click',()=>selectPlan(t.id));
-    g.appendChild(card);
-  });
-}
-
-/* ─── Sélectionner un plan ─── */
-function selectPlan(id){
-  const tarifs=_cache||FALLBACK;
-  _tarif=tarifs.find(t=>t.id===id);
-  if(!_tarif)return;
-  _key=genKey();
-
-  document.querySelectorAll('.plan-card').forEach(c=>c.classList.remove('selected'));
-  const card=document.getElementById('pc-'+id);
-  if(card)card.classList.add('selected');
-
-  const hp=_tarif.prix_promo&&_tarif.prix_promo<_tarif.prix;
-  const pf=hp?_tarif.prix_promo:_tarif.prix;
-
-  document.getElementById('parrain-wrap').style.display='block';
-  document.getElementById('recap-icon').textContent=icon(_tarif.days);
-  document.getElementById('recap-plan').textContent=_tarif.label_ecran+' — '+_tarif.label_duree;
-  document.getElementById('recap-detail').textContent=_tarif.days+' jours · '+_tarif.screens+' écran(s)';
-
-  const rp=document.getElementById('recap-price');
-  rp.innerHTML=num(pf)+' <small>FCFA</small>';
-  rp.className='recap-price'+(hp?' promo':'');
-
-  document.getElementById('pay-wrap').style.display='block';
-  /* FIX BUG: stepSet correct — étape 3 active après sélection plan */
-  stepSet(3);
-  setTimeout(()=>document.getElementById('pay-wrap').scrollIntoView({behavior:'smooth',block:'nearest'}),150);
-
-  /* ── Initialiser FeexPay avec le bon montant ── */
-  initFeexpay(pf);
-}
-
-/* ─── Stepper — FIX: loop corrigée jusqu'à 4 max ─── */
-function stepSet(n){
-  for(let i=1;i<=4;i++){
-    const s=document.getElementById('stp'+i);
-    if(!s)continue;
-    if(i<n){
-      s.className='stp done';
-      s.querySelector('.stp-circle').innerHTML='<i class="fas fa-check" style="font-size:10px"></i>';
-    }else if(i===n){
-      s.className='stp active';
-      /* Restaurer le contenu original si on repasse en active */
-      if(i===4){ s.querySelector('.stp-circle').innerHTML='<i class="fas fa-key" style="font-size:10px"></i>'; }
-      else{ s.querySelector('.stp-circle').textContent=i; }
-    }else{
-      s.className='stp';
-      if(i===4){ s.querySelector('.stp-circle').innerHTML='<i class="fas fa-key" style="font-size:10px"></i>'; }
-      else{ s.querySelector('.stp-circle').textContent=i; }
-    }
-    if(i<4) document.getElementById('ln'+i).className='stp-line'+(i<=n-1?' done':'');
+    list.innerHTML = '';
+    rows.forEach((t, i) => {
+      const icon  = TARIF_ICONS[Math.min(i, TARIF_ICONS.length - 1)];
+      const prix  = t.prix_promo || t.prix;
+      const isPop = t.populaire || false;
+      const div   = document.createElement('div');
+      div.className = 'tarif' + (isPop ? ' popular' : '');
+      div.dataset.id = t.id;
+      div.innerHTML = `
+        ${isPop ? '<div class="pop-badge">POPULAIRE</div>' : ''}
+        <div class="tarif-icon">${icon}</div>
+        <div class="tarif-info">
+          <div class="tarif-name">${escH(t.label_duree||t.days+' JOURS')} · ${escH(t.label_ecran||t.screens+' ÉCRAN'+(t.screens>1?'S':''))}</div>
+          <div class="tarif-detail">${escH(t.description||'+14.000 chaînes HD/4K')}</div>
+        </div>
+        <div class="tarif-prix">${prix.toLocaleString('fr-FR')}<small>FCFA</small></div>
+      `;
+      div.addEventListener('click', () => selectTarif(t, div));
+      list.appendChild(div);
+    });
+  } catch(e) {
+    document.getElementById('tarifs-list').innerHTML = '<div style="color:var(--muted);text-align:center;padding:20px">Erreur chargement tarifs</div>';
   }
 }
 
-/* ─── Validation parrainage ─── */
-function validateParrain(inp){
-  const code=inp.value.trim().toUpperCase(); inp.value=code;
-  const iconEl=document.getElementById('parrain-icon');
-  const msg=document.getElementById('parrain-msg');
-  _parrainOk=false; _parrainType=null;
-  if(!code||code.length<5){iconEl.textContent='';msg.textContent='';inp.className='';return;}
-  clearTimeout(_pTimer); iconEl.textContent='⏳';
-  _pTimer=setTimeout(async()=>{
-    try{
-      const pro=await sbGet('paraineurs','code_parrain=eq.'+encodeURIComponent(code)+'&actif=eq.true&select=id&limit=1');
-      if(pro&&pro.length>0){
-        _parrainOk=true;_parrainType='paraineur';
-        iconEl.textContent='✅'; msg.style.color='#2ecc71';
-        msg.textContent='✓ Code paraineur valide — commission activée !';
-        inp.className='valid'; return;
-      }
-      const usr=await sbGet('utilisateurs','code_parrainage=eq.'+encodeURIComponent(code)+'&select=cle&limit=1');
-      if(usr&&usr.length>0){
-        _parrainOk=true;_parrainType='user';
-        iconEl.textContent='✅'; msg.style.color='#2ecc71';
-        msg.textContent='✓ Code valide — +7 jours bonus !';
-        inp.className='valid';
-      }else{
-        iconEl.textContent='❌'; msg.style.color='#ff5555';
-        msg.textContent='Code introuvable.'; inp.className='invalid';
-      }
-    }catch(e){ iconEl.textContent='?'; }
-  },600);
+function selectTarif(tarif, el) {
+  document.querySelectorAll('.tarif').forEach(t => t.classList.remove('selected'));
+  el.classList.add('selected');
+  _selectedTarif = tarif;
+  // Générer une clé
+  _pendingKey = 'TV-' + Array.from({length:6}, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random()*32)]).join('');
+  // Afficher résumé
+  const prix = tarif.prix_promo || tarif.prix;
+  document.getElementById('sel-name').textContent = (tarif.label_duree||tarif.days+' Jours') + ' · ' + (tarif.label_ecran||tarif.screens+' Écran'+(tarif.screens>1?'s':''));
+  document.getElementById('sel-prix').textContent = prix.toLocaleString('fr-FR');
+  document.getElementById('selected-summary').style.display = 'block';
+  document.getElementById('btn-feex').disabled = false;
+  document.getElementById('btn-feda').disabled = false;
+  // Init FeexPay en avance
+  _initFeexSDK();
+  toast('✅ Offre sélectionnée', 'ok');
 }
 
-/* ─── Prix final ─── */
-function finalPrice(){ if(!_tarif)return 0; const hp=_tarif.prix_promo&&_tarif.prix_promo<_tarif.prix; return hp?_tarif.prix_promo:_tarif.prix; }
+function getPayAmount() {
+  if (!_selectedTarif) return 0;
+  return _selectedTarif.prix_promo || _selectedTarif.prix;
+}
 
-/* ─── Lancer FedaPay ─── */
-function payWithFedapay(){
-  if(!_tarif){ showToast('⚠️ Sélectionnez une offre.','error'); return; }
-  if(_paying){ showToast('Paiement en cours…','error'); return; }
-  _paying=true;
-  document.getElementById('btn-pay').disabled=true;
-  document.getElementById('btn-pay-feexpay').disabled=true;
+// ══════════════════════════════════════════════
+// CODE PARRAIN
+// ══════════════════════════════════════════════
+function onParrainInput() {
+  const val = document.getElementById('parrain-input').value.trim().toUpperCase();
+  document.getElementById('parrain-input').value = val;
+  const icon = document.getElementById('parrain-status');
+  clearTimeout(_parrainTimer);
+  if (!val) { icon.textContent = ''; _parrainValide = false; _parrainType = null; return; }
+  icon.textContent = '⏳';
+  _parrainTimer = setTimeout(async () => {
+    try {
+      const p = await sbGet('paraineurs', `code_parrain=eq.${encodeURIComponent(val)}&actif=eq.true&select=id&limit=1`);
+      if (p && p.length) { _parrainValide = true; _parrainType = 'paraineur'; icon.textContent = '✅'; toast('🎁 Code parrain valide !', 'ok'); return; }
+      const u = await sbGet('utilisateurs', `code_parrainage=eq.${encodeURIComponent(val)}&select=cle&limit=1`);
+      if (u && u.length) { _parrainValide = true; _parrainType = 'user'; icon.textContent = '✅'; toast('🎁 +7 jours bonus !', 'ok'); return; }
+      _parrainValide = false; _parrainType = null; icon.textContent = '❌';
+    } catch(e) { icon.textContent = '?'; }
+  }, 600);
+}
 
-  const checkout = FedaPay.init({
-    public_key: FEDAPAY_KEY,
-    transaction: {
-      amount: finalPrice(),
-      description: 'Abonnement My Box Smart — ' + (_tarif.label_ecran||'') + ' ' + (_tarif.label_duree||'')
-    },
-    customer: {
-      firstname: 'Client',
-      lastname: 'My Box Smart'
-    },
-    onComplete: function(transaction){
-      if(transaction.reason === FedaPay.CHECKOUT_COMPLETED){
-        const cp=document.getElementById('parrain-input').value.trim().toUpperCase();
-        processSuccess(cp);
-      } else {
-        _paying=false;
-        document.getElementById('btn-pay').disabled=false;
-        document.getElementById('btn-pay-feexpay').disabled=false;
-        showToast('❌ Paiement échoué. Réessayez.','error');
+// ══════════════════════════════════════════════
+// FEEXPAY
+// ══════════════════════════════════════════════
+let _feexInitDone = false;
+function _initFeexSDK() {
+  if (!_selectedTarif || !_pendingKey) return;
+  if (typeof FeexPayButton === 'undefined') { setTimeout(_initFeexSDK, 500); return; }
+  const render = document.getElementById('feexpay-render');
+  render.innerHTML = '';
+  _feexInitDone = false;
+  const codeParrain = (document.getElementById('parrain-input').value || '').trim().toUpperCase();
+  const amount = getPayAmount();
+  // Pré-enregistrer
+  sbInsert('webhook_pending', {
+    custom_id: _pendingKey, cle: _pendingKey,
+    days: parseInt(_selectedTarif.days), screens: parseInt(_selectedTarif.screens),
+    code_parrain: codeParrain || null, amount: amount, processed: false
+  }).catch(() => {});
+  sessionStorage.setItem('fx_pending', JSON.stringify({
+    key: _pendingKey, days: parseInt(_selectedTarif.days),
+    screens: parseInt(_selectedTarif.screens), parrain: codeParrain, amount
+  }));
+  FeexPayButton.init('feexpay-render', {
+    id:            FEEXPAY_ID,
+    token:         FEEXPAY_TOKEN,
+    amount:        amount,
+    description:   `Abonnement MyBoxSmart ${_selectedTarif.days}j – ${_pendingKey}`,
+    custom_id:     _pendingKey,
+    callback_url:  window.location.href.split('?')[0] + '?feexpay_key=' + _pendingKey + '&feexpay_status=success',
+    onComplete: (resp) => {
+      if (resp && (resp.status === 'approved' || resp.status === 'successful')) {
+        processPayment(_pendingKey, String(_selectedTarif.days), String(_selectedTarif.screens), codeParrain);
       }
     }
   });
-  checkout.open();
+  _feexInitDone = true;
 }
 
-/* ─── Initialiser FeexPay avec le bon montant (appelé à chaque sélection de plan) ─── */
-function initFeexpay(amount){
-  if(typeof FeexPayButton === 'undefined'){
-    console.warn('FeexPay SDK pas encore chargé — réessai dans 500ms');
-    setTimeout(()=>initFeexpay(amount), 500);
+function payFeexPay() {
+  if (_payInProgress) { toast('⏳ Paiement en cours…', 'if'); return; }
+  if (!_selectedTarif) { toast('⚠️ Sélectionnez une offre', 'er'); return; }
+  // Trigger SDK click
+  const sdkBtn = document.querySelector('#feexpay-render button, #feexpay-render .feexpay-btn');
+  if (sdkBtn) { sdkBtn.click(); return; }
+  // Si SDK pas prêt: réinit et réessayer
+  _initFeexSDK();
+  setTimeout(() => {
+    const b2 = document.querySelector('#feexpay-render button, #feexpay-render .feexpay-btn');
+    if (b2) b2.click();
+    else toast('⚠️ Module de paiement non prêt, réessayez', 'er');
+  }, 800);
+}
+
+// ══════════════════════════════════════════════
+// FEDAPAY
+// ══════════════════════════════════════════════
+function payFedaPay() {
+  if (_payInProgress) { toast('⏳ Paiement en cours…', 'if'); return; }
+  if (!_selectedTarif) { toast('⚠️ Sélectionnez une offre', 'er'); return; }
+  const codeParrain = (document.getElementById('parrain-input').value || '').trim().toUpperCase();
+  const amount = getPayAmount();
+  const key = _pendingKey;
+  FedaPay.init({
+    public_key:  FEDAPAY_KEY,
+    transaction: { amount, description: `Abonnement MyBoxSmart ${_selectedTarif.days}j – ${key}`, custom_metadata: { custom_id: key, days: _selectedTarif.days, screens: _selectedTarif.screens, code_parrain: codeParrain } },
+    customer:    { phone_number: { number: '', country: 'BJ' } },
+    onComplete:  function(resp) {
+      if (resp && resp.transaction && (resp.transaction.status === 'approved' || resp.transaction.status === 'successful')) {
+        processPayment(key, String(_selectedTarif.days), String(_selectedTarif.screens), codeParrain);
+      }
+    }
+  }).open();
+}
+
+// ══════════════════════════════════════════════
+// TRAITEMENT PAIEMENT RÉUSSI
+// ══════════════════════════════════════════════
+async function processPayment(newKey, days, screens, codeParrain) {
+  if (_activationDone[newKey]) return;
+  _activationDone[newKey] = true;
+  _payInProgress = true;
+  document.getElementById('btn-feex').disabled = true;
+  document.getElementById('btn-feda').disabled = true;
+  toast('⏳ Activation de votre abonnement…', 'if');
+
+  try {
+    const daysInt    = parseInt(days);
+    const screensInt = parseInt(screens);
+    const now        = new Date();
+    const dateActiv  = now.toISOString().split('T')[0];
+    const codeParr   = (codeParrain || '').trim().toUpperCase();
+    const codeParrainage = 'MBS-' + newKey.replace('TV-','') + '-' + Math.random().toString(36).substr(2,3).toUpperCase();
+    const prixAbo    = getPayAmount();
+
+    // Créer l'utilisateur
+    await sbInsert('utilisateurs', {
+      cle:             newKey,
+      duree:           daysInt,
+      date_activation: dateActiv,
+      max_ecrans:      screensInt,
+      appareils:       _devId,
+      appareils_iptv:  '',
+      code_parrainage: codeParrainage,
+      message:         ''
+    });
+
+    // Parrainage
+    let bonusFilleul = 0;
+    if (codeParr && _parrainValide) {
+      try {
+        if (_parrainType === 'paraineur') {
+          const p = await sbGet('paraineurs', `code_parrain=eq.${encodeURIComponent(codeParr)}&select=id,solde,total_gagne,taux_commission&limit=1`);
+          if (p && p[0]) {
+            const rate = parseFloat(p[0].taux_commission || 0.1);
+            const commission = parseFloat((prixAbo * rate).toFixed(2));
+            const existCom = await sbGet('commissions', `client_cle=eq.${encodeURIComponent(newKey)}&paraineur_id=eq.${p[0].id}&select=id&limit=1`);
+            if (!existCom || !existCom.length) {
+              await sbInsert('commissions', { paraineur_id: p[0].id, code_parrain: codeParr, client_cle: newKey, montant_abonnement: prixAbo, commission, taux: rate, created_at: now.toISOString() });
+              await sbPatch('paraineurs', `id=eq.${p[0].id}`, { solde: parseFloat(((p[0].solde||0)+commission).toFixed(2)), total_gagne: parseFloat(((p[0].total_gagne||0)+commission).toFixed(2)) });
+            }
+          }
+        } else if (_parrainType === 'user') {
+          const existParr = await sbGet('parrainages', `filleul_cle=eq.${encodeURIComponent(newKey)}&select=filleul_cle&limit=1`);
+          if (!existParr || !existParr.length) {
+            bonusFilleul = 7;
+            await sbPatch('utilisateurs', `cle=eq.${encodeURIComponent(newKey)}`, { duree: daysInt + 7 });
+            const parrain = await sbGet('utilisateurs', `code_parrainage=eq.${encodeURIComponent(codeParr)}&select=cle,duree&limit=1`);
+            if (parrain && parrain[0]) {
+              const bonus15 = parrain[0].duree === 'VIE' ? 0 : 15;
+              if (bonus15 > 0) await sbPatch('utilisateurs', `cle=eq.${encodeURIComponent(parrain[0].cle)}`, { duree: parseInt(parrain[0].duree||0) + 15 });
+              try { await sbInsert('parrainages', { parrain_cle: parrain[0].cle, filleul_cle: newKey, bonus_parrain_jours: bonus15, bonus_filleul_jours: 7, parrain_credite: true, filleul_credite: true }); } catch(e){}
+            }
+          }
+        }
+      } catch(e) { console.warn('Parrainage:', e); }
+    }
+
+    // Marquer webhook_pending traité
+    await sbPatch('webhook_pending', `custom_id=eq.${encodeURIComponent(newKey)}`, { processed: true });
+
+    // Sauvegarder en local
+    _activeKey = newKey;
+    localStorage.setItem('mybox_key', newKey);
+    localStorage.setItem('mybox_auth', 'OK');
+    localStorage.setItem('mybox_raw_status', `SUCCESS:${daysInt}:${screensInt}:${dateActiv}`);
+
+    // Stocker pour PDF
+    _receipt = { key: newKey, days: daysInt, screens: screensInt, amount: prixAbo, bonus: bonusFilleul, codeParrain: codeParr };
+
+    // Afficher la clé inline + modal
+    showKeyInline(newKey);
+    showSuccessModal(newKey);
+
+    if (bonusFilleul > 0) setTimeout(() => toast(`🎁 +${bonusFilleul} jours bonus parrainage !`, 'ok'), 1500);
+
+  } catch(e) {
+    console.error('processPayment:', e);
+    toast('⚠️ Erreur : ' + (e.message || 'Contactez le support'), 'er');
+    _activationDone[newKey] = false;
+  }
+  _payInProgress = false;
+  document.getElementById('btn-feex').disabled = false;
+  document.getElementById('btn-feda').disabled = false;
+}
+
+// ══════════════════════════════════════════════
+// AFFICHAGE CLÉ + MODAL
+// ══════════════════════════════════════════════
+function showKeyInline(key) {
+  document.getElementById('inline-key-val').textContent = key;
+  document.getElementById('inline-key-section').style.display = 'block';
+  // Scroll vers la clé
+  setTimeout(() => document.getElementById('inline-key-section').scrollIntoView({ behavior: 'smooth', block: 'center' }), 200);
+}
+
+function showSuccessModal(key) {
+  document.getElementById('modal-key-disp').textContent = key;
+  document.getElementById('success-modal').classList.add('on');
+}
+
+function closeSuccess() {
+  document.getElementById('success-modal').classList.remove('on');
+}
+
+function closeSuccessAndTV() {
+  closeSuccess();
+  goScreen('s2');
+}
+
+// ══════════════════════════════════════════════
+// COPIER LA CLÉ
+// ══════════════════════════════════════════════
+function copyKey() {
+  const key = _activeKey || document.getElementById('inline-key-val').textContent;
+  if (!key || key === 'TV-XXXXXX') { toast('Aucun ID à copier', 'er'); return; }
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(key).then(() => toast('✅ ID copié : ' + key, 'ok')).catch(() => _fallbackCopy(key));
+  } else { _fallbackCopy(key); }
+}
+function _fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  try { document.execCommand('copy'); toast('✅ ID copié !', 'ok'); } catch(e) { toast('Copiez manuellement : ' + text, 'if'); }
+  document.body.removeChild(ta);
+}
+
+// ══════════════════════════════════════════════
+// GÉNÉRATION PDF
+// ══════════════════════════════════════════════
+function dlPDF() {
+  if (!_receipt) {
+    const key = _activeKey;
+    if (!key) { toast('⚠️ Aucun reçu à générer', 'er'); return; }
+    _receipt = { key, days: '—', screens: '—', amount: '—', bonus: 0, codeParrain: '' };
+  }
+  generatePDF(_receipt.key, _receipt.days, _receipt.screens, _receipt.amount, _receipt.bonus, _receipt.codeParrain);
+}
+
+function generatePDF(key, days, screens, amount, bonusJours, codeParrain) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('fr-FR') + ' à ' + now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+  // ── En-tête noir
+  doc.setFillColor(15, 15, 20);
+  doc.rect(0, 0, 210, 50, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(24);
+  doc.setFont('helvetica', 'bold');
+  doc.text('MY BOX SMART', 105, 20, null, null, 'center');
+  doc.setFontSize(10);
+  doc.setTextColor(229, 9, 20);
+  doc.text("REÇU DE PAIEMENT & CERTIFICAT D'ABONNEMENT", 105, 31, null, null, 'center');
+  doc.setFontSize(8.5);
+  doc.setTextColor(140, 140, 140);
+  doc.text('Émis le : ' + dateStr, 105, 41, null, null, 'center');
+
+  // ── Badge paiement confirmé
+  doc.setFillColor(0, 110, 0);
+  doc.roundedRect(35, 56, 140, 20, 4, 4, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  const amtTxt = amount && amount !== '—' ? amount.toLocaleString('fr-FR') + ' FCFA' : '';
+  doc.text('✓  PAIEMENT CONFIRMÉ  ' + (amtTxt ? '—  ' + amtTxt : ''), 105, 69, null, null, 'center');
+
+  // ── ID
+  doc.setTextColor(30, 30, 30);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  doc.text('VOTRE ID DE CONNEXION :', 105, 90, null, null, 'center');
+  doc.setFillColor(245, 245, 245);
+  doc.setDrawColor(229, 9, 20);
+  doc.setLineWidth(1.5);
+  doc.roundedRect(30, 94, 150, 30, 4, 4, 'FD');
+  doc.setFont('courier', 'bold');
+  doc.setFontSize(30);
+  doc.setTextColor(229, 9, 20);
+  doc.text(key, 105, 113, null, null, 'center');
+
+  // ── Détails abonnement
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(30, 30, 30);
+  doc.setFontSize(12);
+  doc.setLineWidth(0.1);
+  const totalDays = parseInt(days) + (bonusJours || 0);
+  doc.text('VALIDITÉ : ' + (isNaN(totalDays) ? days : totalDays) + ' Jours', 42, 136);
+  doc.text('ÉCRANS : ' + screens, 128, 136);
+  if (bonusJours > 0) {
+    doc.setTextColor(46, 204, 113);
+    doc.setFontSize(10);
+    doc.text('✓ Bonus parrainage : +' + bonusJours + ' jours inclus', 42, 145);
+    doc.setTextColor(30, 30, 30);
+  }
+
+  // ── Instructions
+  doc.setDrawColor(210, 210, 210);
+  doc.line(18, 152, 192, 152);
+  doc.setFontSize(13);
+  doc.setFont('helvetica', 'bold');
+  doc.text("INSTRUCTIONS D'ACCÈS", 18, 163);
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'normal');
+  doc.text('1. Connectez votre appareil à Internet.', 22, 175);
+  doc.text('2. Ouvrez l\'application MY BOX SMART.', 22, 184);
+  doc.text('3. Entrez votre ID ci-dessus dans le champ de connexion.', 22, 193);
+  doc.text('4. Profitez de +14.000 chaînes en HD / 4K !', 22, 202);
+
+  // ── QR-code / Accès web
+  doc.line(18, 210, 192, 210);
+  doc.setFontSize(10);
+  doc.setTextColor(100, 100, 100);
+  doc.setFont('helvetica', 'italic');
+  doc.text('Conservez précieusement cet ID. Valide sur ' + screens + ' appareil(s) simultané(s).', 105, 218, null, null, 'center');
+
+  // ── Pied de page
+  doc.setFillColor(245, 245, 245);
+  doc.rect(0, 252, 210, 50, 'F');
+  doc.setTextColor(229, 9, 20);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text('SUPPORT TECHNIQUE — WHATSAPP', 105, 264, null, null, 'center');
+  doc.setTextColor(20, 20, 20);
+  doc.setFontSize(18);
+  doc.text('+229 63 82 87 67', 105, 277, null, null, 'center');
+  doc.setFontSize(9);
+  doc.setTextColor(150, 150, 150);
+  doc.setFont('helvetica', 'normal');
+  doc.text('www.myboxtv.com  —  Merci de votre confiance !', 105, 288, null, null, 'center');
+
+  doc.save('Recu_MyBoxTV_' + key + '.pdf');
+  toast('✅ Reçu PDF téléchargé !', 'ok');
+}
+
+// ══════════════════════════════════════════════
+// SCREEN 2 — CONNEXION SMART TV
+// ══════════════════════════════════════════════
+function initS2() {
+  const key = _activeKey || localStorage.getItem('mybox_key');
+  const chip = document.getElementById('active-key-chip');
+  const manualWrap = document.getElementById('manual-key-wrap');
+  if (key) {
+    document.getElementById('active-key-txt').textContent = key;
+    chip.style.display = 'flex';
+    manualWrap.style.display = 'none';
+  } else {
+    chip.style.display = 'none';
+    manualWrap.style.display = 'block';
+  }
+  document.getElementById('connected-banner').classList.remove('show');
+}
+
+function getActiveKey() {
+  return _activeKey || localStorage.getItem('mybox_key') || (document.getElementById('manual-key-inp') ? document.getElementById('manual-key-inp').value.trim().toUpperCase() : '');
+}
+
+function switchMethod(m) {
+  document.querySelectorAll('.mtab').forEach(t => t.classList.remove('on'));
+  document.querySelectorAll('.mpanel').forEach(p => p.classList.remove('on'));
+  document.getElementById('tab-' + m).classList.add('on');
+  document.getElementById('panel-' + m).classList.add('on');
+}
+
+// ── Connexion par code de couplage ────────────────────────────
+async function doPairCode() {
+  const code = (document.getElementById('pair-code-inp').value || '').trim().toUpperCase();
+  if (code.length < 6) { toast('⚠️ Code TV manquant (ex: MYB-7K2)', 'er'); return; }
+  const uk = getActiveKey();
+  if (!uk) { toast('⚠️ Entrez votre ID d\'abonnement', 'er'); return; }
+  const btn = document.getElementById('btn-pair');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connexion…';
+  toast('🔍 Recherche de la TV…', 'if');
+  try {
+    const rows = await sbGet('rc_status', `pair_code=eq.${encodeURIComponent(code)}&online=eq.true&select=device_id`);
+    if (!rows || !rows.length) {
+      toast('❌ Code invalide ou TV hors ligne', 'er');
+    } else {
+      await _connectTV(rows[0].device_id, uk);
+    }
+  } catch(e) { toast('❌ Erreur réseau', 'er'); }
+  btn.disabled = false;
+  btn.innerHTML = '<i class="fas fa-link"></i> CONNECTER À LA TV';
+}
+
+// ── Auto-détection des TVs ─────────────────────────────────────
+async function searchNearbyTVs() {
+  const uk = getActiveKey();
+  if (!uk) { toast('⚠️ Entrez votre ID d\'abonnement', 'er'); return; }
+  const L = document.getElementById('nearby-list');
+  L.style.display = 'flex';
+  L.innerHTML = '<div style="color:var(--muted);font-size:12px;text-align:center;padding:16px;width:100%"><i class="fas fa-spinner fa-spin"></i> Recherche des Smart TVs…</div>';
+  try {
+    const cut = new Date(Date.now() - 3 * 60 * 1000).toISOString();
+    const rows = await sbGet('rc_status', `user_key=eq.${encodeURIComponent(uk)}&online=eq.true&last_seen=gte.${encodeURIComponent(cut)}&select=device_id,pair_code,ch_name`);
+    if (!rows || !rows.length) {
+      L.innerHTML = '<div style="color:var(--muted);font-size:12px;text-align:center;padding:16px;width:100%">Aucune Smart TV détectée.<br><small>Vérifiez que My Box Smart est ouvert.</small></div>';
+      return;
+    }
+    L.innerHTML = '';
+    rows.forEach(tv => {
+      const nm = tv.device_id.split('__').slice(1).join(' ') || tv.device_id.substring(0, 12);
+      const item = document.createElement('div');
+      item.className = 'tv-item';
+      item.innerHTML = `
+        <div class="tv-emoji">📺</div>
+        <div class="tv-info">
+          <div class="tv-name">${escH(nm)}</div>
+          <div class="tv-ch">${escH(tv.ch_name || 'En attente')}</div>
+        </div>
+        ${tv.pair_code ? `<div class="tv-code">${escH(tv.pair_code)}</div>` : ''}
+      `;
+      item.addEventListener('click', () => _connectTV(tv.device_id, uk));
+      L.appendChild(item);
+    });
+    toast(`✅ ${rows.length} Smart TV trouvée${rows.length > 1 ? 's' : ''}`, 'ok');
+  } catch(e) {
+    L.innerHTML = '<div style="color:var(--red);font-size:12px;text-align:center;padding:16px;width:100%">Erreur réseau</div>';
+  }
+}
+
+// ── Envoyer la commande pair_login ─────────────────────────────
+async function _connectTV(tvDevId, uk) {
+  toast('📡 Connexion à la Smart TV…', 'if');
+  if (navigator.vibrate) navigator.vibrate([40, 20, 40]);
+  try {
+    await rcPost({ device_id: tvDevId, cmd: 'pair_login', payload: uk, done: false, ts: new Date().toISOString() });
+    toast('✅ Smart TV connectée ! Elle démarre automatiquement.', 'ok');
+    document.getElementById('connected-banner').classList.add('show');
+    document.getElementById('connected-banner').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  } catch(e) {
+    toast('❌ Impossible de contacter la TV', 'er');
+  }
+}
+
+function goConnectTV() {
+  closeSuccess();
+  goScreen('s2');
+}
+
+// ══════════════════════════════════════════════
+// RETOUR FEEXPAY (REDIRECTION MOBILE)
+// ══════════════════════════════════════════════
+window.addEventListener('load', async function() {
+  const params = new URLSearchParams(window.location.search);
+  const fxKey  = params.get('feexpay_key');
+  const fxStat = params.get('feexpay_status');
+  if (!fxKey || fxStat !== 'success') return;
+  if (!/^TV-[A-Z0-9]{6}$/.test(fxKey)) return;
+  window.history.replaceState({}, document.title, window.location.pathname);
+  if (_activationDone[fxKey]) return;
+
+  let meta = null;
+  try { meta = JSON.parse(sessionStorage.getItem('fx_pending') || 'null'); } catch(e) {}
+  sessionStorage.removeItem('fx_pending');
+  if (meta && meta.key !== fxKey) meta = null;
+
+  if (meta && meta.days && meta.screens) {
+    _pendingKey = fxKey;
+    _selectedTarif = { days: meta.days, screens: meta.screens, prix: meta.amount || 0, prix_promo: null };
+    _parrainValide = !!(meta.parrain);
+    _parrainType = meta.parrain ? 'user' : null;
+    await processPayment(fxKey, String(meta.days), String(meta.screens), meta.parrain || '');
     return;
   }
 
-  const customId = 'MBS-' + Date.now() + '-' + Math.random().toString(36).slice(2,7).toUpperCase();
-
-  FeexPayButton.init('feexpay-render', {
-    id          : FEEXPAY_ID,
-    token       : FEEXPAY_TOKEN,
-    amount      : amount,
-    mode        : 'LIVE',
-    description : 'Abonnement My Box Smart — ' + (_tarif?.label_ecran||'') + ' ' + (_tarif?.label_duree||''),
-    custom_id   : customId,
-    custom_button    : true,
-    id_custom_button : 'btn-pay-feexpay',
-    callback    : function(response){
-      console.log('FeexPay success:', response);
-      document.getElementById('btn-pay').disabled=false;
-      document.getElementById('btn-pay-feexpay').disabled=false;
-      const cp = document.getElementById('parrain-input').value.trim().toUpperCase();
-      showLoader(true);
-      processSuccess(cp);
-    },
-    callback_url       : window.location.href.split('?')[0],
-    error_callback_url : window.location.href.split('?')[0]
-  });
-}
-
-/* ─── Traitement paiement réussi ─── */
-async function processSuccess(codeParrain){
-  showLoader(true);
-  const newKey=_key, days=_tarif.days, screens=_tarif.screens;
-  const today=new Date().toISOString().split('T')[0];
-
-  const ch='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let cp='PAR-'; for(let i=0;i<6;i++)cp+=ch.charAt(Math.floor(Math.random()*ch.length));
-
-  let bonusJ=0;
-  try{
-    await sbPost('utilisateurs',{
-      cle:newKey, duree:days, appareils:'',
-      date_activation:today, max_ecrans:screens,
-      message:'', code_parrainage:cp,
-      parraine_par:(codeParrain&&_parrainOk)?codeParrain:null,
-      bonus_parrain_creditee:false
-    });
-
-    if(codeParrain&&_parrainOk){
-      try{
-        if(_parrainType==='paraineur'){
-          const cfg=await sbGet('config','id=eq.1&select=commission_rate');
-          const rate=(cfg&&cfg[0]&&cfg[0].commission_rate)?cfg[0].commission_rate:20;
-          const prix=finalPrice();
-          const pa=await sbGet('paraineurs','code_parrain=eq.'+encodeURIComponent(codeParrain)+'&actif=eq.true&select=*&limit=1');
-          if(pa&&pa[0]){
-            const comm=Math.round(prix*(rate/100)*100)/100;
-            await sbPost('commissions',{paraineur_id:pa[0].id,code_parrain:codeParrain,client_cle:newKey,montant_abonnement:prix,commission:comm,taux:rate,created_at:new Date().toISOString()});
-            await sbPatch('paraineurs','id=eq.'+encodeURIComponent(pa[0].id),{solde:parseFloat(((pa[0].solde||0)+comm).toFixed(2)),total_gagne:parseFloat(((pa[0].total_gagne||0)+comm).toFixed(2))});
-          }
-        }else{
-          bonusJ=7;
-          await sbPatch('utilisateurs','cle=eq.'+encodeURIComponent(newKey),{duree:days+7});
-          const parr=await sbGet('utilisateurs','code_parrainage=eq.'+encodeURIComponent(codeParrain)+'&select=cle,duree&limit=1');
-          if(parr&&parr[0]){
-            const b15=parr[0].duree==='VIE'?0:15;
-            if(b15>0)await sbPatch('utilisateurs','cle=eq.'+encodeURIComponent(parr[0].cle),{duree:parseInt(parr[0].duree||0)+15});
-            try{await sbPost('parrainages',{parrain_cle:parr[0].cle,filleul_cle:newKey,bonus_parrain_jours:b15,bonus_filleul_jours:7,parrain_credite:true,filleul_credite:true});}catch(e){}
-          }
-        }
-      }catch(e){console.warn('Parrainage:',e);}
+  // Chemin 2 : webhook_pending
+  try {
+    const wp = await sbGet('webhook_pending', `custom_id=eq.${encodeURIComponent(fxKey)}&select=custom_id,amount,days,screens,code_parrain`);
+    const wpe = wp && wp[0];
+    if (wpe && wpe.amount > 0) {
+      _pendingKey = fxKey;
+      _selectedTarif = { days: wpe.days || 30, screens: wpe.screens || 1, prix: wpe.amount, prix_promo: null };
+      _parrainValide = !!(wpe.code_parrain);
+      _parrainType = wpe.code_parrain ? 'user' : null;
+      await processPayment(fxKey, String(wpe.days || 30), String(wpe.screens || 1), wpe.code_parrain || '');
+      return;
     }
-  }catch(e){
-    console.error('Insert error:',e);
-    showToast('⚠️ Clé générée, vérifiez votre connexion.','error');
+  } catch(e) {}
+
+  // Chemin 3 : clé déjà créée par webhook serveur
+  toast('✅ Paiement reçu ! Vérification du compte…', 'if');
+  for (let i = 0; i < 5; i++) {
+    await new Promise(r => setTimeout(r, 1200));
+    try {
+      const u = await sbGet('utilisateurs', `cle=eq.${encodeURIComponent(fxKey)}&select=cle,duree,date_activation,max_ecrans`);
+      if (u && u[0]) {
+        _activeKey = fxKey;
+        localStorage.setItem('mybox_key', fxKey);
+        localStorage.setItem('mybox_auth', 'OK');
+        _receipt = { key: fxKey, days: u[0].duree, screens: u[0].max_ecrans, amount: '—', bonus: 0, codeParrain: '' };
+        showKeyInline(fxKey);
+        showSuccessModal(fxKey);
+        return;
+      }
+    } catch(e) {}
   }
+  // Dernier recours
+  showKeyInline(fxKey);
+  showSuccessModal(fxKey);
+});
 
-  showLoader(false);
-  showSuccess(newKey, days+bonusJ, screens, today, bonusJ);
+// ══════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════
+function escH(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-/* ─── Afficher succès — FIX: stepSet(4) au lieu de (5) ─── */
-function showSuccess(key, days, screens, date, bonusJ){
-  document.getElementById('buy-section').style.display='none';
-  const ss=document.getElementById('success-section');
-  ss.style.display='block';
-  window.scrollTo({top:0,behavior:'smooth'});
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+loadTarifs();
 
-  document.getElementById('key-display').textContent=key;
-  document.getElementById('guide-key-display').innerHTML='<i class="fas fa-key" style="font-size:11px"></i> '+key;
-  document.getElementById('mock-key-preview').textContent=key;
-
-  document.getElementById('km-plan').textContent=(_tarif?.label_ecran||'—')+' · '+(_tarif?.label_duree||'—');
-  document.getElementById('km-duree').textContent=days+' jours'+(bonusJ>0?' (+'+bonusJ+' bonus)':'');
-  document.getElementById('km-ecrans').textContent=screens+' écran'+(screens>1?'s':'');
-  document.getElementById('km-date').textContent=new Date(date).toLocaleDateString('fr-FR');
-
-  /* FIX BUG: stepSet(4) → toutes étapes done sauf la 4e marquée active puis done */
-  stepSet(4);
-  /* Marquer aussi step 4 comme done après un court délai */
-  setTimeout(()=>{
-    const s4=document.getElementById('stp4');
-    if(s4){ s4.className='stp done'; s4.querySelector('.stp-circle').innerHTML='<i class="fas fa-check" style="font-size:10px"></i>'; }
-    document.getElementById('ln3').className='stp-line done';
-  },400);
-
-  if(bonusJ>0)setTimeout(()=>showToast('🎁 +'+bonusJ+' jours bonus parrainage !','success'),1200);
+// Restaurer clé active si déjà connecté
+if (_activeKey) {
+  // Afficher le bouton connecter TV en bas
 }
-
-/* ─── Copier la clé ─── */
-function copyKey(){
-  const key=document.getElementById('key-display').textContent;
-  if(!key||key==='TV-XXXXXX')return;
-  navigator.clipboard.writeText(key).then(()=>{
-    const btn=document.getElementById('btn-copy');
-    btn.classList.add('copied'); btn.innerHTML='<i class="fas fa-check"></i>';
-    showToast('✅ Clé copiée dans le presse-papiers !','success');
-    setTimeout(()=>{ btn.classList.remove('copied'); btn.innerHTML='<i class="fas fa-copy"></i>'; },2500);
-  }).catch(()=>{
-    /* Fallback pour navigateurs sans clipboard API (ex: certains Android) */
-    const el=document.getElementById('key-display');
-    const rng=document.createRange(); rng.selectNode(el);
-    window.getSelection().removeAllRanges(); window.getSelection().addRange(rng);
-    try{ document.execCommand('copy'); showToast('✅ Clé copiée !','success'); }catch(e){}
-    window.getSelection().removeAllRanges();
-  });
-}
-
-/* ─── Reset — FIX: remet flag listeners + stepSet(1) ─── */
-function resetPage(){
-  _tarif=null; _key=null; _paying=false;
-  _parrainOk=false; _parrainType=null;
-
-  document.getElementById('success-section').style.display='none';
-  document.getElementById('buy-section').style.display='block';
-  document.getElementById('pay-wrap').style.display='none';
-  document.getElementById('parrain-wrap').style.display='none';
-  document.getElementById('parrain-input').value='';
-  document.getElementById('parrain-icon').textContent='';
-  document.getElementById('parrain-msg').textContent='';
-  document.getElementById('btn-pay').disabled=false;
-  document.getElementById('btn-pay-feexpay').disabled=false;
-  document.querySelectorAll('.plan-card').forEach(c=>c.classList.remove('selected'));
-  /* FIX BUG: step 1 actif au reset (pas step 2 comme avant) */
-  stepSet(1);
-  window.scrollTo({top:0,behavior:'smooth'});
-}
-
-/* ─── Helpers ─── */
-let _tt=null;
-function showToast(msg,type='success'){
-  const t=document.getElementById('toast');
-  t.textContent=msg; t.className='show '+type;
-  clearTimeout(_tt); _tt=setTimeout(()=>{ t.className=type; },3000);
-}
-function showLoader(s){ document.getElementById('loading-overlay').className=s?'show':''; }
-function esc(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
-function num(n){ return (n||0).toLocaleString('fr-FR'); }
-
-/* ─── Init — FIX: stepSet(1) au démarrage ─── */
-stepSet(1);
-loadTarifs().then(buildGrid);
 </script>
 </body>
 </html>
