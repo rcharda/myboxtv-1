@@ -9531,9 +9531,21 @@ function mickaaShowLoading() {
 
 // ────────────────────────────────────────────────────────────────
 //  SYNTHÈSE VOCALE
+//  🔇 Le micro est coupé pendant que l'IA parle pour éviter
+//     les faux déclenchements (feedback / bruit / écho TV)
 // ────────────────────────────────────────────────────────────────
+function mickaStopListening() {
+    if (recognition && isRecognitionRunning) {
+        try { recognition.stop(); } catch(e) {}
+        isRecognitionRunning = false;
+        console.log('[MICKA] 🔇 Micro désactivé (IA parle)');
+    }
+}
+
 function mickaaSpeak(text, onEnd) {
     if (!window.speechSynthesis) { if(onEnd) onEnd(); return; }
+    // ✅ Couper le micro AVANT de parler → zéro faux écoute
+    mickaStopListening();
     window.speechSynthesis.cancel();
     const utter = new SpeechSynthesisUtterance(text);
     utter.lang = MICKA_CONFIG.lang;
@@ -9546,8 +9558,16 @@ function mickaaSpeak(text, onEnd) {
                  || voices.find(v => v.lang.startsWith('fr') && !v.localService)
                  || voices.find(v => v.lang.startsWith('fr'));
     if (frVoice) utter.voice = frVoice;
-    utter.onend = () => { if(onEnd) onEnd(); };
-    utter.onerror = () => { if(onEnd) onEnd(); };
+    utter.onend = () => {
+        console.log('[MICKA] ✅ Fin de parole — micro réactivé');
+        if(onEnd) onEnd();
+        // Réactiver le micro 600ms après la fin de la voix IA
+        setTimeout(() => mickaStartListening(), 600);
+    };
+    utter.onerror = () => {
+        if(onEnd) onEnd();
+        setTimeout(() => mickaStartListening(), 600);
+    };
     window.speechSynthesis.speak(utter);
 }
 
@@ -9759,6 +9779,12 @@ Tes caractéristiques :
         if (!r.ok) {
             const errData = await r.json().catch(() => ({}));
             console.log('[MICKA] API error:', r.status, errData);
+            if (r.status === 401) {
+                return `❌ Clé API Claude invalide (401). Vérifiez votre clé dans Supabase → Table ia_config → colonne "valeur" de la ligne "claude_api_key". La clé doit commencer par "sk-ant-".`;
+            }
+            if (r.status === 429) {
+                return `⏳ Trop de requêtes API. Veuillez patienter quelques secondes et réessayer.`;
+            }
             return `❌ Erreur API (${r.status}). Vérifiez votre clé API dans Supabase.`;
         }
         const data = await r.json();
@@ -9793,7 +9819,11 @@ async function mickaWebSearch(query) {
                 messages: [{ role: 'user', content: `Recherche internet : ${query}` }]
             })
         });
-        if (!r.ok) return `❌ Erreur de recherche (${r.status}).`;
+        if (!r.ok) {
+            if (r.status === 401) return `❌ Clé API invalide (401). Mettez à jour "claude_api_key" dans Supabase.`;
+            if (r.status === 429) return `⏳ Limite API atteinte, réessayez dans quelques secondes.`;
+            return `❌ Erreur de recherche (${r.status}).`;
+        }
         const data = await r.json();
         // Extraire le texte de la réponse
         const textBlock = (data.content || []).find(b => b.type === 'text');
@@ -9815,6 +9845,8 @@ async function mickaHandleCommand(rawCmd) {
     mickaaShowPanel();
     mickaaShowTranscript(rawCmd);
     mickaaSetState('think');
+    // ✅ Micro coupé pendant la réflexion + la réponse IA
+    mickaStopListening();
     mickaaShowLoading();
     
     try {
@@ -9873,11 +9905,22 @@ function mickaInitRecognition() {
         for (let i = event.resultIndex; i < event.results.length; i++) {
             const transcript = event.results[i][0].transcript.trim();
             const isFinal    = event.results[i].isFinal;
+            const confidence = event.results[i][0].confidence || 1;
             const normTrans  = _norm(transcript);
+
+            // ✅ Seuil de confiance minimum pour réduire les faux déclenchements (bruits TV, ambiance)
+            const MIN_CONFIDENCE_IDLE = 0.55; // En veille : exigent
+            const MIN_CONFIDENCE_CMD  = 0.35; // En écoute active : plus souple
 
             if (!isWaitingForCommand) {
                 // ── Mode veille : écoute le mot déclencheur ──
-                if (normTrans.includes(MICKA_CONFIG.wakeWord)) {
+                // Rejeter si confiance trop faible (bruit de fond, son TV)
+                if (isFinal && confidence < MIN_CONFIDENCE_IDLE) continue;
+
+                const hasWakeWord    = normTrans.includes(MICKA_CONFIG.wakeWord);
+                const hasVeroWeb     = normTrans.includes('veroweb') || normTrans.includes('vero web');
+
+                if (hasWakeWord || hasVeroWeb) {
                     isWaitingForCommand = true;
                     pendingCommandText  = '';
                     mickaaShowPanel();
@@ -9885,10 +9928,30 @@ function mickaInitRecognition() {
                     mickaaShowToast('✨', MICKA_CONFIG.agentName + ', je vous écoute !', 4000);
                     
                     // Extraire la commande après le wake word (si dite en même phrase)
-                    const wkIdx = normTrans.indexOf(MICKA_CONFIG.wakeWord);
-                    const afterWake = transcript.slice(wkIdx + MICKA_CONFIG.wakeWord.length).trim();
-                    if (afterWake.length > 3) {
-                        pendingCommandText = afterWake;
+                    let afterWake = '';
+                    if (hasVeroWeb && !hasWakeWord) {
+                        // "VeroWeb météo Cotonou" → commande directe web search
+                        const vwIdx = normTrans.search(/veroweb|vero web/);
+                        const raw   = transcript.slice(vwIdx).replace(/vero ?web/i, '').trim();
+                        if (raw.length > 2) {
+                            pendingCommandText = 'VeroWeb ' + raw;
+                        }
+                    } else {
+                        // "Micka chaîne suivante" → extraire après "micka"
+                        const wkIdx = normTrans.indexOf(MICKA_CONFIG.wakeWord);
+                        afterWake = transcript.slice(wkIdx + MICKA_CONFIG.wakeWord.length).trim();
+                        if (afterWake.length > 3) {
+                            pendingCommandText = afterWake;
+                        }
+                    }
+
+                    // Si une commande complète est déjà dans la phrase → lancer directement
+                    if (pendingCommandText.length > 3 && isFinal) {
+                        const cmd = pendingCommandText;
+                        pendingCommandText  = '';
+                        isWaitingForCommand = false;
+                        mickaHandleCommand(cmd);
+                        return;
                     }
                     
                     clearTimeout(listenTimer);
@@ -9902,6 +9965,7 @@ function mickaInitRecognition() {
                 }
             } else {
                 // ── Mode commande : capture ce qui suit le wake word ──
+                if (isFinal && confidence < MIN_CONFIDENCE_CMD) continue;
                 mickaaSetState('listen');
                 
                 if (isFinal && transcript) {
@@ -9934,13 +9998,12 @@ function mickaInitRecognition() {
 
     recognition.onend = function() {
         isRecognitionRunning = false;
-        // Relancer automatiquement sauf si on parle
-        if (mickaState !== 'speak') {
-            setTimeout(() => mickaStartListening(), 300);
-        } else {
-            // Attendre fin de parole puis relancer
-            setTimeout(() => mickaStartListening(), 1500);
+        // ✅ Ne pas relancer si l'IA parle ou réfléchit — mickaaSpeak.onend s'en charge
+        if (mickaState === 'speak' || mickaState === 'think') {
+            console.log('[MICKA] onend ignoré (état:', mickaState, ')');
+            return;
         }
+        setTimeout(() => mickaStartListening(), 300);
     };
 
     recognition.onstart = function() {
@@ -9950,6 +10013,11 @@ function mickaInitRecognition() {
 }
 
 function mickaStartListening() {
+    // ✅ Ne jamais démarrer le micro quand l'IA parle ou réfléchit
+    if (mickaState === 'speak' || mickaState === 'think') {
+        console.log('[MICKA] mickaStartListening ignoré (état:', mickaState, ')');
+        return;
+    }
     if (isRecognitionRunning) return;
     try {
         if (!recognition) mickaInitRecognition();
@@ -10014,9 +10082,10 @@ document.addEventListener('keydown', function(e) {
 //  FIN INITIALISATION
 // ────────────────────────────────────────────────────────────────
 console.log(`%c🎙️ MICKA Agent IA démarré !`, 'color:#e50914;font-weight:bold;font-size:14px');
-console.log(`%c   Wake word : "${MICKA_CONFIG.wakeWord}" | Langue : ${MICKA_CONFIG.lang}`, 'color:#888;font-size:11px');
-console.log(`%c   API Claude : ${MICKA_CONFIG.claudeApiKey ? '✅ Configurée' : '❌ MANQUANTE (configurez dans Supabase)'}`, 'color:#888;font-size:11px');
+console.log(`%c   Wake words : "${MICKA_CONFIG.wakeWord}" + "VeroWeb" | Langue : ${MICKA_CONFIG.lang}`, 'color:#888;font-size:11px');
+console.log(`%c   API Claude : ${MICKA_CONFIG.claudeApiKey ? '✅ Configurée' : '❌ MANQUANTE — Supabase → ia_config → claude_api_key'}`, 'color:#888;font-size:11px');
 console.log(`%c   Raccourci clavier : Alt+M`, 'color:#888;font-size:11px');
+console.log(`%c   🔇 Micro auto-coupé pendant synthèse vocale ✅`, 'color:#2ecc71;font-size:11px');
 
 mickaaShowToast('🎙️', `${MICKA_CONFIG.agentName} prêt — Dites "${MICKA_CONFIG.wakeWord}"`, 4000);
 
