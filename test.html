@@ -9879,12 +9879,34 @@ window.mickaQuickCmd = function(cmd) {
 const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
 
 if (!SpeechRec) {
-    // Pas de SpeechRecognition → mode bouton uniquement
-    console.log('[MICKA] SpeechRecognition non disponible — mode tactile activé');
+    // ── Pas de SpeechRecognition → mode bouton + message Store ──
+    console.log('[MICKA] SpeechRecognition non disponible — Smart TV incompatible ou permission refusée');
     noMicEl.style.display = 'block';
-    statusEl.textContent = '📱 Mode tactile — Cliquer sur l\'orbe';
+    const storeUrl = 'https://myboxsmart.pages.dev/storebox';
+    noMicEl.innerHTML =
+        `🚫 <strong>Microphone non disponible.</strong><br>` +
+        `Désinstallez cette application et téléchargez la dernière<br>` +
+        `mise à jour depuis le Store :<br>` +
+        `<a href="${storeUrl}" target="_blank" ` +
+        `   style="color:#e50914;font-weight:bold">${storeUrl}</a>`;
+    statusEl.textContent = '🚫 Micro indisponible';
     mickaaSetState('idle');
-    // Configurer le click pour lancer une écoute manuelle
+
+    // Annoncer vocalement
+    setTimeout(() => {
+        const utter = new SpeechSynthesisUtterance(
+            `Le microphone n'est pas disponible sur cette application. ` +
+            `Désinstallez l'application et téléchargez la dernière mise à jour ` +
+            `sur le Store My Box Smart. Adresse : my box smart point pages point dev slash store box.`
+        );
+        utter.lang = MICKA_CONFIG.lang;
+        utter.rate = 0.95;
+        const voices = window.speechSynthesis.getVoices();
+        const frVoice = voices.find(v => v.lang.startsWith('fr'));
+        if (frVoice) utter.voice = frVoice;
+        window.speechSynthesis.speak(utter);
+    }, 2000);
+
     orbEl.addEventListener('click', mickaOrbClick);
     return;
 }
@@ -9988,11 +10010,47 @@ function mickaInitRecognition() {
     recognition.onerror = function(e) {
         isRecognitionRunning = false;
         console.log('[MICKA] Erreur reconnaissance:', e.error);
-        if (e.error === 'no-speech') return; // normal
+        if (e.error === 'no-speech') return; // normal, silence momentané
+
         if (['not-allowed', 'service-not-allowed'].includes(e.error)) {
-            statusEl.textContent = '❌ Accès micro refusé';
+            // ── Micro refusé → guider vers le Store ──
+            mickaaSetState('idle');
+            statusEl.textContent = '🚫 Micro non autorisé';
+
+            const storeUrl = 'https://myboxsmart.pages.dev/storebox';
             noMicEl.style.display = 'block';
-            noMicEl.textContent = '⚠️ Autoriser le micro dans les paramètres du navigateur';
+            noMicEl.innerHTML =
+                `🚫 <strong>Accès micro refusé.</strong><br>` +
+                `Pour activer Micka, veuillez :<br>` +
+                `<span style="color:#aaa">1. Désinstaller cette application</span><br>` +
+                `<span style="color:#aaa">2. Télécharger la dernière version sur :</span><br>` +
+                `<a href="${storeUrl}" target="_blank" ` +
+                `   style="color:#e50914;font-weight:bold;word-break:break-all">${storeUrl}</a>`;
+
+            mickaaShowPanel();
+            mickaaShowToast('🚫', 'Micro refusé — Voir les instructions', 8000);
+
+            // ✅ Annoncer vocalement (TTS fonctionne sans permission micro)
+            const voiceMsg =
+                `Attention. L'accès au microphone est refusé sur cette application. ` +
+                `Pour utiliser ${MICKA_CONFIG.agentName}, désinstallez cette application, ` +
+                `puis rendez-vous sur le Store My Box Smart pour télécharger et installer ` +
+                `la dernière mise à jour. L'adresse du store est : ` +
+                `my box smart point pages point dev slash store box.`;
+
+            // Attendre 1s puis parler
+            setTimeout(() => {
+                const utter = new SpeechSynthesisUtterance(voiceMsg);
+                utter.lang = MICKA_CONFIG.lang;
+                utter.rate = 0.95;
+                utter.pitch = 1.0;
+                const voices = window.speechSynthesis.getVoices();
+                const frVoice = voices.find(v => v.lang.startsWith('fr'));
+                if (frVoice) utter.voice = frVoice;
+                window.speechSynthesis.speak(utter);
+            }, 1000);
+
+            console.warn('[MICKA] ⛔ Micro refusé — Client invité à aller sur le Store:', storeUrl);
         }
     };
 
@@ -10034,6 +10092,49 @@ function mickaStartListening() {
 mickaInitRecognition();
 mickaStartListening();
 mickaaSetState('idle');
+
+// ────────────────────────────────────────────────────────────────
+//  SALUTATION AU DÉMARRAGE — Bonjour / Bonsoir
+//  Smart TV : audio continu, zéro toucher nécessaire
+// ────────────────────────────────────────────────────────────────
+function mickaaGreetClient() {
+    const h         = new Date().getHours();
+    const isDaytime = h >= 6 && h < 19;
+    const salut     = isDaytime ? 'Bonjour' : 'Bonsoir';
+    const moment    = isDaytime ? 'bonne journée' : 'bonne soirée';
+    const emoji     = isDaytime ? '☀️' : '🌙';
+
+    // ── Texte parlé (court, chaleureux, adapté Smart TV) ──
+    const spokenMsg =
+        `${salut} ! Je suis ${MICKA_CONFIG.agentName}, votre assistant intelligent My Box Smart. ` +
+        `Je suis déjà en écoute. ` +
+        `Dites simplement "${MICKA_CONFIG.wakeWord}" puis votre demande, et je m'en occupe. ` +
+        `Je vous souhaite une ${moment} agréable !`;
+
+    // ── Texte affiché dans le panel ──
+    const displayMsg =
+        `<strong>${emoji} ${salut} et bienvenue !</strong><br>` +
+        `Je suis <strong>${MICKA_CONFIG.agentName}</strong>, votre assistant IA.<br><br>` +
+        `🎙️ Dites <strong>"${MICKA_CONFIG.wakeWord}"</strong> puis votre commande.<br>` +
+        `🔍 Ou <strong>"VeroWeb [recherche]"</strong> pour chercher sur internet.<br>` +
+        `<span style="color:#888;font-size:11px">Aucun toucher d'écran nécessaire — je vous écoute en continu.</span>`;
+
+    mickaaSetState('speak');
+    mickaaShowPanel();
+    mickaaShowResponse(displayMsg);
+    mickaaShowToast(emoji, `${salut} ! Je suis ${MICKA_CONFIG.agentName}`, 7000);
+
+    mickaaSpeak(spokenMsg, () => {
+        mickaaSetState('idle');
+        // Fermer le panel 10s après la salutation si inactif
+        setTimeout(() => {
+            if (mickaState === 'idle') mickaClosePanel();
+        }, 10000);
+    });
+}
+
+// ✅ Salutation 2,5s après le chargement (laisse la page s'initialiser)
+setTimeout(() => mickaaGreetClient(), 2500);
 
 // ────────────────────────────────────────────────────────────────
 //  BOUTON ORB — CLICK MANUEL (press-to-talk)
@@ -10087,7 +10188,7 @@ console.log(`%c   API Claude : ${MICKA_CONFIG.claudeApiKey ? '✅ Configurée' :
 console.log(`%c   Raccourci clavier : Alt+M`, 'color:#888;font-size:11px');
 console.log(`%c   🔇 Micro auto-coupé pendant synthèse vocale ✅`, 'color:#2ecc71;font-size:11px');
 
-mickaaShowToast('🎙️', `${MICKA_CONFIG.agentName} prêt — Dites "${MICKA_CONFIG.wakeWord}"`, 4000);
+mickaaShowToast('🎙️', `${MICKA_CONFIG.agentName} en écoute — Dites "${MICKA_CONFIG.wakeWord}"`, 3000);
 
 })(); // Fin MICKA_INIT
 </script>
