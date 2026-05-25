@@ -9401,18 +9401,17 @@ window.addEventListener('load', async function() {
 //  CONFIGURATION (chargée depuis Supabase)
 // ────────────────────────────────────────────────────────────────
 let MICKA_CONFIG = {
-    claudeApiKey : null,
+    workerUrl    : 'https://vocal-ai-proxy.electrorichfr.workers.dev',
     enabled      : true,
     wakeWord     : 'micka',
     agentName    : 'Micka',
     lang         : 'fr-FR',
-    model        : 'claude-sonnet-4-20250514',
     maxTokens    : 400
 };
 
 async function mickaaLoadConfig() {
     try {
-        // Utilise les variables Supabase déjà présentes dans l'app
+        // Chargement config Supabase (wake word, nom, langue, etc.)
         const url = (typeof SUPABASE_URL !== 'undefined' ? SUPABASE_URL : '') + '/rest/v1/ia_config?select=cle,valeur';
         const key = typeof SUPABASE_KEY !== 'undefined' ? SUPABASE_KEY : '';
         if (!url || !key) return;
@@ -9422,15 +9421,14 @@ async function mickaaLoadConfig() {
         if (!r.ok) return;
         const rows = await r.json();
         for (const row of (rows || [])) {
-            if (row.cle === 'claude_api_key' && row.valeur)  MICKA_CONFIG.claudeApiKey = row.valeur.trim();
-            if (row.cle === 'micka_enabled')                 MICKA_CONFIG.enabled      = row.valeur !== 'false';
-            if (row.cle === 'wake_word'     && row.valeur)   MICKA_CONFIG.wakeWord     = row.valeur.toLowerCase().trim();
-            if (row.cle === 'micka_name'    && row.valeur)   MICKA_CONFIG.agentName    = row.valeur.trim();
-            if (row.cle === 'micka_voice_lang' && row.valeur)MICKA_CONFIG.lang         = row.valeur.trim();
-            if (row.cle === 'micka_model'   && row.valeur)   MICKA_CONFIG.model        = row.valeur.trim();
-            if (row.cle === 'micka_max_tokens' && row.valeur)MICKA_CONFIG.maxTokens    = parseInt(row.valeur) || 400;
+            if (row.cle === 'micka_enabled')                 MICKA_CONFIG.enabled   = row.valeur !== 'false';
+            if (row.cle === 'wake_word'     && row.valeur)   MICKA_CONFIG.wakeWord  = row.valeur.toLowerCase().trim();
+            if (row.cle === 'micka_name'    && row.valeur)   MICKA_CONFIG.agentName = row.valeur.trim();
+            if (row.cle === 'micka_voice_lang' && row.valeur)MICKA_CONFIG.lang      = row.valeur.trim();
+            if (row.cle === 'micka_max_tokens' && row.valeur)MICKA_CONFIG.maxTokens = parseInt(row.valeur) || 400;
+            if (row.cle === 'worker_url'    && row.valeur)   MICKA_CONFIG.workerUrl = row.valeur.trim();
         }
-        console.log('[MICKA] Config chargée ✅', { wake: MICKA_CONFIG.wakeWord, enabled: MICKA_CONFIG.enabled, apiKey: MICKA_CONFIG.claudeApiKey ? '***OK***' : 'MANQUANTE' });
+        console.log('[MICKA] Config chargée ✅', { wake: MICKA_CONFIG.wakeWord, enabled: MICKA_CONFIG.enabled, worker: MICKA_CONFIG.workerUrl });
     } catch(e) {
         console.log('[MICKA] Erreur chargement config Supabase:', e);
     }
@@ -9531,21 +9529,9 @@ function mickaaShowLoading() {
 
 // ────────────────────────────────────────────────────────────────
 //  SYNTHÈSE VOCALE
-//  🔇 Le micro est coupé pendant que l'IA parle pour éviter
-//     les faux déclenchements (feedback / bruit / écho TV)
 // ────────────────────────────────────────────────────────────────
-function mickaStopListening() {
-    if (recognition && isRecognitionRunning) {
-        try { recognition.stop(); } catch(e) {}
-        isRecognitionRunning = false;
-        console.log('[MICKA] 🔇 Micro désactivé (IA parle)');
-    }
-}
-
 function mickaaSpeak(text, onEnd) {
     if (!window.speechSynthesis) { if(onEnd) onEnd(); return; }
-    // ✅ Couper le micro AVANT de parler → zéro faux écoute
-    mickaStopListening();
     window.speechSynthesis.cancel();
     const utter = new SpeechSynthesisUtterance(text);
     utter.lang = MICKA_CONFIG.lang;
@@ -9558,16 +9544,8 @@ function mickaaSpeak(text, onEnd) {
                  || voices.find(v => v.lang.startsWith('fr') && !v.localService)
                  || voices.find(v => v.lang.startsWith('fr'));
     if (frVoice) utter.voice = frVoice;
-    utter.onend = () => {
-        console.log('[MICKA] ✅ Fin de parole — micro réactivé');
-        if(onEnd) onEnd();
-        // Réactiver le micro 600ms après la fin de la voix IA
-        setTimeout(() => mickaStartListening(), 600);
-    };
-    utter.onerror = () => {
-        if(onEnd) onEnd();
-        setTimeout(() => mickaStartListening(), 600);
-    };
+    utter.onend = () => { if(onEnd) onEnd(); };
+    utter.onerror = () => { if(onEnd) onEnd(); };
     window.speechSynthesis.speak(utter);
 }
 
@@ -9748,86 +9726,65 @@ async function mickaProcessCommand(rawCmd) {
 }
 
 // ────────────────────────────────────────────────────────────────
-//  APPEL CLAUDE API (Questions générales)
+//  APPEL IA via Cloudflare Workers AI (Questions générales)
 // ────────────────────────────────────────────────────────────────
 async function mickaAskClaude(question) {
-    if (!MICKA_CONFIG.claudeApiKey) {
-        return '⚠️ Clé API Claude manquante. Ajoutez-la dans Supabase → table ia_config, ligne claude_api_key.';
+    if (!MICKA_CONFIG.workerUrl) {
+        return '⚠️ Worker URL manquante dans MICKA_CONFIG.';
     }
     try {
-        const r = await fetch('https://api.anthropic.com/v1/messages', {
+        const r = await fetch(MICKA_CONFIG.workerUrl, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': MICKA_CONFIG.claudeApiKey,
-                'anthropic-version': '2023-06-01',
-                'anthropic-dangerous-direct-browser-access': 'true'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                model: MICKA_CONFIG.model,
-                max_tokens: MICKA_CONFIG.maxTokens,
-                system: `Tu es ${MICKA_CONFIG.agentName}, l'assistant IA de My Box Smart (plateforme IPTV/streaming).
+                messages: [
+                    {
+                        role: 'system',
+                        content: `Tu es ${MICKA_CONFIG.agentName}, l'assistant IA de My Box Smart (plateforme IPTV/streaming).
 Tes caractéristiques :
 - Tu réponds TOUJOURS en français, de façon concise et claire (2 à 4 phrases max — adapté à la lecture vocale)
 - Tu as une personnalité chaleureuse, directe et légèrement enjouée comme un bon assistant vocal
 - Tu peux répondre à toutes les questions : actualités, culture, sport, divertissement, cuisine, etc.
 - Si on te demande de chercher sur internet, dis que tu peux le faire avec la commande "VeroWeb [ma recherche]"
-- Si la réponse est inconnue, dis-le honnêtement en restant positif`,
-                messages: [{ role: 'user', content: question }]
+- Si la réponse est inconnue, dis-le honnêtement en restant positif`
+                    },
+                    { role: 'user', content: question }
+                ]
             })
         });
         if (!r.ok) {
             const errData = await r.json().catch(() => ({}));
-            console.log('[MICKA] API error:', r.status, errData);
-            if (r.status === 401) {
-                return `❌ Clé API Claude invalide (401). Vérifiez votre clé dans Supabase → Table ia_config → colonne "valeur" de la ligne "claude_api_key". La clé doit commencer par "sk-ant-".`;
-            }
-            if (r.status === 429) {
-                return `⏳ Trop de requêtes API. Veuillez patienter quelques secondes et réessayer.`;
-            }
-            return `❌ Erreur API (${r.status}). Vérifiez votre clé API dans Supabase.`;
+            console.log('[MICKA] Worker error:', r.status, errData);
+            return `❌ Erreur Worker (${r.status}). Vérifiez que vocal-ai-proxy est bien déployé.`;
         }
         const data = await r.json();
-        return data.content?.[0]?.text || '❓ Je n\'ai pas pu générer de réponse.';
+        return data.result?.response || data.result?.[0]?.response || '❓ Je n\'ai pas pu générer de réponse.';
     } catch(e) {
-        console.log('[MICKA] Erreur Claude:', e);
-        return '❌ Impossible de contacter l\'IA. Vérifiez votre connexion internet.';
+        console.log('[MICKA] Erreur Worker CF:', e);
+        return '❌ Impossible de contacter le Worker. Vérifiez votre connexion internet.';
     }
 }
 
 // ────────────────────────────────────────────────────────────────
-//  RECHERCHE WEB via Claude (commande "VeroWeb")
+//  RECHERCHE WEB via Cloudflare Workers AI (commande "VeroWeb")
 // ────────────────────────────────────────────────────────────────
 async function mickaWebSearch(query) {
-    if (!MICKA_CONFIG.claudeApiKey) return '⚠️ Clé API manquante pour la recherche web.';
+    if (!MICKA_CONFIG.workerUrl) return '⚠️ Worker URL manquante pour la recherche.';
     try {
         mickaaShowToast('🔍', `Recherche : ${query}`, 5000);
-        const r = await fetch('https://api.anthropic.com/v1/messages', {
+        const r = await fetch(MICKA_CONFIG.workerUrl, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': MICKA_CONFIG.claudeApiKey,
-                'anthropic-version': '2023-06-01',
-                'anthropic-dangerous-direct-browser-access': 'true',
-                'anthropic-beta': 'web-search-2025-03-05'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                model: MICKA_CONFIG.model,
-                max_tokens: 500,
-                tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-                system: `Tu es ${MICKA_CONFIG.agentName}, assistant vocal TV. Fais une recherche web et résume le résultat en français, en 3 phrases max, adapté pour être lu à voix haute. Sois factuel et précis.`,
-                messages: [{ role: 'user', content: `Recherche internet : ${query}` }]
+                mode: 'veroweb',
+                messages: [
+                    { role: 'user', content: query }
+                ]
             })
         });
-        if (!r.ok) {
-            if (r.status === 401) return `❌ Clé API invalide (401). Mettez à jour "claude_api_key" dans Supabase.`;
-            if (r.status === 429) return `⏳ Limite API atteinte, réessayez dans quelques secondes.`;
-            return `❌ Erreur de recherche (${r.status}).`;
-        }
+        if (!r.ok) return `❌ Erreur de recherche (${r.status}).`;
         const data = await r.json();
-        // Extraire le texte de la réponse
-        const textBlock = (data.content || []).find(b => b.type === 'text');
-        return '🔍 ' + (textBlock?.text || 'Aucun résultat trouvé.').trim();
+        return '🔍 ' + (data.result?.response || data.result?.[0]?.response || 'Aucun résultat trouvé.').trim();
     } catch(e) {
         console.log('[MICKA] Erreur recherche web:', e);
         return '❌ Erreur lors de la recherche internet.';
@@ -9845,8 +9802,6 @@ async function mickaHandleCommand(rawCmd) {
     mickaaShowPanel();
     mickaaShowTranscript(rawCmd);
     mickaaSetState('think');
-    // ✅ Micro coupé pendant la réflexion + la réponse IA
-    mickaStopListening();
     mickaaShowLoading();
     
     try {
@@ -9879,34 +9834,12 @@ window.mickaQuickCmd = function(cmd) {
 const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
 
 if (!SpeechRec) {
-    // ── Pas de SpeechRecognition → mode bouton + message Store ──
-    console.log('[MICKA] SpeechRecognition non disponible — Smart TV incompatible ou permission refusée');
+    // Pas de SpeechRecognition → mode bouton uniquement
+    console.log('[MICKA] SpeechRecognition non disponible — mode tactile activé');
     noMicEl.style.display = 'block';
-    const storeUrl = 'https://myboxsmart.pages.dev/storebox';
-    noMicEl.innerHTML =
-        `🚫 <strong>Microphone non disponible.</strong><br>` +
-        `Désinstallez cette application et téléchargez la dernière<br>` +
-        `mise à jour depuis le Store :<br>` +
-        `<a href="${storeUrl}" target="_blank" ` +
-        `   style="color:#e50914;font-weight:bold">${storeUrl}</a>`;
-    statusEl.textContent = '🚫 Micro indisponible';
+    statusEl.textContent = '📱 Mode tactile — Cliquer sur l\'orbe';
     mickaaSetState('idle');
-
-    // Annoncer vocalement
-    setTimeout(() => {
-        const utter = new SpeechSynthesisUtterance(
-            `Le microphone n'est pas disponible sur cette application. ` +
-            `Désinstallez l'application et téléchargez la dernière mise à jour ` +
-            `sur le Store My Box Smart. Adresse : my box smart point pages point dev slash store box.`
-        );
-        utter.lang = MICKA_CONFIG.lang;
-        utter.rate = 0.95;
-        const voices = window.speechSynthesis.getVoices();
-        const frVoice = voices.find(v => v.lang.startsWith('fr'));
-        if (frVoice) utter.voice = frVoice;
-        window.speechSynthesis.speak(utter);
-    }, 2000);
-
+    // Configurer le click pour lancer une écoute manuelle
     orbEl.addEventListener('click', mickaOrbClick);
     return;
 }
@@ -9927,22 +9860,11 @@ function mickaInitRecognition() {
         for (let i = event.resultIndex; i < event.results.length; i++) {
             const transcript = event.results[i][0].transcript.trim();
             const isFinal    = event.results[i].isFinal;
-            const confidence = event.results[i][0].confidence || 1;
             const normTrans  = _norm(transcript);
-
-            // ✅ Seuil de confiance minimum pour réduire les faux déclenchements (bruits TV, ambiance)
-            const MIN_CONFIDENCE_IDLE = 0.55; // En veille : exigent
-            const MIN_CONFIDENCE_CMD  = 0.35; // En écoute active : plus souple
 
             if (!isWaitingForCommand) {
                 // ── Mode veille : écoute le mot déclencheur ──
-                // Rejeter si confiance trop faible (bruit de fond, son TV)
-                if (isFinal && confidence < MIN_CONFIDENCE_IDLE) continue;
-
-                const hasWakeWord    = normTrans.includes(MICKA_CONFIG.wakeWord);
-                const hasVeroWeb     = normTrans.includes('veroweb') || normTrans.includes('vero web');
-
-                if (hasWakeWord || hasVeroWeb) {
+                if (normTrans.includes(MICKA_CONFIG.wakeWord)) {
                     isWaitingForCommand = true;
                     pendingCommandText  = '';
                     mickaaShowPanel();
@@ -9950,30 +9872,10 @@ function mickaInitRecognition() {
                     mickaaShowToast('✨', MICKA_CONFIG.agentName + ', je vous écoute !', 4000);
                     
                     // Extraire la commande après le wake word (si dite en même phrase)
-                    let afterWake = '';
-                    if (hasVeroWeb && !hasWakeWord) {
-                        // "VeroWeb météo Cotonou" → commande directe web search
-                        const vwIdx = normTrans.search(/veroweb|vero web/);
-                        const raw   = transcript.slice(vwIdx).replace(/vero ?web/i, '').trim();
-                        if (raw.length > 2) {
-                            pendingCommandText = 'VeroWeb ' + raw;
-                        }
-                    } else {
-                        // "Micka chaîne suivante" → extraire après "micka"
-                        const wkIdx = normTrans.indexOf(MICKA_CONFIG.wakeWord);
-                        afterWake = transcript.slice(wkIdx + MICKA_CONFIG.wakeWord.length).trim();
-                        if (afterWake.length > 3) {
-                            pendingCommandText = afterWake;
-                        }
-                    }
-
-                    // Si une commande complète est déjà dans la phrase → lancer directement
-                    if (pendingCommandText.length > 3 && isFinal) {
-                        const cmd = pendingCommandText;
-                        pendingCommandText  = '';
-                        isWaitingForCommand = false;
-                        mickaHandleCommand(cmd);
-                        return;
+                    const wkIdx = normTrans.indexOf(MICKA_CONFIG.wakeWord);
+                    const afterWake = transcript.slice(wkIdx + MICKA_CONFIG.wakeWord.length).trim();
+                    if (afterWake.length > 3) {
+                        pendingCommandText = afterWake;
                     }
                     
                     clearTimeout(listenTimer);
@@ -9987,7 +9889,6 @@ function mickaInitRecognition() {
                 }
             } else {
                 // ── Mode commande : capture ce qui suit le wake word ──
-                if (isFinal && confidence < MIN_CONFIDENCE_CMD) continue;
                 mickaaSetState('listen');
                 
                 if (isFinal && transcript) {
@@ -10010,58 +9911,23 @@ function mickaInitRecognition() {
     recognition.onerror = function(e) {
         isRecognitionRunning = false;
         console.log('[MICKA] Erreur reconnaissance:', e.error);
-        if (e.error === 'no-speech') return; // normal, silence momentané
-
+        if (e.error === 'no-speech') return; // normal
         if (['not-allowed', 'service-not-allowed'].includes(e.error)) {
-            // ── Micro refusé → guider vers le Store ──
-            mickaaSetState('idle');
-            statusEl.textContent = '🚫 Micro non autorisé';
-
-            const storeUrl = 'https://myboxsmart.pages.dev/storebox';
+            statusEl.textContent = '❌ Accès micro refusé';
             noMicEl.style.display = 'block';
-            noMicEl.innerHTML =
-                `🚫 <strong>Accès micro refusé.</strong><br>` +
-                `Pour activer Micka, veuillez :<br>` +
-                `<span style="color:#aaa">1. Désinstaller cette application</span><br>` +
-                `<span style="color:#aaa">2. Télécharger la dernière version sur :</span><br>` +
-                `<a href="${storeUrl}" target="_blank" ` +
-                `   style="color:#e50914;font-weight:bold;word-break:break-all">${storeUrl}</a>`;
-
-            mickaaShowPanel();
-            mickaaShowToast('🚫', 'Micro refusé — Voir les instructions', 8000);
-
-            // ✅ Annoncer vocalement (TTS fonctionne sans permission micro)
-            const voiceMsg =
-                `Attention. L'accès au microphone est refusé sur cette application. ` +
-                `Pour utiliser ${MICKA_CONFIG.agentName}, désinstallez cette application, ` +
-                `puis rendez-vous sur le Store My Box Smart pour télécharger et installer ` +
-                `la dernière mise à jour. L'adresse du store est : ` +
-                `my box smart point pages point dev slash store box.`;
-
-            // Attendre 1s puis parler
-            setTimeout(() => {
-                const utter = new SpeechSynthesisUtterance(voiceMsg);
-                utter.lang = MICKA_CONFIG.lang;
-                utter.rate = 0.95;
-                utter.pitch = 1.0;
-                const voices = window.speechSynthesis.getVoices();
-                const frVoice = voices.find(v => v.lang.startsWith('fr'));
-                if (frVoice) utter.voice = frVoice;
-                window.speechSynthesis.speak(utter);
-            }, 1000);
-
-            console.warn('[MICKA] ⛔ Micro refusé — Client invité à aller sur le Store:', storeUrl);
+            noMicEl.textContent = '⚠️ Autoriser le micro dans les paramètres du navigateur';
         }
     };
 
     recognition.onend = function() {
         isRecognitionRunning = false;
-        // ✅ Ne pas relancer si l'IA parle ou réfléchit — mickaaSpeak.onend s'en charge
-        if (mickaState === 'speak' || mickaState === 'think') {
-            console.log('[MICKA] onend ignoré (état:', mickaState, ')');
-            return;
+        // Relancer automatiquement sauf si on parle
+        if (mickaState !== 'speak') {
+            setTimeout(() => mickaStartListening(), 300);
+        } else {
+            // Attendre fin de parole puis relancer
+            setTimeout(() => mickaStartListening(), 1500);
         }
-        setTimeout(() => mickaStartListening(), 300);
     };
 
     recognition.onstart = function() {
@@ -10071,11 +9937,6 @@ function mickaInitRecognition() {
 }
 
 function mickaStartListening() {
-    // ✅ Ne jamais démarrer le micro quand l'IA parle ou réfléchit
-    if (mickaState === 'speak' || mickaState === 'think') {
-        console.log('[MICKA] mickaStartListening ignoré (état:', mickaState, ')');
-        return;
-    }
     if (isRecognitionRunning) return;
     try {
         if (!recognition) mickaInitRecognition();
@@ -10092,49 +9953,6 @@ function mickaStartListening() {
 mickaInitRecognition();
 mickaStartListening();
 mickaaSetState('idle');
-
-// ────────────────────────────────────────────────────────────────
-//  SALUTATION AU DÉMARRAGE — Bonjour / Bonsoir
-//  Smart TV : audio continu, zéro toucher nécessaire
-// ────────────────────────────────────────────────────────────────
-function mickaaGreetClient() {
-    const h         = new Date().getHours();
-    const isDaytime = h >= 6 && h < 19;
-    const salut     = isDaytime ? 'Bonjour' : 'Bonsoir';
-    const moment    = isDaytime ? 'bonne journée' : 'bonne soirée';
-    const emoji     = isDaytime ? '☀️' : '🌙';
-
-    // ── Texte parlé (court, chaleureux, adapté Smart TV) ──
-    const spokenMsg =
-        `${salut} ! Je suis ${MICKA_CONFIG.agentName}, votre assistant intelligent My Box Smart. ` +
-        `Je suis déjà en écoute. ` +
-        `Dites simplement "${MICKA_CONFIG.wakeWord}" puis votre demande, et je m'en occupe. ` +
-        `Je vous souhaite une ${moment} agréable !`;
-
-    // ── Texte affiché dans le panel ──
-    const displayMsg =
-        `<strong>${emoji} ${salut} et bienvenue !</strong><br>` +
-        `Je suis <strong>${MICKA_CONFIG.agentName}</strong>, votre assistant IA.<br><br>` +
-        `🎙️ Dites <strong>"${MICKA_CONFIG.wakeWord}"</strong> puis votre commande.<br>` +
-        `🔍 Ou <strong>"VeroWeb [recherche]"</strong> pour chercher sur internet.<br>` +
-        `<span style="color:#888;font-size:11px">Aucun toucher d'écran nécessaire — je vous écoute en continu.</span>`;
-
-    mickaaSetState('speak');
-    mickaaShowPanel();
-    mickaaShowResponse(displayMsg);
-    mickaaShowToast(emoji, `${salut} ! Je suis ${MICKA_CONFIG.agentName}`, 7000);
-
-    mickaaSpeak(spokenMsg, () => {
-        mickaaSetState('idle');
-        // Fermer le panel 10s après la salutation si inactif
-        setTimeout(() => {
-            if (mickaState === 'idle') mickaClosePanel();
-        }, 10000);
-    });
-}
-
-// ✅ Salutation 2,5s après le chargement (laisse la page s'initialiser)
-setTimeout(() => mickaaGreetClient(), 2500);
 
 // ────────────────────────────────────────────────────────────────
 //  BOUTON ORB — CLICK MANUEL (press-to-talk)
@@ -10183,12 +10001,11 @@ document.addEventListener('keydown', function(e) {
 //  FIN INITIALISATION
 // ────────────────────────────────────────────────────────────────
 console.log(`%c🎙️ MICKA Agent IA démarré !`, 'color:#e50914;font-weight:bold;font-size:14px');
-console.log(`%c   Wake words : "${MICKA_CONFIG.wakeWord}" + "VeroWeb" | Langue : ${MICKA_CONFIG.lang}`, 'color:#888;font-size:11px');
-console.log(`%c   API Claude : ${MICKA_CONFIG.claudeApiKey ? '✅ Configurée' : '❌ MANQUANTE — Supabase → ia_config → claude_api_key'}`, 'color:#888;font-size:11px');
+console.log(`%c   Wake word : "${MICKA_CONFIG.wakeWord}" | Langue : ${MICKA_CONFIG.lang}`, 'color:#888;font-size:11px');
+console.log(`%c   Worker CF : ${MICKA_CONFIG.workerUrl || '❌ MANQUANTE'}`, 'color:#888;font-size:11px');
 console.log(`%c   Raccourci clavier : Alt+M`, 'color:#888;font-size:11px');
-console.log(`%c   🔇 Micro auto-coupé pendant synthèse vocale ✅`, 'color:#2ecc71;font-size:11px');
 
-mickaaShowToast('🎙️', `${MICKA_CONFIG.agentName} en écoute — Dites "${MICKA_CONFIG.wakeWord}"`, 3000);
+mickaaShowToast('🎙️', `${MICKA_CONFIG.agentName} prêt — Dites "${MICKA_CONFIG.wakeWord}"`, 4000);
 
 })(); // Fin MICKA_INIT
 </script>
@@ -10232,9 +10049,10 @@ mickaaShowToast('🎙️', `${MICKA_CONFIG.agentName} en écoute — Dites "${MI
      → Ex: "Micka, comment faire du riz jollof ?"
 
 ════════════════════════════════════════════════════════════════════
-  ⚙️  MODIFIER LA CLÉ API CLAUDE (sans toucher au code) :
+  ⚙️  MODIFIER LE WORKER URL (sans toucher au code) :
      → Aller sur Supabase → Table Editor → ia_config
-     → Modifier la ligne "claude_api_key" → colonne "valeur"
+     → Ajouter/modifier la ligne "worker_url" → colonne "valeur"
+     → Valeur : https://vocal-ai-proxy.electrorichfr.workers.dev
      → Sauvegarder → Recharger la page TV
 ════════════════════════════════════════════════════════════════════
 -->
