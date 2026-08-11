@@ -5,9 +5,61 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#000000">
 <title>My Box Smart — Store</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.13/hls.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600;700;900&display=swap" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 <style>
+/* ══ FENÊTRE FLOTTANTE — aperçu des chaînes en direct, par-dessus toute la page ══ */
+#mbs-float-tv {
+  position: fixed; right: 18px; bottom: 18px; z-index: 99999;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+#mbs-float-tv.active { opacity: 1; pointer-events: auto; }
+#mbs-float-tv-window {
+  position: relative;
+  width: 300px;
+  aspect-ratio: 16/9;
+  background: #000;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 0 1px rgba(229,9,20,0.15);
+}
+#mbs-float-tv-video-wrap { position: relative; width: 100%; height: 100%; }
+#mbs-float-tv-video { width: 100%; height: 100%; object-fit: cover; display: block; background: #000; transition: opacity 0.5s ease; }
+#mbs-float-tv-video.mbs-fade-black { opacity: 0; }
+#mbs-float-tv-overlay {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.6); transition: opacity 0.25s;
+}
+#mbs-float-tv-overlay.hidden { opacity: 0; pointer-events: none; }
+@keyframes mbsSpin { to { transform: rotate(360deg); } }
+#mbs-float-tv-bar {
+  position: absolute; top: 0; left: 0; right: 0;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.75), transparent);
+}
+#mbs-float-tv-name {
+  font-family: 'Exo 2', sans-serif; font-weight: 700; font-size: 13px;
+  color: #fff; letter-spacing: 0.5px;
+  display: flex; align-items: center; gap: 8px;
+}
+#mbs-float-tv-name .live-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--red, #e50914);
+  box-shadow: 0 0 8px rgba(229,9,20,0.8);
+  animation: mbsLiveBlink 1.4s ease-in-out infinite;
+}
+@keyframes mbsLiveBlink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+#mbs-float-tv-actions { display: flex; gap: 8px; }
+#mbs-float-tv-actions button {
+  width: 28px; height: 28px; border-radius: 50%; border: none;
+  background: rgba(255,255,255,0.12); color: #fff; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; font-size: 12px;
+  transition: background 0.2s;
+}
+#mbs-float-tv-actions button:hover { background: rgba(255,255,255,0.25); }
 :root {
   --red: #e50914;
   --red-glow: rgba(229,9,20,0.4);
@@ -388,6 +440,24 @@ footer .footer-logo span { color: var(--red); }
 </head>
 <body>
 
+<!-- Fenêtre flottante — aperçu des chaînes en direct, par-dessus toute la page -->
+<div id="mbs-float-tv">
+  <div id="mbs-float-tv-window">
+    <div id="mbs-float-tv-video-wrap">
+      <video id="mbs-float-tv-video" muted playsinline autoplay crossorigin="anonymous"></video>
+      <div id="mbs-float-tv-overlay">
+        <i class="fas fa-spinner" style="font-size:22px;color:#e50914;animation:mbsSpin .7s linear infinite;"></i>
+      </div>
+    </div>
+    <div id="mbs-float-tv-bar">
+      <div id="mbs-float-tv-name"><span class="live-dot"></span><span id="mbs-float-tv-name-text">Chargement...</span></div>
+      <div id="mbs-float-tv-actions">
+        <button id="mbs-float-tv-close" title="Fermer" onclick="mbsCloseFloatTV()"><i class="fas fa-times"></i></button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- NAVBAR -->
 <nav>
   <a class="nav-logo" href="#">
@@ -636,6 +706,248 @@ function showToast(msg) {
   t.textContent = msg; t.className = 'show ok';
   setTimeout(() => t.classList.remove('show'), 3000);
 }
+
+// =============================================
+// TÉLÉCHARGEMENT AUTOMATIQUE AU CHARGEMENT DE LA PAGE
+// Android → APK · PC (Windows/Mac/Linux) → EXE
+// =============================================
+const AUTO_DL_APK_URL = 'https://github.com/rcharda/myboxtv/releases/download/v1.0/My_boxsmart_TVBOX.apk';
+const AUTO_DL_EXE_URL = 'https://github.com/rcharda/myboxtv/releases/download/v1.0/My.Box.Smart.Setup.1.0.0.exe';
+const AUTO_DL_STORAGE_KEY = 'mbs_auto_dl_done';
+
+function _mbsTriggerDownload(url, filename) {
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.rel = 'noopener';
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => a.remove(), 1000);
+}
+
+function autoDownloadForDevice() {
+  try {
+    // Ne déclenche le téléchargement automatique qu'une seule fois par visiteur
+    if (sessionStorage.getItem(AUTO_DL_STORAGE_KEY) === '1') return;
+
+    const ua = navigator.userAgent || '';
+    const isAndroid = /Android/i.test(ua);
+    // "PC" = Windows / macOS / Linux desktop (on exclut mobiles/tablettes)
+    const isMobileOrTablet = /Android|iPhone|iPad|iPod|Mobi/i.test(ua);
+    const isWindows = /Windows/i.test(ua);
+    const isDesktop = !isMobileOrTablet;
+
+    if (isAndroid) {
+      _mbsTriggerDownload(AUTO_DL_APK_URL, 'My_boxsmart_TVBOX.apk');
+      showToast('📥 Téléchargement de l\'APK Android lancé...');
+      sessionStorage.setItem(AUTO_DL_STORAGE_KEY, '1');
+    } else if (isWindows && isDesktop) {
+      _mbsTriggerDownload(AUTO_DL_EXE_URL, 'My.Box.Smart.Setup.1.0.0.exe');
+      showToast('📥 Téléchargement pour Windows lancé...');
+      sessionStorage.setItem(AUTO_DL_STORAGE_KEY, '1');
+    }
+    // iOS / macOS / autres : pas de téléchargement automatique — l'utilisateur
+    // choisit manuellement sa version dans la liste ci-dessous.
+  } catch (e) { /* le téléchargement auto ne doit jamais bloquer la page */ }
+}
+
+window.addEventListener('DOMContentLoaded', autoDownloadForDevice);
+
+// =============================================
+// FENÊTRE FLOTTANTE — aperçu des chaînes en direct par-dessus toute la page,
+// qui change de chaîne toutes les 45s.
+// =============================================
+const MBS_SUPABASE_URL = "https://yvcdadenofftnbljutwk.supabase.co";
+const MBS_SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2Y2RhZGVub2ZmdG5ibGp1dHdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NzQ0ODIsImV4cCI6MjA4ODQ1MDQ4Mn0.xqJzLpQszFmph599FBIvdE7NF88_i-JkABG-aSrAndE";
+let _mbsSpChannels = [];
+let _mbsSpIndex = 0;
+let _mbsSpHls = null;
+let _mbsSpTimer = null;
+let _mbsSpWatchdog = null;
+let _mbsSpClosed = false;
+
+async function _mbsSpFetchChannels() {
+  try {
+    const r = await fetch(`${MBS_SUPABASE_URL}/rest/v1/channels_data?select=data&order=published_at.desc&limit=1`, {
+      headers: { apikey: MBS_SUPABASE_KEY, Authorization: 'Bearer ' + MBS_SUPABASE_KEY }
+    });
+    if (!r.ok) { console.warn('[MBS TV] Supabase erreur HTTP', r.status); return []; }
+    const rows = await r.json();
+    const data = (rows && rows[0] && Array.isArray(rows[0].data)) ? rows[0].data : [];
+    console.log('[MBS TV]', data.length, 'chaînes chargées');
+    return data.filter(c => c && (c.url || c.url_flux));
+  } catch (e) { console.warn('[MBS TV] fetch échoué:', e); return []; }
+}
+
+// Affiche tout de suite la fenêtre fixe (avec un état "Chargement...")
+function _mbsSpShowBox() {
+  const box = document.getElementById('mbs-float-tv');
+  if (box) box.classList.add('active');
+}
+
+function _mbsSpSetStatus(text) {
+  const nameEl = document.getElementById('mbs-float-tv-name-text');
+  if (nameEl) nameEl.textContent = text;
+}
+
+// ── Détection du type de flux — même logique que myboxsmart ──────────
+// Toutes les listes IPTV ne sont pas du HLS pur (mp4/mkv en direct, DASH .mpd,
+// parfois RTMP/RTSP illisibles par le navigateur). Router selon le type évite
+// une chaîne "qui ne marche pas" alors que le flux est juste mal aiguillé.
+function _mbsDetectStreamType(url) {
+  if (!url) return 'hls';
+  if (/^rtmp:\/\/|^rtsp:\/\//i.test(url)) return 'unsupported';
+  const clean = url.split('?')[0].toLowerCase();
+  if (clean.endsWith('.mpd')) return 'dash';
+  if (/\.(mp4|mkv|webm|mov|avi)$/.test(clean)) return 'direct';
+  return 'hls';
+}
+
+let _mbsDashPlayer = null;
+function _mbsLazyLoadDash(callback) {
+  if (typeof dashjs !== 'undefined') { if (callback) callback(); return; }
+  const s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/dashjs@4.7.4/dist/dash.all.min.js';
+  s.onload = () => { if (callback) callback(); };
+  s.onerror = () => { if (callback) callback(); };
+  document.head.appendChild(s);
+}
+
+function _mbsStopOtherPlayers() {
+  if (_mbsSpHls) { _mbsSpHls.destroy(); _mbsSpHls = null; }
+  if (_mbsDashPlayer) { try { _mbsDashPlayer.reset(); } catch (e) {} _mbsDashPlayer = null; }
+}
+
+// Lit réellement le flux vidéo — même mécanisme robuste que myboxsmart
+// (détection HLS/DASH/direct, retry, watchdog) avec l'overlay du superadmin.
+function _mbsSpPlay(index) {
+  const video = document.getElementById('mbs-float-tv-video');
+  const overlay = document.getElementById('mbs-float-tv-overlay');
+  const ch = _mbsSpChannels[index];
+  if (!video || !ch) return;
+  const url = ch.url || ch.url_flux;
+  _mbsSpSetStatus(ch.name || 'Chaîne');
+  console.log('[MBS TV] lecture chaîne', index, ch.name || '', url);
+
+  _mbsStopOtherPlayers();
+  clearTimeout(_mbsSpWatchdog);
+  overlay.classList.remove('hidden');
+
+  let recoverAttempts = 0;
+  let _loaded = false;
+  const showVideo = () => {
+    _loaded = true;
+    video.play().then(() => {
+      overlay.classList.add('hidden');
+      video.classList.remove('mbs-fade-black'); // fondu retour à l'image
+    }).catch(err => console.warn('[MBS TV] play() bloqué:', err));
+  };
+
+  const streamType = _mbsDetectStreamType(url);
+
+  if (streamType === 'unsupported') {
+    console.warn('[MBS TV] flux non supporté (RTMP/RTSP), passage à la suivante');
+    _mbsSpNext();
+    return;
+  }
+
+  if (streamType === 'dash') {
+    _mbsLazyLoadDash(() => {
+      if (typeof dashjs === 'undefined') { _mbsSpNext(); return; }
+      _mbsDashPlayer = dashjs.MediaPlayer().create();
+      _mbsDashPlayer.initialize(video, url, false);
+      _mbsDashPlayer.on('streamInitialized', showVideo);
+      _mbsDashPlayer.on('error', () => { console.warn('[MBS TV] erreur DASH'); _mbsSpNext(); });
+    });
+  } else if (streamType === 'direct') {
+    video.src = url;
+    video.addEventListener('loadedmetadata', showVideo, { once: true });
+    video.addEventListener('error', () => { console.warn('[MBS TV] erreur flux direct'); _mbsSpNext(); }, { once: true });
+  } else if (typeof Hls !== 'undefined' && Hls.isSupported()) {
+    _mbsSpHls = new Hls({ maxBufferLength: 15, manifestLoadingMaxRetry: 3, manifestLoadingRetryDelay: 1000 });
+    _mbsSpHls.loadSource(url);
+    _mbsSpHls.attachMedia(video);
+    _mbsSpHls.on(Hls.Events.MANIFEST_PARSED, showVideo);
+    _mbsSpHls.on(Hls.Events.ERROR, (evt, data) => {
+      if (!data || !data.fatal) return; // erreurs non-fatales : hls.js gère seul
+      console.warn('[MBS TV] erreur HLS fatale:', data.type, data.details);
+      if (recoverAttempts < 2 && _mbsSpHls) {
+        recoverAttempts++;
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) { _mbsSpHls.startLoad(); return; }
+        if (data.type === Hls.ErrorTypes.MEDIA_ERROR) { _mbsSpHls.recoverMediaError(); return; }
+      }
+      _mbsSpNext(); // toujours en échec après tentatives → chaîne suivante
+    });
+  } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    video.src = url;
+    video.addEventListener('loadedmetadata', showVideo, { once: true });
+    video.addEventListener('error', () => { console.warn('[MBS TV] erreur flux (natif), passage à la suivante'); _mbsSpNext(); }, { once: true });
+  } else {
+    console.warn('[MBS TV] HLS non supporté par ce navigateur');
+    _mbsSpNext();
+    return;
+  }
+
+  // Si aucune chaîne ne charge après 12s, on tente la suivante (sans boucle infinie)
+  _mbsSpWatchdog = setTimeout(() => {
+    if (!_loaded) {
+      console.warn('[MBS TV] délai dépassé, passage à la suivante');
+      _mbsSpNext();
+    }
+  }, 12000);
+}
+
+function _mbsSpNext() {
+  clearTimeout(_mbsSpWatchdog);
+  if (_mbsSpClosed || !_mbsSpChannels.length) return;
+  const video = document.getElementById('mbs-float-tv-video');
+  // Fondu au noir avant de couper vers la chaîne suivante
+  if (video) video.classList.add('mbs-fade-black');
+  setTimeout(() => {
+    if (_mbsSpClosed) return;
+    _mbsSpIndex = (_mbsSpIndex + 1) % _mbsSpChannels.length;
+    _mbsSpPlay(_mbsSpIndex);
+  }, 500); // durée du fondu
+}
+
+async function startFloatingChannelTV() {
+  if (_mbsSpClosed) return;
+
+  // La fenêtre fixe apparaît tout de suite, avant même que le flux ne soit prêt.
+  _mbsSpShowBox();
+  _mbsSpSetStatus('Chargement...');
+
+  _mbsSpChannels = await _mbsSpFetchChannels();
+
+  if (_mbsSpClosed) return; // l'utilisateur a fermé pendant le chargement
+
+  if (!_mbsSpChannels.length) {
+    console.warn('[MBS TV] aucune chaîne disponible, nouvelle tentative dans 20s');
+    _mbsSpSetStatus('Aucune chaîne disponible');
+    setTimeout(startFloatingChannelTV, 20000); // on retente plus tard (ex: pas encore publié)
+    return;
+  }
+
+  _mbsSpIndex = 0;
+  _mbsSpPlay(_mbsSpIndex);
+  clearInterval(_mbsSpTimer);
+  _mbsSpTimer = setInterval(_mbsSpNext, 45000); // change de chaîne toutes les 45s
+}
+
+// Fermer complètement la fenêtre flottante (arrête la lecture)
+function mbsCloseFloatTV() {
+  _mbsSpClosed = true;
+  clearInterval(_mbsSpTimer);
+  clearTimeout(_mbsSpWatchdog);
+  _mbsStopOtherPlayers();
+  const video = document.getElementById('mbs-float-tv-video');
+  if (video) { video.pause(); video.removeAttribute('src'); video.load(); }
+  const box = document.getElementById('mbs-float-tv');
+  if (box) box.classList.remove('active');
+}
+
+window.addEventListener('DOMContentLoaded', startFloatingChannelTV);
 </script>
 </body>
 </html>
