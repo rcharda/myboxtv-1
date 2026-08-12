@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lecteur Direct</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.13/hls.min.js"></script>
+<style>
+  :root{
+    --ink:#0d1117;
+    --panel:#141b24;
+    --line:#26313d;
+    --text:#e8edf2;
+    --muted:#8b9aab;
+    --signal:#3ddc97;
+    --signal-dim:#1f5c46;
+    --danger:#e0555f;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--ink);
+    color:var(--text);
+    font-family:'Courier New', ui-monospace, monospace;
+    min-height:100vh;
+  }
+  .scanline{
+    position:fixed; inset:0; pointer-events:none; z-index:5;
+    background:repeating-linear-gradient(0deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 3px);
+  }
+  header{
+    padding:22px 24px 16px;
+    border-bottom:1px solid var(--line);
+    display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;
+  }
+  header h1{
+    font-size:15px; letter-spacing:.18em; text-transform:uppercase; margin:0;
+    font-weight:700;
+  }
+  header h1 span{color:var(--signal);}
+  .status-dot{
+    width:7px; height:7px; border-radius:50%; background:var(--muted);
+    display:inline-block; margin-right:6px;
+  }
+  .status-dot.live{background:var(--signal); box-shadow:0 0 6px var(--signal);}
+  .status-dot.err{background:var(--danger); box-shadow:0 0 6px var(--danger);}
+  #statusText{font-size:11px; color:var(--muted); letter-spacing:.08em; text-transform:uppercase;}
+
+  main{
+    max-width:1180px; margin:0 auto; padding:24px;
+    display:grid; grid-template-columns:1fr; gap:20px;
+  }
+  @media(min-width:880px){
+    main{grid-template-columns:1.3fr 1fr;}
+    .col-left, .col-right{display:flex; flex-direction:column; gap:20px;}
+  }
+
+  .player-frame{
+    position:relative;
+    background:#000;
+    border:1px solid var(--line);
+    aspect-ratio:16/9;
+    overflow:hidden;
+  }
+  .player-frame video{
+    width:100%; height:100%; display:block; background:#000;
+  }
+  .frame-label{
+    position:absolute; top:10px; left:12px;
+    font-size:10px; letter-spacing:.12em; color:var(--muted);
+    text-transform:uppercase; z-index:2; pointer-events:none;
+    background:rgba(0,0,0,.45); padding:3px 8px; max-width:80%;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .empty-state{
+    position:absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:8px; color:var(--muted);
+    font-size:12px; text-align:center; padding:20px;
+  }
+  .empty-state .glyph{font-size:28px; opacity:.5;}
+
+  .panel{
+    border:1px solid var(--line); background:var(--panel); padding:18px;
+  }
+  .panel h2{
+    font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--muted); margin:0 0 12px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+
+  .input-row{display:flex; gap:8px;}
+  input[type=text], select{
+    flex:1; background:var(--ink); border:1px solid var(--line);
+    color:var(--text); padding:10px 12px; font-family:inherit; font-size:13px;
+    outline:none;
+  }
+  input[type=text]:focus, select:focus{border-color:var(--signal);}
+  button{
+    background:var(--signal-dim); color:var(--signal); border:1px solid var(--signal);
+    padding:10px 16px; font-family:inherit; font-size:12px; letter-spacing:.08em;
+    text-transform:uppercase; cursor:pointer; white-space:nowrap;
+  }
+  button:hover{background:var(--signal); color:#00150d;}
+  button.ghost{
+    background:transparent; color:var(--muted); border:1px solid var(--line);
+  }
+  button.ghost:hover{border-color:var(--muted); color:var(--text); background:transparent;}
+  button:disabled{opacity:.4; cursor:not-allowed;}
+
+  .hint{font-size:11px; color:var(--muted); margin-top:8px; line-height:1.6;}
+  .hint.warn{color:var(--danger);}
+
+  .dropzone{
+    border:1px dashed var(--line); padding:22px; text-align:center;
+    font-size:12px; color:var(--muted); cursor:pointer; margin-bottom:12px;
+  }
+  .dropzone.drag{border-color:var(--signal); color:var(--signal);}
+  .dropzone input{display:none;}
+
+  .fav-list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:1px; max-height:480px; overflow-y:auto;}
+  .fav-list li{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:9px 10px; background:var(--ink); border:1px solid transparent;
+    cursor:pointer; font-size:12.5px;
+  }
+  .fav-list li:hover{border-color:var(--signal);}
+  .fav-list li.active{border-color:var(--signal); background:var(--signal-dim);}
+  .fav-list .name{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;}
+  .fav-list .grp{font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em;}
+  .fav-empty{color:var(--muted); font-size:12px; padding:12px 0;}
+
+  .filter-row{display:flex; gap:8px; margin-bottom:10px;}
+
+  .count-badge{font-size:10px; color:var(--muted); font-weight:400; letter-spacing:0; text-transform:none;}
+
+  footer{
+    max-width:1180px; margin:0 auto; padding:0 24px 40px;
+    font-size:11px; color:var(--muted); line-height:1.7;
+  }
+  footer strong{color:var(--text);}
+</style>
+</head>
+<body>
+<div class="scanline"></div>
+
+<header>
+  <h1>LECTEUR <span>DIRECT</span></h1>
+  <div><span class="status-dot" id="statusDot"></span><span id="statusText">EN ATTENTE D'UN FLUX</span></div>
+</header>
+
+<main>
+  <div class="col-left">
+    <div class="player-frame">
+      <span class="frame-label" id="frameLabel"></span>
+      <video id="video" controls playsinline></video>
+      <div class="empty-state" id="emptyState">
+        <div class="glyph">▶</div>
+        <div>Importe une playlist .m3u8 ou colle une URL de flux direct,<br>puis choisis une chaîne dans la liste.</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Lire une URL directe</h2>
+      <div class="input-row">
+        <input type="text" id="urlInput" placeholder="https://exemple.com/flux/playlist.m3u8">
+        <button id="playBtn">Lire</button>
+      </div>
+      <div class="hint" id="corsHint">
+        Chaque flux vient directement du serveur qui l'héberge — si ce serveur bloque les lecteurs tiers (CORS) ou
+        exige une authentification, le flux ne se lira pas ici, quel que soit le lecteur utilisé. Ce n'est pas
+        contournable côté navigateur.
+      </div>
+    </div>
+  </div>
+
+  <div class="col-right">
+    <div class="panel">
+      <h2>Importer une playlist</h2>
+      <div class="dropzone" id="dropzone">
+        Glisse un fichier .m3u8 / .m3u ici, ou clique pour choisir un fichier
+        <input type="file" id="fileInput" accept=".m3u8,.m3u,text/plain">
+      </div>
+      <div class="input-row">
+        <input type="text" id="playlistUrlInput" placeholder="ou colle l'URL d'une playlist .m3u8">
+        <button class="ghost" id="loadPlaylistUrlBtn">Charger</button>
+      </div>
+      <div class="hint">
+        Le fichier est lu localement dans ton navigateur — rien n'est envoyé ailleurs. Une playlist chargée par URL
+        doit être servie avec des en-têtes CORS ouverts, sinon le navigateur refusera de la lire.
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Chaînes <span class="count-badge" id="channelCount"></span></h2>
+      <div class="filter-row">
+        <input type="text" id="searchInput" placeholder="Filtrer par nom…">
+        <select id="groupFilter"><option value="">Tous les groupes</option></select>
+      </div>
+      <ul class="fav-list" id="channelList"></ul>
+      <div class="fav-empty" id="channelEmpty">Aucune playlist chargée.</div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <strong>À propos :</strong> ce lecteur affiche uniquement les flux d'une playlist que <em>tu</em> importes — il n'héberge,
+  n'agrège ni ne fournit aucune chaîne par lui-même. Assure-toi d'avoir le droit de regarder et de partager toute
+  chaîne présente dans les playlists que tu charges ici.
+</footer>
+
+<script>
+const video = document.getElementById('video');
+const emptyState = document.getElementById('emptyState');
+const frameLabel = document.getElementById('frameLabel');
+const statusDot = document.getElementById('statusDot');
+const statusText = document.getElementById('statusText');
+
+const urlInput = document.getElementById('urlInput');
+const playBtn = document.getElementById('playBtn');
+
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const playlistUrlInput = document.getElementById('playlistUrlInput');
+const loadPlaylistUrlBtn = document.getElementById('loadPlaylistUrlBtn');
+
+const searchInput = document.getElementById('searchInput');
+const groupFilter = document.getElementById('groupFilter');
+const channelList = document.getElementById('channelList');
+const channelEmpty = document.getElementById('channelEmpty');
+const channelCount = document.getElementById('channelCount');
+
+let hls = null;               // instance hls.js courante — une seule à la fois, détruite avant chaque nouvelle lecture
+let channels = [];            // {name, url, group, logo}
+let activeIndex = -1;
+
+// ---------- Lecture (gère proprement la destruction/recréation pour éviter les conflits multi-flux) ----------
+function setStatus(state, text){
+  statusDot.className = 'status-dot' + (state ? ' ' + state : '');
+  statusText.textContent = text;
+}
+
+function stopCurrent(){
+  if(hls){
+    try{ hls.destroy(); }catch(e){}
+    hls = null;
+  }
+  video.removeAttribute('src');
+  video.load();
+}
+
+function loadStream(url, label){
+  if(!url) return;
+  stopCurrent();
+  frameLabel.textContent = label || url;
+  emptyState.style.display = 'none';
+  setStatus('', 'CONNEXION…');
+
+  if(window.Hls && Hls.isSupported()){
+    hls = new Hls({ maxBufferLength: 30 });
+    hls.loadSource(url);
+    hls.attachMedia(video);
+    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+      video.play().catch(()=>{});
+      setStatus('live', 'EN DIRECT');
+    });
+    hls.on(Hls.Events.ERROR, (evt, data) => {
+      if(data.fatal){
+        console.warn('Erreur HLS fatale:', data);
+        setStatus('err', data.type === 'networkError' ? 'FLUX INACCESSIBLE (RÉSEAU/CORS)' : 'ERREUR DE FLUX');
+      }
+    });
+  } else if(video.canPlayType('application/vnd.apple.mpegurl')){
+    video.src = url;
+    video.addEventListener('loadedmetadata', () => {
+      video.play().catch(()=>{});
+      setStatus('live', 'EN DIRECT');
+    }, {once:true});
+    video.addEventListener('error', () => setStatus('err', 'ERREUR DE FLUX'), {once:true});
+  } else {
+    setStatus('err', 'HLS NON SUPPORTÉ PAR CE NAVIGATEUR');
+  }
+}
+
+playBtn.addEventListener('click', () => {
+  activeIndex = -1;
+  renderChannels();
+  loadStream(urlInput.value.trim());
+});
+urlInput.addEventListener('keydown', e => { if(e.key === 'Enter') playBtn.click(); });
+
+// ---------- Parsing M3U/M3U8 ----------
+function parseM3U(text){
+  const lines = text.split(/\r?\n/);
+  const result = [];
+  let pending = null;
+
+  for(let raw of lines){
+    const line = raw.trim();
+    if(!line) continue;
+
+    if(line.startsWith('#EXTINF')){
+      const nameMatch = line.match(/,(.*)$/);
+      const name = nameMatch ? nameMatch[1].trim() : 'Chaîne sans nom';
+      const groupMatch = line.match(/group-title="([^"]*)"/i);
+      const logoMatch = line.match(/tvg-logo="([^"]*)"/i);
+      pending = {
+        name,
+        group: groupMatch ? groupMatch[1] : '',
+        logo: logoMatch ? logoMatch[1] : ''
+      };
+    } else if(line.startsWith('#')){
+      continue;
+    } else {
+      if(pending){
+        result.push({ ...pending, url: line });
+        pending = null;
+      } else {
+        result.push({ name: line, group: '', logo: '', url: line });
+      }
+    }
+  }
+  return result;
+}
+
+function ingestPlaylist(text, sourceLabel){
+  const parsed = parseM3U(text);
+  if(!parsed.length){
+    setStatus('err', 'PLAYLIST VIDE OU FORMAT NON RECONNU');
+    return;
+  }
+  channels = parsed;
+  activeIndex = -1;
+  buildGroupFilter();
+  renderChannels();
+  setStatus('', parsed.length + ' CHAÎNES CHARGÉES — ' + (sourceLabel || ''));
+}
+
+// ---------- Import fichier local ----------
+dropzone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => {
+  const f = fileInput.files[0];
+  if(!f) return;
+  const reader = new FileReader();
+  reader.onload = () => ingestPlaylist(reader.result, f.name);
+  reader.onerror = () => setStatus('err', 'IMPOSSIBLE DE LIRE LE FICHIER');
+  reader.readAsText(f);
+});
+['dragenter','dragover'].forEach(evt => {
+  dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.add('drag'); });
+});
+['dragleave','drop'].forEach(evt => {
+  dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.remove('drag'); });
+});
+dropzone.addEventListener('drop', e => {
+  const f = e.dataTransfer.files[0];
+  if(!f) return;
+  const reader = new FileReader();
+  reader.onload = () => ingestPlaylist(reader.result, f.name);
+  reader.onerror = () => setStatus('err', 'IMPOSSIBLE DE LIRE LE FICHIER');
+  reader.readAsText(f);
+});
+
+// ---------- Import playlist par URL ----------
+loadPlaylistUrlBtn.addEventListener('click', async () => {
+  const u = playlistUrlInput.value.trim();
+  if(!u) return;
+  setStatus('', 'TÉLÉCHARGEMENT DE LA PLAYLIST…');
+  try{
+    const res = await fetch(u, {mode:'cors'});
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    ingestPlaylist(text, u);
+  }catch(err){
+    setStatus('err', 'ÉCHEC DU CHARGEMENT (CORS OU RÉSEAU)');
+    console.warn(err);
+  }
+});
+
+// ---------- Liste + filtre ----------
+function buildGroupFilter(){
+  const groups = Array.from(new Set(channels.map(c => c.group).filter(Boolean))).sort();
+  groupFilter.innerHTML = '<option value="">Tous les groupes</option>' +
+    groups.map(g => `<option value="${g.replace(/"/g,'&quot;')}">${g}</option>`).join('');
+}
+
+function renderChannels(){
+  const q = searchInput.value.trim().toLowerCase();
+  const g = groupFilter.value;
+
+  const filtered = channels
+    .map((c, i) => ({...c, _i:i}))
+    .filter(c => (!q || c.name.toLowerCase().includes(q)) && (!g || c.group === g));
+
+  channelCount.textContent = channels.length ? `(${filtered.length}/${channels.length})` : '';
+  channelEmpty.style.display = channels.length ? 'none' : 'block';
+  channelList.innerHTML = '';
+
+  filtered.forEach(c => {
+    const li = document.createElement('li');
+    if(c._i === activeIndex) li.classList.add('active');
+    const name = document.createElement('span');
+    name.className = 'name';
+    name.textContent = c.name;
+    li.appendChild(name);
+    if(c.group){
+      const grp = document.createElement('span');
+      grp.className = 'grp';
+      grp.textContent = c.group;
+      li.appendChild(grp);
+    }
+    li.addEventListener('click', () => {
+      activeIndex = c._i;
+      renderChannels();
+      loadStream(c.url, c.name);
+    });
+    channelList.appendChild(li);
+  });
+}
+
+searchInput.addEventListener('input', renderChannels);
+groupFilter.addEventListener('change', renderChannels);
+
+renderChannels();
+</script>
+</body>
+</html>
