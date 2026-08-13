@@ -204,6 +204,17 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 
 /* Responsive */
 @media(max-width:380px){.tarif-prix{font-size:14px}.hero-title{font-size:18px}.modal-key-disp{font-size:18px;letter-spacing:2px}}
+
+/* ═══ SEBPAY ═══ */
+.sebpay-select{color-scheme:dark}
+.sebpay-select option{background:#161616;color:#fff}
+.sebpay-pulse-ring{position:absolute;inset:0;border-radius:50%;border:2px solid #00d9a5;opacity:0;animation:sebpayPulse 1.8s cubic-bezier(.4,0,.2,1) infinite}
+@keyframes sebpayPulse{0%{transform:scale(.5);opacity:.8}100%{transform:scale(1.6);opacity:0}}
+.sebpay-dot{animation:sebpayDotBlink 1.4s infinite;opacity:0}
+.sebpay-dot:nth-child(2){animation-delay:.2s}
+.sebpay-dot:nth-child(3){animation-delay:.4s}
+@keyframes sebpayDotBlink{0%,100%{opacity:0}50%{opacity:1}}
+.btn-seb{background:linear-gradient(135deg,#00b894,#00816a)!important}
 @media(min-width:600px){.tarifs-wrap,.pay-section,.parrain-wrap,.s2-body,.key-section{max-width:480px}.hero{padding-top:60px}}
 </style>
 </head>
@@ -262,6 +273,16 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 
   <!-- Boutons paiement -->
   <div class="pay-section">
+    <div style="position:relative;">
+      <div style="position:absolute;top:-9px;right:10px;background:linear-gradient(135deg,#ffd700,#e6b800);color:#1a1a1a;font-family:'Orbitron',sans-serif;font-size:9px;font-weight:900;letter-spacing:1px;padding:3px 9px;border-radius:20px;z-index:2;box-shadow:0 2px 8px rgba(255,215,0,.5);">⭐ RECOMMANDÉ</div>
+      <button class="btn-pay btn-seb" id="btn-seb" onclick="openSebpayModal()" disabled style="width:100%;background:linear-gradient(135deg,#00b894,#00816a);box-shadow:0 4px 20px rgba(0,184,148,.45),0 0 0 2px rgba(255,215,0,.6);">
+        <i class="fas fa-mobile-alt"></i> PAYER AVEC SEBPAY
+      </button>
+      <div id="sebpay-coverage-note" style="text-align:center;font-size:10px;color:var(--muted);margin-top:6px;">
+        <i class="fas fa-globe-africa"></i> Mobile Money disponible dans <span id="sebpay-country-count">16</span> pays africains
+      </div>
+    </div>
+    <div class="pay-divider"><span>OU</span></div>
     <button class="btn-pay btn-feex" id="btn-feex" onclick="payFeexPay()" disabled>
       <i class="fas fa-mobile-alt"></i> PAYER AVEC FEEXPAY
     </button>
@@ -270,6 +291,65 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       <i class="fas fa-credit-card"></i> PAYER AVEC FEDAPAY
     </button>
     <div id="feexpay-render"></div>
+  </div>
+
+  <!-- SebPay — panneau modal (pays / opérateur / téléphone / OTP) -->
+  <div id="sebpay-modal" class="modal-overlay">
+    <div class="modal-box" style="max-width:420px;position:relative;">
+      <button onclick="closeSebpayModal()" style="position:absolute;top:14px;right:16px;background:none;border:none;color:#888;font-size:16px;cursor:pointer;"><i class="fas fa-times"></i></button>
+      <div class="modal-title" style="font-size:16px;letter-spacing:1px;">PAYER AVEC SEBPAY</div>
+
+      <div id="sebpay-geo-badge" style="display:none;text-align:center;font-size:10.5px;color:#00d9a5;background:rgba(0,184,148,0.08);border:1px solid rgba(0,184,148,0.25);border-radius:8px;padding:6px 10px;margin-bottom:10px;">
+        <i class="fas fa-map-marker-alt"></i> Pays détecté automatiquement
+      </div>
+
+      <div style="text-align:left;margin-bottom:12px;">
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px;">Pays</label>
+        <select id="sebpay-country" onchange="document.getElementById('sebpay-geo-badge').style.display='none';onSebpayCountryChange()" class="sebpay-select"
+          style="width:100%;padding:11px 12px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid var(--border2);color:#fff;font-size:13px;font-family:'Barlow Condensed',sans-serif;"></select>
+      </div>
+
+      <div id="sebpay-converted-price" style="text-align:center;font-size:13px;font-weight:800;color:#00d9a5;background:rgba(0,184,148,0.08);border:1px solid rgba(0,184,148,0.25);border-radius:10px;padding:9px;margin-bottom:12px;"></div>
+
+      <div style="text-align:left;margin-bottom:12px;">
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px;">Opérateur Mobile Money</label>
+        <select id="sebpay-operator-select" class="sebpay-select"
+          style="width:100%;padding:11px 12px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid var(--border2);color:#fff;font-size:13px;font-family:'Barlow Condensed',sans-serif;"></select>
+      </div>
+
+      <div style="text-align:left;margin-bottom:6px;">
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px;">Numéro de téléphone</label>
+        <input type="tel" id="sebpay-phone" placeholder="Ex: 97000000" maxlength="18" oninput="_sebpayOnPhoneInput()"
+          style="width:100%;padding:11px 12px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid var(--border2);color:#fff;font-size:14px;font-family:'Barlow Condensed',sans-serif;">
+        <div id="sebpay-operator-guess-hint" style="display:none;font-size:10.5px;color:#00d9a5;margin-top:5px;"></div>
+      </div>
+
+      <div id="sebpay-ussd-hint" style="display:none;text-align:left;font-size:11px;color:#ffc800;background:rgba(255,200,0,0.08);border:1px solid rgba(255,200,0,0.25);border-radius:10px;padding:10px 12px;margin-bottom:12px;line-height:1.5;"></div>
+
+      <div id="sebpay-otp-wrap" style="display:none;text-align:left;margin-bottom:12px;">
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px;">Code de confirmation</label>
+        <input type="text" id="sebpay-otp" placeholder="Code reçu après composition du USSD" maxlength="10"
+          style="width:100%;padding:11px 12px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid var(--border2);color:#fff;font-size:14px;font-family:'Barlow Condensed',sans-serif;">
+      </div>
+
+      <button id="btn-sebpay-confirm" onclick="payWithSebpay()" style="width:100%;padding:15px;border-radius:12px;font-size:14px;font-weight:800;background:linear-gradient(135deg,#00b894,#00816a);box-shadow:0 4px 20px rgba(0,184,148,0.4);letter-spacing:0.5px;color:white;border:none;cursor:pointer;font-family:'Exo 2',sans-serif;margin-top:4px;">
+        <i class="fas fa-check-circle"></i> CONFIRMER LE PAIEMENT
+      </button>
+
+      <div id="sebpay-waiting-anim" style="display:none;flex-direction:column;align-items:center;justify-content:center;margin-top:16px;padding:16px 10px;background:rgba(0,184,148,0.06);border:1px solid rgba(0,184,148,0.25);border-radius:12px;">
+        <div style="position:relative;width:56px;height:56px;margin-bottom:10px;">
+          <div class="sebpay-pulse-ring"></div>
+          <div class="sebpay-pulse-ring" style="animation-delay:0.5s;"></div>
+          <div class="sebpay-pulse-ring" style="animation-delay:1s;"></div>
+          <i class="fas fa-mobile-alt" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:20px;color:#00d9a5;"></i>
+        </div>
+        <div class="sebpay-waiting-dots" style="font-size:11px;font-weight:700;letter-spacing:0.5px;color:#00d9a5;font-family:'Exo 2',sans-serif;">
+          En attente de votre validation<span class="sebpay-dot">.</span><span class="sebpay-dot">.</span><span class="sebpay-dot">.</span>
+        </div>
+      </div>
+
+      <div id="sebpay-status-msg" style="font-size:11px;color:#888;text-align:center;margin-top:10px;min-height:14px;"></div>
+    </div>
   </div>
 
   <!-- Clé reçue inline (après paiement depuis cette page) -->
@@ -413,6 +493,7 @@ const SUPABASE_KEY    = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 const FEDAPAY_KEY     = 'pk_live_1i7UkFPVn-pUhhO1OnoKQncy';
 const FEEXPAY_ID      = 'caDf4zegjmE2zp0';
 const FEEXPAY_TOKEN   = 'fp_zpMYFlyQ9RcPloRrySnIl05C52imKeND6uCECBoyRTPqns55RwyXBVKwjF8fPbMg';
+const SEBPAY_PROXY_URL = SUPABASE_URL + '/functions/v1/sebpay-proxy';
 
 const SB_H_R = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY };
 const SB_H_W = { ...SB_H_R, 'Content-Type': 'application/json', 'Prefer': 'return=representation' };
@@ -542,6 +623,7 @@ function selectTarif(tarif, el) {
   document.getElementById('selected-summary').style.display = 'block';
   document.getElementById('btn-feex').disabled = false;
   document.getElementById('btn-feda').disabled = false;
+  document.getElementById('btn-seb').disabled = false;
   // Init FeexPay en avance
   _initFeexSDK();
   toast('✅ Offre sélectionnée', 'ok');
@@ -574,6 +656,426 @@ function onParrainInput() {
 }
 
 // ══════════════════════════════════════════════
+// SEBPAY — Mobile Money multi-pays (identique à MyBoxSmart)
+// ══════════════════════════════════════════════
+let _sebpayPollTimer = null;
+let _sebpayOperators = [];
+
+const SEBPAY_COUNTRIES = [
+    { code: 'BJ', name: 'Bénin',           prefix: '229', currency: 'XOF' },
+    { code: 'BF', name: 'Burkina Faso',    prefix: '226', currency: 'XOF' },
+    { code: 'CM', name: 'Cameroun',        prefix: '237', currency: 'XAF' },
+    { code: 'CG', name: 'Congo',           prefix: '242', currency: 'XAF' },
+    { code: 'CI', name: "Côte d'Ivoire",   prefix: '225', currency: 'XOF' },
+    { code: 'GA', name: 'Gabon',           prefix: '241', currency: 'XAF' },
+    { code: 'GM', name: 'Gambie',          prefix: '220', currency: 'GMD' },
+    { code: 'GH', name: 'Ghana',           prefix: '233', currency: 'GHS' },
+    { code: 'GN', name: 'Guinée Conakry',  prefix: '224', currency: 'GNF' },
+    { code: 'ML', name: 'Mali',            prefix: '223', currency: 'XOF' },
+    { code: 'NE', name: 'Niger',           prefix: '227', currency: 'XOF' },
+    { code: 'NG', name: 'Nigéria',         prefix: '234', currency: 'NGN' },
+    { code: 'CD', name: 'R.D.C',           prefix: '243', currency: 'CDF' },
+    { code: 'SN', name: 'Sénégal',         prefix: '221', currency: 'XOF' },
+    { code: 'TD', name: 'Tchad',           prefix: '235', currency: 'XAF' },
+    { code: 'TG', name: 'Togo',            prefix: '228', currency: 'XOF' },
+];
+
+// Le nombre affiché sur le badge "RECOMMANDÉ" reste toujours synchronisé
+// avec la vraie liste ci-dessus (pas de chiffre codé en dur qui pourrait
+// devenir faux si la liste change plus tard).
+document.addEventListener('DOMContentLoaded', () => {
+    const el = document.getElementById('sebpay-country-count');
+    if (el) el.textContent = SEBPAY_COUNTRIES.length;
+});
+
+const SEBPAY_OPERATOR_PREFIXES = {
+    BJ: [ { prefixes: ['96','97','50','51','52','53','54','55'], match: /mtn/i },
+          { prefixes: ['94','95','64','65','66','67','68','69'], match: /moov/i } ],
+    CI: [ { prefixes: ['07','08','09'], match: /orange/i },
+          { prefixes: ['05','06'],      match: /mtn/i },
+          { prefixes: ['01','02','03'], match: /moov/i } ],
+    SN: [ { prefixes: ['77','78'], match: /orange|orange money/i },
+          { prefixes: ['76'],      match: /free/i },
+          { prefixes: ['70'],      match: /expresso|tigo/i } ],
+    CM: [ { prefixes: ['67','65','68'], match: /mtn/i },
+          { prefixes: ['69','65','66'], match: /orange/i } ],
+    TG: [ { prefixes: ['90','91','92','93'], match: /togocom|togocel/i },
+          { prefixes: ['70','71','96','97','98','99'], match: /moov/i } ],
+    ML: [ { prefixes: ['7'], match: /orange/i },
+          { prefixes: ['6'], match: /malitel|moov/i } ],
+    BF:  [ { prefixes: ['7'], match: /orange/i },
+           { prefixes: ['6'], match: /moov/i } ],
+    NE:  [ { prefixes: ['9'], match: /moov/i },
+           { prefixes: ['96','97'], match: /orange/i } ],
+    GN:  [ { prefixes: ['62','66'], match: /orange/i },
+           { prefixes: ['60','64'], match: /mtn|areeba/i } ],
+    CD:  [ { prefixes: ['81','82','83'], match: /vodacom|m-?pesa/i },
+           { prefixes: ['97','80'],      match: /orange/i },
+           { prefixes: ['85','89','84'], match: /airtel/i } ],
+    GA:  [ { prefixes: ['74','77'], match: /airtel/i },
+           { prefixes: ['66','62'], match: /moov/i } ],
+    TD:  [ { prefixes: ['66','99'], match: /airtel/i },
+           { prefixes: ['63','68'], match: /moov/i } ],
+    CG:  [ { prefixes: ['06'], match: /airtel/i },
+           { prefixes: ['05'], match: /mtn/i } ],
+    NG:  [ { prefixes: ['0803','0806','0703','0810'], match: /mtn/i },
+           { prefixes: ['0802','0808','0812'],        match: /airtel/i } ],
+    GH:  [ { prefixes: ['024','054','055','059'], match: /mtn/i },
+           { prefixes: ['020','050'],              match: /vodafone|telecel/i },
+           { prefixes: ['027','057','026','056'],  match: /airteltigo/i } ],
+    GM:  [ { prefixes: ['77','30'], match: /africell/i },
+           { prefixes: ['99','7'],  match: /qcell/i } ],
+    GW:  [ { prefixes: ['95','96'], match: /orange/i },
+           { prefixes: ['5'],       match: /mtn/i } ],
+};
+
+function _sebpayGuessOperator(countryCode, localDigits) {
+    const rules = SEBPAY_OPERATOR_PREFIXES[countryCode];
+    if (!rules || !localDigits) return null;
+    for (const rule of rules) {
+        if (rule.prefixes.some(p => localDigits.startsWith(p))) return rule.match;
+    }
+    return null;
+}
+
+const SEBPAY_RATE_FROM_XOF_FALLBACK = {
+    XOF: 1, XAF: 1, CDF: 4.6, GMD: 0.113, GHS: 0.0254, GNF: 14.1, NGN: 2.54,
+};
+
+const SEBPAY_RATES_CACHE_KEY = 'mbs_fx_rates_xof_v1';
+const SEBPAY_RATES_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+let _sebpayLiveRates = null;
+
+function _sebpayLoadCachedRates() {
+    try {
+        const raw = localStorage.getItem(SEBPAY_RATES_CACHE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || !parsed.rates || !parsed.ts) return null;
+        if (Date.now() - parsed.ts > SEBPAY_RATES_MAX_AGE_MS) return null;
+        return parsed.rates;
+    } catch (e) { return null; }
+}
+function _sebpaySaveCachedRates(rates) {
+    try { localStorage.setItem(SEBPAY_RATES_CACHE_KEY, JSON.stringify({ ts: Date.now(), rates })); } catch (e) {}
+}
+async function _sebpayEnsureLiveRates() {
+    if (_sebpayLiveRates) return _sebpayLiveRates;
+    const cached = _sebpayLoadCachedRates();
+    if (cached) { _sebpayLiveRates = cached; return _sebpayLiveRates; }
+    try {
+        const resp = await fetch('https://open.er-api.com/v6/latest/XOF');
+        const json = await resp.json();
+        if (json && json.result === 'success' && json.rates) {
+            _sebpayLiveRates = json.rates;
+            _sebpaySaveCachedRates(json.rates);
+            return _sebpayLiveRates;
+        }
+        throw new Error('Réponse API invalide');
+    } catch (e) {
+        try {
+            const raw = localStorage.getItem(SEBPAY_RATES_CACHE_KEY);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (parsed && parsed.rates) { _sebpayLiveRates = parsed.rates; return _sebpayLiveRates; }
+            }
+        } catch (e2) {}
+        _sebpayLiveRates = SEBPAY_RATE_FROM_XOF_FALLBACK;
+        return _sebpayLiveRates;
+    }
+}
+function convertFromXOF(currencyCode, amountXOF) {
+    const rates = _sebpayLiveRates || SEBPAY_RATE_FROM_XOF_FALLBACK;
+    const rate = rates[currencyCode];
+    if (!rate) return Math.round(amountXOF);
+    return Math.round(amountXOF * rate);
+}
+
+const SEBPAY_GEO_CACHE_KEY = 'mbs_geo_country_v1';
+const SEBPAY_GEO_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+let _sebpayDetectedCountry = null;
+function _sebpayLoadCachedGeo() {
+    try {
+        const raw = localStorage.getItem(SEBPAY_GEO_CACHE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || !parsed.country || !parsed.ts) return null;
+        if (Date.now() - parsed.ts > SEBPAY_GEO_MAX_AGE_MS) return null;
+        return parsed.country;
+    } catch (e) { return null; }
+}
+function _sebpaySaveCachedGeo(country) {
+    try { localStorage.setItem(SEBPAY_GEO_CACHE_KEY, JSON.stringify({ ts: Date.now(), country })); } catch (e) {}
+}
+async function _sebpayDetectCountryByIP() {
+    if (_sebpayDetectedCountry) return _sebpayDetectedCountry;
+    const cached = _sebpayLoadCachedGeo();
+    if (cached) { _sebpayDetectedCountry = cached; return cached; }
+    const providers = [
+        async () => { const r = await fetch('https://ipapi.co/json/'); const j = await r.json(); return j && j.country_code ? j.country_code.toUpperCase() : null; },
+        async () => { const r = await fetch('https://ipwho.is/'); const j = await r.json(); return j && j.success && j.country_code ? j.country_code.toUpperCase() : null; },
+        async () => { const r = await fetch('https://get.geojs.io/v1/ip/country.json'); const j = await r.json(); return j && j.country ? j.country.toUpperCase() : null; },
+    ];
+    for (const tryProvider of providers) {
+        try {
+            const code = await tryProvider();
+            if (code && SEBPAY_COUNTRIES.some(c => c.code === code)) {
+                _sebpayDetectedCountry = code;
+                _sebpaySaveCachedGeo(code);
+                return code;
+            }
+        } catch (e) {}
+    }
+    return null;
+}
+
+function _sebpaySetStatus(msg, color) {
+    const el = document.getElementById('sebpay-status-msg');
+    if (el) { el.textContent = msg || ''; el.style.color = color || '#888'; }
+}
+function _sebpaySetWaitingAnim(show) {
+    const el = document.getElementById('sebpay-waiting-anim');
+    if (el) el.style.display = show ? 'flex' : 'none';
+}
+function _setPayButtonsState(disabled) {
+    ['btn-seb', 'btn-feex', 'btn-feda'].forEach(id => {
+        const b = document.getElementById(id);
+        if (b) b.disabled = disabled;
+    });
+}
+
+function openSebpayModal() {
+    if (!_selectedTarif) { toast('⚠️ Sélectionnez une offre', 'er'); return; }
+
+
+    const countrySel = document.getElementById('sebpay-country');
+    if (!countrySel.dataset.filled) {
+        countrySel.innerHTML = SEBPAY_COUNTRIES.map(c => `<option value="${c.code}">${c.name} (+${c.prefix})</option>`).join('');
+        countrySel.value = 'BJ';
+        countrySel.dataset.filled = '1';
+    }
+
+    _sebpaySetStatus('', '#888');
+    _sebpaySetWaitingAnim(false);
+    document.getElementById('sebpay-otp').value = '';
+    document.getElementById('sebpay-phone').value = '';
+    document.getElementById('sebpay-modal').classList.add('on');
+    _sebpayEnsureLiveRates();
+
+    const geoBadge = document.getElementById('sebpay-geo-badge');
+    if (geoBadge) geoBadge.style.display = 'none';
+    _sebpayDetectCountryByIP().then(code => {
+        if (code && document.getElementById('sebpay-modal').classList.contains('on')) {
+            countrySel.value = code;
+            if (geoBadge) geoBadge.style.display = 'block';
+            onSebpayCountryChange();
+        }
+    });
+
+    onSebpayCountryChange();
+}
+
+function closeSebpayModal() {
+    if (_payInProgress) { toast('Paiement en cours, patientez...', 'if'); return; }
+    document.getElementById('sebpay-modal').classList.remove('on');
+    _sebpaySetWaitingAnim(false);
+    clearInterval(_sebpayPollTimer);
+}
+
+async function onSebpayCountryChange() {
+    const country = document.getElementById('sebpay-country').value;
+    const opSel = document.getElementById('sebpay-operator-select');
+    opSel.innerHTML = '<option value="">Chargement...</option>';
+    document.getElementById('sebpay-otp-wrap').style.display = 'none';
+    document.getElementById('sebpay-ussd-hint').style.display = 'none';
+
+    const c = SEBPAY_COUNTRIES.find(x => x.code === country);
+    document.getElementById('sebpay-phone').placeholder = 'Ex: ' + c.prefix + '00000000';
+    const guessHint = document.getElementById('sebpay-operator-guess-hint');
+    if (guessHint) guessHint.style.display = 'none';
+
+    const priceBox = document.getElementById('sebpay-converted-price');
+    if (priceBox && _selectedTarif) {
+        priceBox.textContent = 'Calcul du montant...';
+        await _sebpayEnsureLiveRates();
+        const priceXOF = getPayAmount();
+        const converted = convertFromXOF(c.currency, priceXOF);
+        priceBox.textContent = 'Montant à payer : ' + converted.toLocaleString('fr-FR') + ' ' + c.currency;
+    }
+
+    try {
+        const resp = await fetch(SEBPAY_PROXY_URL, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'operators', country })
+        });
+        const json = await resp.json();
+        const list = (json && json.data && Array.isArray(json.data)) ? json.data : (Array.isArray(json) ? json : []);
+        _sebpayOperators = list;
+        if (!list.length) { opSel.innerHTML = '<option value="">Aucun opérateur disponible</option>'; return; }
+        opSel.innerHTML = list.map(op => {
+            const opId = op.code || op.slug || op.operator_code || op.id || op.name;
+            return `<option value="${opId}">${op.name || opId}</option>`;
+        }).join('');
+        onSebpayOperatorChange();
+        opSel.onchange = onSebpayOperatorChange;
+        _sebpayOnPhoneInput();
+    } catch (e) {
+        opSel.innerHTML = '<option value="">Erreur de chargement</option>';
+        _sebpaySetStatus('❌ Impossible de charger les opérateurs pour ce pays.', '#ff5555');
+    }
+}
+
+const SEBPAY_OTP_ALWAYS_NAME_PATTERN = /orange|wave|mtn|moov|airtel|free\s*money|togocom|t-money|tmoney|wizall|expresso/i;
+function _sebpayOperatorNeedsOtp(op, slug) {
+    if (!op) return false;
+    if (op.otp_required === false) return false;
+    if (op.otp_required === true) return true;
+    if (SEBPAY_OTP_ALWAYS_NAME_PATTERN.test(op.name || slug || '')) return true;
+    return op.otp_required === undefined;
+}
+
+function onSebpayOperatorChange() {
+    const slug = document.getElementById('sebpay-operator-select').value;
+    const op = _sebpayOperators.find(o => (o.code || o.slug || o.operator_code || o.id || o.name) === slug);
+    const otpWrap = document.getElementById('sebpay-otp-wrap');
+    const hint = document.getElementById('sebpay-ussd-hint');
+    const shouldShowOtp = _sebpayOperatorNeedsOtp(op, slug);
+    if (shouldShowOtp) {
+        otpWrap.style.display = 'block';
+        hint.style.display = 'block';
+        hint.innerHTML = '📲 Composez <b>' + (op.ussd_code || 'le code USSD de votre opérateur') +
+            '</b> puis saisissez le code reçu ci-dessous. Sinon, validez la notification reçue dans l\'app ' + (op.name || 'de votre opérateur') + '.';
+    } else {
+        otpWrap.style.display = 'none';
+        hint.style.display = 'none';
+    }
+}
+
+function _sebpayOnPhoneInput() {
+    const guessHint = document.getElementById('sebpay-operator-guess-hint');
+    const country = document.getElementById('sebpay-country').value;
+    const countryInfo = SEBPAY_COUNTRIES.find(c => c.code === country);
+    const opSel = document.getElementById('sebpay-operator-select');
+    if (!countryInfo || !opSel || !_sebpayOperators.length) { if (guessHint) guessHint.style.display = 'none'; return; }
+    let digits = document.getElementById('sebpay-phone').value.replace(/\D/g, '');
+    if (digits.startsWith(countryInfo.prefix)) digits = digits.slice(countryInfo.prefix.length);
+    const matcher = _sebpayGuessOperator(country, digits);
+    if (!matcher) { if (guessHint) guessHint.style.display = 'none'; return; }
+    const found = _sebpayOperators.find(o => matcher.test(o.name || ''));
+    if (found) {
+        const opId = found.code || found.slug || found.operator_code || found.id || found.name;
+        if (opSel.value !== opId) { opSel.value = opId; onSebpayOperatorChange(); }
+        if (guessHint) {
+            guessHint.style.display = 'block';
+            guessHint.innerHTML = '<i class="fas fa-check-circle" style="margin-right:4px;"></i>Opérateur détecté automatiquement : ' + (found.name || opId);
+        }
+    } else if (guessHint) { guessHint.style.display = 'none'; }
+}
+
+async function payWithSebpay() {
+    if (!_selectedTarif) { toast('⚠️ Sélectionnez une offre', 'er'); return; }
+    if (_payInProgress) { toast('⏳ Paiement en cours…', 'if'); return; }
+
+    const country = document.getElementById('sebpay-country').value;
+    const countryInfo = SEBPAY_COUNTRIES.find(c => c.code === country);
+    const operator = document.getElementById('sebpay-operator-select').value;
+    const opInfo = _sebpayOperators.find(o => (o.code || o.slug || o.operator_code || o.id || o.name) === operator);
+
+    const phoneRaw = document.getElementById('sebpay-phone').value.trim();
+    let phone = phoneRaw.replace(/\D/g, '');
+    if (!operator) { toast('⚠️ Sélectionnez un opérateur', 'er'); return; }
+    if (!phone || phone.length < 6) { toast('⚠️ Entrez un numéro de téléphone valide', 'er'); return; }
+    if (!phone.startsWith(countryInfo.prefix)) phone = countryInfo.prefix + phone;
+
+    const otpCode = document.getElementById('sebpay-otp').value.trim();
+    if (_sebpayOperatorNeedsOtp(opInfo, operator) && !otpCode) {
+        toast('⚠️ Entrez le code de confirmation reçu (USSD ou notification)', 'er');
+        return;
+    }
+
+    const key = _pendingKey;
+    if (_activationDone[key]) return;
+    _payInProgress = true;
+    _setPayButtonsState(true);
+    const confirmBtn = document.getElementById('btn-sebpay-confirm');
+    if (confirmBtn) confirmBtn.disabled = true;
+    _sebpaySetStatus('⏳ Envoi de la demande de paiement...', '#888');
+
+    const priceXOF = getPayAmount();
+    await _sebpayEnsureLiveRates();
+    const amount = convertFromXOF(countryInfo.currency, priceXOF);
+    const days = String(_selectedTarif.days), screens = String(_selectedTarif.screens);
+    const codeParrain = (document.getElementById('parrain-input').value || '').trim().toUpperCase();
+    const externalRef = 'MBS-' + key + '-' + Date.now();
+
+    try {
+        const initBody = { action: 'init', amount, currency: countryInfo.currency, phone, operator, country, external_reference: externalRef };
+        if (otpCode) initBody.otp_code = otpCode;
+
+        const initResp = await fetch(SEBPAY_PROXY_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(initBody) });
+        const initJson = await initResp.json();
+
+        if (!initResp.ok || !initJson.success) {
+            _sebpaySetStatus('❌ ' + (initJson.message || 'Échec de la demande de paiement.'), '#ff5555');
+            _payInProgress = false; _setPayButtonsState(false);
+            if (confirmBtn) confirmBtn.disabled = false;
+            return;
+        }
+
+        const txId = initJson.data.transaction_id;
+        _sebpaySetStatus('📲 Validez le paiement sur votre téléphone (' + (opInfo ? (opInfo.name || operator) : operator).toUpperCase() + ')...', '#ffc800');
+        _sebpaySetWaitingAnim(true);
+        if (initJson.data.provider_link) window.open(initJson.data.provider_link, '_blank');
+
+        let attempts = 0;
+        const maxAttempts = 40;
+        clearInterval(_sebpayPollTimer);
+        _sebpayPollTimer = setInterval(async () => {
+            attempts++;
+            try {
+                const statusResp = await fetch(SEBPAY_PROXY_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'status', transaction_id: txId }) });
+                const statusJson = await statusResp.json();
+                const status = statusJson.success && statusJson.data ? statusJson.data.status : null;
+
+                if (status === 'approved') {
+                    clearInterval(_sebpayPollTimer);
+                    _sebpaySetWaitingAnim(false);
+                    _sebpaySetStatus('✅ Paiement confirmé ! Activation en cours...', '#2ecc71');
+                    document.getElementById('sebpay-modal').classList.remove('on');
+                    processPayment(key, days, screens, codeParrain);
+                } else if (status === 'rejected') {
+                    clearInterval(_sebpayPollTimer);
+                    _sebpaySetWaitingAnim(false);
+                    _sebpaySetStatus('❌ Paiement refusé ou annulé.', '#ff5555');
+                    _payInProgress = false; _setPayButtonsState(false);
+                    if (confirmBtn) confirmBtn.disabled = false;
+                } else if (attempts >= maxAttempts) {
+                    clearInterval(_sebpayPollTimer);
+                    _sebpaySetWaitingAnim(false);
+                    _sebpaySetStatus('⏱️ Délai dépassé. Réessayez si le paiement n\'a pas abouti.', '#ff5555');
+                    _payInProgress = false; _setPayButtonsState(false);
+                    if (confirmBtn) confirmBtn.disabled = false;
+                }
+            } catch (e) {
+                if (attempts >= maxAttempts) {
+                    clearInterval(_sebpayPollTimer);
+                    _sebpaySetWaitingAnim(false);
+                    _sebpaySetStatus('❌ Erreur de connexion. Réessayez.', '#ff5555');
+                    _payInProgress = false; _setPayButtonsState(false);
+                    if (confirmBtn) confirmBtn.disabled = false;
+                }
+            }
+        }, 5000);
+    } catch (e) {
+        console.error('[SebPay] Erreur:', e);
+        _sebpaySetWaitingAnim(false);
+        _sebpaySetStatus('❌ Erreur réseau. Vérifiez votre connexion.', '#ff5555');
+        _payInProgress = false; _setPayButtonsState(false);
+        if (confirmBtn) confirmBtn.disabled = false;
+    }
+}
+
+// ══════════════════════════════════════════════
 // FEEXPAY
 // ══════════════════════════════════════════════
 let _feexInitDone = false;
@@ -603,7 +1105,13 @@ function _initFeexSDK() {
     custom_id:     _pendingKey,
     callback_url:  window.location.href.split('?')[0] + '?feexpay_key=' + _pendingKey + '&feexpay_status=success',
     onComplete: (resp) => {
-      if (resp && (resp.status === 'approved' || resp.status === 'successful')) {
+      const status = resp?.transaction?.status || resp?.status || resp?.data?.status || '';
+      const isSuccess = ['success','successful','approved','SUCCESSFUL','SUCCESS','APPROVED'].includes(status);
+      const isCancelled = ['cancelled','CANCELLED','dismissed','DISMISSED','failed','FAILED'].includes(status)
+                        || resp?.reason === 'dismissed';
+      if (isCancelled) { toast('❌ Paiement FeexPay annulé.', 'er'); return; }
+      if (status && !isSuccess) { toast('❌ Paiement FeexPay échoué.', 'er'); return; }
+      if (isSuccess) {
         processPayment(_pendingKey, String(_selectedTarif.days), String(_selectedTarif.screens), codeParrain);
       }
     }
@@ -640,8 +1148,12 @@ function payFedaPay() {
     transaction: { amount, description: `Abonnement MyBoxSmart ${_selectedTarif.days}j – ${key}`, custom_metadata: { custom_id: key, days: _selectedTarif.days, screens: _selectedTarif.screens, code_parrain: codeParrain } },
     customer:    { phone_number: { number: '', country: 'BJ' } },
     onComplete:  function(resp) {
-      if (resp && resp.transaction && (resp.transaction.status === 'approved' || resp.transaction.status === 'successful')) {
+      if (resp.reason === FedaPay.DIALOG_DISMISSED) {
+        toast('❌ Paiement FedaPay annulé.', 'er');
+      } else if (resp && resp.transaction && (resp.transaction.status === 'approved' || resp.transaction.status === 'successful')) {
         processPayment(key, String(_selectedTarif.days), String(_selectedTarif.screens), codeParrain);
+      } else {
+        toast('❌ Paiement FedaPay échoué.', 'er');
       }
     }
   }).open();
@@ -656,6 +1168,7 @@ async function processPayment(newKey, days, screens, codeParrain) {
   _payInProgress = true;
   document.getElementById('btn-feex').disabled = true;
   document.getElementById('btn-feda').disabled = true;
+  document.getElementById('btn-seb').disabled = true;
   toast('⏳ Activation de votre abonnement…', 'if');
 
   try {
@@ -736,6 +1249,7 @@ async function processPayment(newKey, days, screens, codeParrain) {
   _payInProgress = false;
   document.getElementById('btn-feex').disabled = false;
   document.getElementById('btn-feda').disabled = false;
+  document.getElementById('btn-seb').disabled = false;
 }
 
 // ══════════════════════════════════════════════
