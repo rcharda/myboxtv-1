@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer Telegram Local Instantané</title>
+    <title>Streamer Telegram Réparé</title>
     <style>
         body { font-family: Arial, sans-serif; background: #0e1621; color: white; margin: 0; padding: 20px; }
         .container { max-width: 900px; margin: auto; }
@@ -15,159 +15,124 @@
         .video-item { padding: 12px; border-bottom: 1px solid #24303f; cursor: pointer; transition: 0.2s; color: white; font-size: 15px; }
         .video-item:hover { background: #24303f; color: #64b5f6; }
         .status { color: #4caf50; font-style: italic; margin-bottom: 10px; font-weight: bold; }
-        #hidden-iframe { display: none; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Lecteur Distant Instantané Local</h1>
+    <h1>Lecteur Distant Instantané</h1>
     
-    <!-- Lecteur Vidéo HTML5 natif sans dépendance réseau -->
     <div class="video-box">
         <video id="tg-player" controls autoplay>
             Votre navigateur ne supporte pas ce format vidéo.
         </video>
     </div>
 
-    <!-- Statut de l'extraction -->
-    <div class="status" id="loading-status">Extraction en cours depuis les serveurs Telegram...</div>
+    <!-- Statut de synchronisation -->
+    <div class="status" id="loading-status">Connexion aux flux Telegram...</div>
     
-    <!-- Liste des vidéos et compteur -->
     <div class="playlist">
         <h3>
             <span>Films & Séries Disponibles :</span>
             <span class="counter" id="video-counter">0</span>
         </h3>
-        <div id="video-list">
-            <!-- Les flux injectés apparaissent ici à la milliseconde près -->
-        </div>
+        <div id="video-list"></div>
     </div>
 </div>
 
-<!-- Cet iframe caché sert de passerelle locale sécurisée pour aspirer la page Telegram sans erreur réseau -->
-<iframe id="hidden-iframe"></iframe>
-
 <script>
-    // CONFIGURATION : Remplacez par le nom du canal public Telegram (sans le @)
+    // CONFIGURATION : Le nom du canal public Telegram (sans le @)
     const CANAL_TELEGRAM = "CinemasFr"; 
 
     const player = document.getElementById('tg-player');
     const listContainer = document.getElementById('video-list');
     const statusText = document.getElementById('loading-status');
     const counterText = document.getElementById('video-counter');
-    const iframe = document.getElementById('hidden-iframe');
 
     let totalTrouve = 0;
 
-    function démarrerExtraction() {
-        // Chargement sécurisé via le widget d'intégration officiel de Telegram (Autorisé partout)
-        iframe.src = `https://t.me{CANAL_TELEGRAM}`;
-        
-        // Dès que l'iframe reçoit les données, on traite les flux à la volée
-        iframe.onload = function() {
-            try {
-                const doc = iframe.contentDocument || iframe.contentWindow.document;
-                const messages = doc.querySelectorAll('.tgme_widget_message_bubble');
-                
-                if (!messages || messages.length === 0) {
-                    statusText.innerHTML = "<span style='color:#f44336;'>Aucun message public détecté. Vérifiez le nom du canal.</span>";
-                    return;
-                }
-
-                listContainer.innerHTML = ""; // Nettoyer l'affichage
-
-                messages.forEach((msg) => {
-                    const videoTag = msg.querySelector('video');
-                    
-                    if (videoTag && videoTag.src) {
-                        const srcVideo = videoTag.src;
-                        
-                        // Récupération immédiate du titre (texte du message)
-                        const textObj = msg.querySelector('.tgme_widget_message_text');
-                        let nomVideo = textObj ? textObj.innerText.split('\n')[0] : "Vidéo partagée (Sans Titre)";
-                        
-                        if (nomVideo.length > 85) nomVideo = nomVideo.substring(0, 85) + "...";
-
-                        // MISE À JOUR INSTANTANÉE DU COMPTEUR
-                        totalTrouve++;
-                        counterText.innerText = totalTrouve;
-
-                        // INJECTION DIRECTE DANS LA PLAYLIST HTML
-                        const item = document.createElement('div');
-                        item.className = 'video-item';
-                        item.innerText = `${totalTrouve}. ${nomVideo}`;
-                        
-                        // Action au clic
-                        item.onclick = () => {
-                            player.src = srcVideo;
-                            player.play();
-                        };
-
-                        listContainer.appendChild(item);
-
-                        // Lance automatiquement le premier film trouvé
-                        if (totalTrouve === 1) {
-                            player.src = srcVideo;
-                        }
-                    }
-                });
-
-                if (totalTrouve > 0) {
-                    statusText.innerText = `Analyse terminée. ${totalTrouve} films synchronisés instantanément !`;
-                } else {
-                    statusText.innerHTML = "<span style='color:#ffb300;'>Le canal est accessible, mais aucune vidéo directe n'a pu être extraite.</span>";
-                }
-
-            } catch (error) {
-                // Si l'iframe local est quand même bloqué par votre navigateur (Security Origin Policy)
-                // On active la méthode de secours par injection dynamique d'un script JSONP
-                statusText.innerHTML = "<span style='color:#ffb300;'>Ajustement de la passerelle de secours...</span>";
-                recupererViaJSONP();
-            }
-        };
-    }
-
-    // Solution de secours ultime : Injection de script directe bypassant le CORS local
-    function recupererViaJSONP() {
+    function récupérerFlux() {
+        // Correction de la syntaxe de l'URL du proxy et injection JSONP directe pour bypasser Chrome
+        const targetUrl = `https://t.me{CANAL_TELEGRAM}`;
         const script = document.createElement('script');
-        script.src = `https://allorigins.win{encodeURIComponent('https://t.me' + CANAL_TELEGRAM)}&callback=traiterJSONP`;
+        
+        // Structure de l'API AllOrigins corrigée pour éviter le ERR_NAME_NOT_RESOLVED
+        script.src = `https://allorigins.win{encodeURIComponent(targetUrl)}&callback=traiterFluxInstantane`;
+        
+        script.onerror = function() {
+            statusText.innerHTML = "<span style='color:#f44336;'>Erreur réseau : Impossible de joindre la passerelle.</span>";
+        };
+        
         document.body.appendChild(script);
     }
 
-    // Traitement de la réponse de secours
-    window.traiterJSONP = function(data) {
+    // Traitement et affichage en temps réel
+    window.traiterFluxInstantane = function(data) {
+        if (!data || !data.contents) {
+            statusText.innerHTML = "<span style='color:#f44336;'>Aucune donnée reçue du canal public.</span>";
+            return;
+        }
+
         const parser = new DOMParser();
         const doc = parser.parseFromString(data.contents, 'text/html');
         const messages = doc.querySelectorAll('.tgme_widget_message_bubble');
         
-        listContainer.innerHTML = "";
-        totalTrouve = 0;
+        listContainer.innerHTML = ""; // Nettoyage de l'écran
 
+        if (messages.length === 0) {
+            statusText.innerHTML = "<span style='color:#ffb300;'>Canal trouvé mais vide ou protégé.</span>";
+            return;
+        }
+
+        statusText.innerText = "Analyse et synchronisation des fichiers...";
+
+        // Boucle d'injection immédiate
         messages.forEach((msg) => {
             const videoTag = msg.querySelector('video');
+            
             if (videoTag && videoTag.src) {
                 const srcVideo = videoTag.src;
-                const textObj = msg.querySelector('.tgme_widget_message_text');
-                let nomVideo = textObj ? textObj.innerText.split('\n')[0] : "Vidéo";
                 
+                // Extraction propre du titre de la vidéo (première ligne du message Telegram)
+                const textObj = msg.querySelector('.tgme_widget_message_text');
+                let nomVideo = textObj ? textObj.innerText.split('\n')[0] : "Vidéo partagée";
+                
+                if (nomVideo.length > 85) nomVideo = nomVideo.substring(0, 85) + "...";
+
+                // Incrémentation immédiate du compteur à l'écran
                 totalTrouve++;
                 counterText.innerText = totalTrouve;
 
+                // Création à la volée du bouton dans la playlist
                 const item = document.createElement('div');
                 item.className = 'video-item';
                 item.innerText = `${totalTrouve}. ${nomVideo}`;
-                item.onclick = () => { player.src = srcVideo; player.play(); };
+                
+                // Association du clic
+                item.onclick = () => {
+                    player.src = srcVideo;
+                    player.play();
+                };
+
+                // Affichage instantané
                 listContainer.appendChild(item);
 
-                if (totalTrouve === 1) player.src = srcVideo;
+                // Charge le premier film automatiquement dès qu'il apparaît
+                if (totalTrouve === 1) {
+                    player.src = srcVideo;
+                }
             }
         });
-        statusText.innerText = `Passerelle de secours activée : ${totalTrouve} vidéos prêtes.`;
+
+        if (totalTrouve > 0) {
+            statusText.innerText = `Synchronisation terminée ! ${totalTrouve} films chargés instantanément.`;
+        } else {
+            statusText.innerHTML = "<span style='color:#ffb300;'>Aucune vidéo extractible trouvée dans les derniers messages.</span>";
+        }
     };
 
-    // Lancement immédiat
-    démarrerExtraction();
+    // Exécution du script au chargement
+    récupérerFlux();
 </script>
 
 </body>
