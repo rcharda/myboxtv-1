@@ -3,137 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer Telegram Réparé</title>
+    <title>Lecteur Telegram Direct - Sans Proxy</title>
     <style>
         body { font-family: Arial, sans-serif; background: #0e1621; color: white; margin: 0; padding: 20px; }
-        .container { max-width: 900px; margin: auto; }
-        .video-box { background: #000; margin-bottom: 20px; border-radius: 8px; overflow: hidden; position: relative; }
-        video { width: 100%; display: block; background: #000; min-height: 400px; }
-        .playlist { background: #17212b; border-radius: 8px; padding: 15px; max-height: 400px; overflow-y: auto; }
-        .playlist h3 { margin-top: 0; color: #5288c1; display: flex; justify-content: space-between; align-items: center; }
-        .counter { background: #5288c1; color: white; padding: 4px 12px; border-radius: 12px; font-size: 14px; font-weight: bold; }
-        .video-item { padding: 12px; border-bottom: 1px solid #24303f; cursor: pointer; transition: 0.2s; color: white; font-size: 15px; }
-        .video-item:hover { background: #24303f; color: #64b5f6; }
-        .status { color: #4caf50; font-style: italic; margin-bottom: 10px; font-weight: bold; }
+        .container { max-width: 900px; margin: auto; text-align: center; }
+        .info-box { background: #17212b; border-left: 4px solid #5288c1; padding: 15px; margin-bottom: 20px; text-align: left; border-radius: 4px; font-size: 14px; }
+        .stream-wrapper { background: #17212b; border-radius: 8px; padding: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        h1 { color: #5288c1; margin-bottom: 5px; }
+        p { color: #aaaaaa; margin-top: 0; }
+        .telegram-feed { 
+            width: 100%; 
+            height: 600px; 
+            border: none; 
+            border-radius: 6px; 
+            background: #0e1621;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Lecteur Distant Instantané</h1>
-    
-    <div class="video-box">
-        <video id="tg-player" controls autoplay>
-            Votre navigateur ne supporte pas ce format vidéo.
-        </video>
+    <h1>Mon Lecteur Cinéma Telegram</h1>
+    <p>Flux direct et instantané depuis les serveurs officiels</p>
+
+    <div class="info-box">
+        <strong>🍿 Comment regarder un film ?</strong><br>
+        Faites défiler le catalogue ci-dessous. Cliquez simplement sur l'icône de lecture (Play) au centre d'une vidéo pour lancer le streaming directement dans le lecteur.
     </div>
 
-    <!-- Statut de synchronisation -->
-    <div class="status" id="loading-status">Connexion aux flux Telegram...</div>
-    
-    <div class="playlist">
-        <h3>
-            <span>Films & Séries Disponibles :</span>
-            <span class="counter" id="video-counter">0</span>
-        </h3>
-        <div id="video-list"></div>
+    <div class="stream-wrapper">
+        <!-- Widget officiel qui contourne le blocage "Dangereux" de Chrome -->
+        <iframe 
+            class="telegram-feed" 
+            src="https://t.me" 
+            allow="autoplay; encrypted-media; fullscreen">
+        </iframe>
     </div>
 </div>
-
-<script>
-    // CONFIGURATION : Le nom du canal public Telegram (sans le @)
-    const CANAL_TELEGRAM = "CinemasFr"; 
-
-    const player = document.getElementById('tg-player');
-    const listContainer = document.getElementById('video-list');
-    const statusText = document.getElementById('loading-status');
-    const counterText = document.getElementById('video-counter');
-
-    let totalTrouve = 0;
-
-    function récupérerFlux() {
-        // Correction de la syntaxe de l'URL du proxy et injection JSONP directe pour bypasser Chrome
-        const targetUrl = `https://t.me{CANAL_TELEGRAM}`;
-        const script = document.createElement('script');
-        
-        // Structure de l'API AllOrigins corrigée pour éviter le ERR_NAME_NOT_RESOLVED
-        script.src = `https://allorigins.win{encodeURIComponent(targetUrl)}&callback=traiterFluxInstantane`;
-        
-        script.onerror = function() {
-            statusText.innerHTML = "<span style='color:#f44336;'>Erreur réseau : Impossible de joindre la passerelle.</span>";
-        };
-        
-        document.body.appendChild(script);
-    }
-
-    // Traitement et affichage en temps réel
-    window.traiterFluxInstantane = function(data) {
-        if (!data || !data.contents) {
-            statusText.innerHTML = "<span style='color:#f44336;'>Aucune donnée reçue du canal public.</span>";
-            return;
-        }
-
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(data.contents, 'text/html');
-        const messages = doc.querySelectorAll('.tgme_widget_message_bubble');
-        
-        listContainer.innerHTML = ""; // Nettoyage de l'écran
-
-        if (messages.length === 0) {
-            statusText.innerHTML = "<span style='color:#ffb300;'>Canal trouvé mais vide ou protégé.</span>";
-            return;
-        }
-
-        statusText.innerText = "Analyse et synchronisation des fichiers...";
-
-        // Boucle d'injection immédiate
-        messages.forEach((msg) => {
-            const videoTag = msg.querySelector('video');
-            
-            if (videoTag && videoTag.src) {
-                const srcVideo = videoTag.src;
-                
-                // Extraction propre du titre de la vidéo (première ligne du message Telegram)
-                const textObj = msg.querySelector('.tgme_widget_message_text');
-                let nomVideo = textObj ? textObj.innerText.split('\n')[0] : "Vidéo partagée";
-                
-                if (nomVideo.length > 85) nomVideo = nomVideo.substring(0, 85) + "...";
-
-                // Incrémentation immédiate du compteur à l'écran
-                totalTrouve++;
-                counterText.innerText = totalTrouve;
-
-                // Création à la volée du bouton dans la playlist
-                const item = document.createElement('div');
-                item.className = 'video-item';
-                item.innerText = `${totalTrouve}. ${nomVideo}`;
-                
-                // Association du clic
-                item.onclick = () => {
-                    player.src = srcVideo;
-                    player.play();
-                };
-
-                // Affichage instantané
-                listContainer.appendChild(item);
-
-                // Charge le premier film automatiquement dès qu'il apparaît
-                if (totalTrouve === 1) {
-                    player.src = srcVideo;
-                }
-            }
-        });
-
-        if (totalTrouve > 0) {
-            statusText.innerText = `Synchronisation terminée ! ${totalTrouve} films chargés instantanément.`;
-        } else {
-            statusText.innerHTML = "<span style='color:#ffb300;'>Aucune vidéo extractible trouvée dans les derniers messages.</span>";
-        }
-    };
-
-    // Exécution du script au chargement
-    récupérerFlux();
-</script>
 
 </body>
 </html>
